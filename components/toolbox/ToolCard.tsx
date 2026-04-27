@@ -42,12 +42,27 @@ export function ToolCard({ tool }: ToolCardProps) {
     <div className="bg-white rounded-xl border border-slate-200 overflow-hidden hover:shadow-lg hover:border-fp-300 transition-all group">
       {/* Cover Image */}
       {tool.coverImage && (
-        <div className="w-full h-32 overflow-hidden">
+        <div className="relative w-full h-32 overflow-hidden">
           <img
             src={tool.coverImage}
             alt={tool.name}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           />
+          {/* Type badges overlay top-right */}
+          {tool.type.length > 0 && (
+            <div className="absolute top-2 right-2 flex flex-wrap justify-end gap-1">
+              {tool.type.map((t) => (
+                <span
+                  key={t}
+                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider bg-indigo-50/90 text-indigo-700 border border-indigo-200/80 backdrop-blur-sm ${
+                    typeColors[t] || "bg-slate-50/90 text-slate-600 border-slate-200/80"
+                  }`}
+                >
+                  {t}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -80,22 +95,6 @@ export function ToolCard({ tool }: ToolCardProps) {
           </div>
         </div>
 
-        {/* Type badges */}
-        {tool.type.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mb-3">
-            {tool.type.map((t) => (
-              <span
-                key={t}
-                className={`px-2 py-0.5 text-xs font-medium rounded-md border ${
-                  typeColors[t] || "bg-slate-50 text-slate-600 border-slate-200"
-                }`}
-              >
-                {t}
-              </span>
-            ))}
-          </div>
-        )}
-
         {tool.slug ? (
           <a
             href={`/projects/${tool.slug}`}
@@ -109,7 +108,7 @@ export function ToolCard({ tool }: ToolCardProps) {
           </h3>
         )}
 
-        <p className="text-sm text-slate-600 mb-4 line-clamp-2">
+        <p className="text-sm text-slate-600 mb-4">
           {tool.description}
         </p>
 
