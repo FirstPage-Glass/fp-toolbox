@@ -54,7 +54,7 @@ export default function AutomationProjectsPage() {
             {project.hoursSavedPerMonth && (
               <div className="mb-3 inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-50 text-green-700 rounded-full text-xs font-medium">
                 <span>💰</span>
-                {project.hoursSavedPerMonth}h saved/mo · $
+                {project.hoursSavedPerMonth}h saved/mo · HK$
                 {project.costSavedPerMonth?.toLocaleString()}
               </div>
             )}
