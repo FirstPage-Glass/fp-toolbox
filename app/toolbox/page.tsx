@@ -53,7 +53,7 @@ export default function ToolboxPage() {
           </span>
         </div>
         <p className="text-slate-600">
-          Live tools you can use right now.
+          Welcome to the FP Toolbox — everything here is live and ready to use. Built by Glass Chan. Questions, requests, or issues? Reach me on Slack or email <a href="mailto:glass.c@firstpage.com.hk" className="text-fp-500 hover:underline">glass.c@firstpage.com.hk</a>.
         </p>
       </div>
 
