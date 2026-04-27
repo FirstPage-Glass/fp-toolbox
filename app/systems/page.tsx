@@ -171,23 +171,22 @@ export default function SystemsPage() {
                 const hasMetrics = tool.hours_saved_per_month || tool.cost_saved_per_month;
 
                 return (
-                  <Link
+                  <div
                     key={tool.slug}
-                    href={`/projects/${tool.slug}`}
-                    className="group block bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-lg hover:border-fp-300 transition-all"
+                    className="group bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-lg hover:border-fp-300 transition-all flex flex-col"
                   >
                     {/* Cover Image */}
                     {coverImage && (
-                      <div className="w-full h-36 overflow-hidden">
+                      <Link href={`/projects/${tool.slug}`} className="block w-full h-36 overflow-hidden">
                         <img
                           src={coverImage}
                           alt={tool.name}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         />
-                      </div>
+                      </Link>
                     )}
 
-                    <div className="p-6">
+                    <div className="p-6 flex-1 flex flex-col">
                       {/* Badges */}
                       <div className="flex items-center gap-2 flex-wrap mb-3">
                         {tool.category && (
@@ -203,9 +202,11 @@ export default function SystemsPage() {
                       </div>
 
                       {/* Name + Tagline */}
-                      <h3 className="text-lg font-bold text-slate-900 mb-1 group-hover:text-fp-600 transition-colors">
-                        {tool.name}
-                      </h3>
+                      <Link href={`/projects/${tool.slug}`}>
+                        <h3 className="text-lg font-bold text-slate-900 mb-1 group-hover:text-fp-600 transition-colors">
+                          {tool.name}
+                        </h3>
+                      </Link>
                       <p className="text-sm text-slate-500 mb-3 line-clamp-2">
                         {tool.tagline || tool.description}
                       </p>
@@ -241,7 +242,7 @@ export default function SystemsPage() {
                       )}
 
                       {/* Tech preview */}
-                      <div className="flex flex-wrap gap-1">
+                      <div className="flex flex-wrap gap-1 mb-4">
                         {techStack.slice(0, 4).map((tech) => (
                           <span key={tech} className="text-xs px-2 py-1 bg-slate-50 rounded-md text-slate-500">
                             {tech}
@@ -253,8 +254,34 @@ export default function SystemsPage() {
                           </span>
                         )}
                       </div>
+
+                      {/* Action Buttons */}
+                      <div className="mt-auto pt-3 border-t border-slate-100 flex items-center gap-2">
+                        {tool.live_link && (
+                          <a
+                            href={tool.live_link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs px-2.5 py-1 bg-fp-500 text-white rounded-md hover:bg-fp-700 transition-colors"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            Open ↗
+                          </a>
+                        )}
+                        {tool.gh_link && (
+                          <a
+                            href={tool.gh_link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs px-2.5 py-1 bg-slate-700 text-white rounded-md hover:bg-slate-800 transition-colors"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            Repo ↗
+                          </a>
+                        )}
+                      </div>
                     </div>
-                  </Link>
+                  </div>
                 );
               })}
             </div>
