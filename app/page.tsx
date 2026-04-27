@@ -104,13 +104,13 @@ export default async function HomePage() {
         <h2 className="text-2xl font-bold text-slate-900 mb-6">
           Portfolio at a Glance
         </h2>
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid md:grid-cols-3 gap-6">
           {/* Status Breakdown */}
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+          <div className="md:col-span-2 bg-white rounded-xl shadow-sm border border-slate-200 p-6">
             <h3 className="text-lg font-semibold text-slate-900 mb-4">
               System Status
             </h3>
-            <div className="space-y-3">
+            <div className="space-y-4">
               {statusOrder.map((status) => {
                 const count = statusCounts[status] || 0;
                 const pct = tools.length > 0 ? (count / tools.length) * 100 : 0;
@@ -121,10 +121,12 @@ export default async function HomePage() {
                     ? "bg-fp-500"
                     : status === "Prototype"
                     ? "bg-amber-500"
+                    : status === "Planned"
+                    ? "bg-blue-500"
                     : "bg-violet-500";
                 return (
                   <div key={status}>
-                    <div className="flex justify-between text-sm mb-1">
+                    <div className="flex justify-between text-sm mb-1.5">
                       <span className="font-medium text-slate-700">
                         {status}
                       </span>
@@ -132,7 +134,7 @@ export default async function HomePage() {
                         {count} ({pct.toFixed(0)}%)
                       </span>
                     </div>
-                    <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <div className="h-4 bg-slate-100 rounded-full overflow-hidden">
                       <div
                         className={`h-full ${color} rounded-full transition-all`}
                         style={{ width: `${pct}%` }}
