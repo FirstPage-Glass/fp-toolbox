@@ -194,7 +194,7 @@ export default function SystemsPage() {
                     )}
                     {tool.cost_saved_per_month && (
                       <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-fp-50 text-fp-700 rounded-full text-xs font-semibold">
-                        💰 ${tool.cost_saved_per_month.toLocaleString()}/mo
+                        💰 HK${tool.cost_saved_per_month.toLocaleString()}/mo
                       </span>
                     )}
                   </div>

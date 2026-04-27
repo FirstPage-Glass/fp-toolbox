@@ -272,7 +272,7 @@ export default async function ProjectPage({ params }: Props) {
 
   // ROI cards
   const roiCards: { value: string; label: string; color: Parameters<typeof RoiCard>[0]["color"]; icon: string }[] = [];
-  if (costSaved) roiCards.push({ value: `$${costSaved.toLocaleString()}`, label: "Value / Month", color: "fp", icon: "💰" });
+  if (costSaved) roiCards.push({ value: `HK$${costSaved.toLocaleString()}`, label: "Value / Month", color: "fp", icon: "💰" });
   if (hoursSaved) roiCards.push({ value: `${hoursSaved}h`, label: "Hours Saved / Month", color: "green", icon: "⏱️" });
   if (volume) roiCards.push({ value: volume, label: "Monthly Volume", color: "violet", icon: "📈" });
   if (uptime) roiCards.push({ value: uptime, label: "Uptime", color: "slate", icon: "🟢" });
