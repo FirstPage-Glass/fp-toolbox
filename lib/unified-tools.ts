@@ -1,13 +1,12 @@
 import { fetchAllTools, type NocoDBTool } from "./nocodb";
 
-// Categories from NocoDB schema: Automation, Data, Reporting, Content, Integration, Utility
+// Categories from NocoDB schema: Automation, Reporting, Content, Utility, System
 export type UnifiedToolCategory =
   | "Automation"
-  | "Data"
   | "Reporting"
   | "Content"
-  | "Integration"
-  | "Utility";
+  | "Utility"
+  | "System";
 
 export interface UnifiedTool {
   id: string;
@@ -28,6 +27,8 @@ export interface UnifiedTool {
   priority: string | null;
   source: "static" | "nocodb";
   lastUpdated: string | null;
+  type: string[];
+  coverImage: string | null;
 }
 
 export type UnifiedToolFilter = {
@@ -55,6 +56,14 @@ function nocoDbToUnifiedTool(tool: NocoDBTool): UnifiedTool {
     ...techStack.slice(0, 3),
   ].filter((t): t is string => Boolean(t));
 
+  const coverImage = tool.cover_image && tool.cover_image.length > 0
+    ? (tool.cover_image[0].thumbnails?.card_cover?.signedPath
+        ? `https://nocodb.firstpage.com.hk/${tool.cover_image[0].thumbnails.card_cover.signedPath}`
+        : tool.cover_image[0].signedPath
+          ? `https://nocodb.firstpage.com.hk/${tool.cover_image[0].signedPath}`
+          : null)
+    : null;
+
   return {
     id: `nocodb-${tool.Id}`,
     name: tool.name,
@@ -74,6 +83,8 @@ function nocoDbToUnifiedTool(tool: NocoDBTool): UnifiedTool {
     priority: tool.priority,
     source: "nocodb",
     lastUpdated: tool.UpdatedAt || null,
+    type: tool.type || [],
+    coverImage,
   };
 }
 

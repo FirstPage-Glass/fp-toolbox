@@ -1,3 +1,16 @@
+export interface NocoDBAttachment {
+  path: string;
+  title: string;
+  mimetype: string;
+  size: number;
+  signedPath?: string;
+  thumbnails?: {
+    tiny?: { signedPath: string };
+    small?: { signedPath: string };
+    card_cover?: { signedPath: string };
+  };
+}
+
 export interface NocoDBTool {
   Id: number;
   CreatedAt: string;
@@ -15,7 +28,8 @@ export interface NocoDBTool {
   owner: string | null;
   last_updated: string | null;
   priority: string | null;
-  cover_image?: { path: string; title: string; mimetype: string; size: number; signedUrl?: string }[] | null;
+  cover_image?: NocoDBAttachment[] | null;
+  type?: string[] | null;
 }
 
 export interface NocoDBRecord {
@@ -91,4 +105,45 @@ export async function fetchToolById(id: number): Promise<NocoDBTool | null> {
     console.error("Failed to fetch tool from NocoDB:", error);
     return null;
   }
+}
+
+export async function fetchToolBySlug(slug: string): Promise<NocoDBTool | null> {
+  try {
+    const url = `${NOCODB_URL}/api/v3/data/${NOCODB_TOOLS_BASE_ID}/${NOCODB_TOOLS_TABLE_ID}/records?pageSize=1&where=(slug,eq,${encodeURIComponent(slug)})`;
+    const response = await fetch(url, {
+      headers: {
+        "xc-token": NOCODB_API_TOKEN,
+        "Content-Type": "application/json",
+      },
+      next: { revalidate: 300 },
+    });
+
+    if (!response.ok) {
+      throw new Error(`NocoDB API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    if (!data.records || data.records.length === 0) return null;
+
+    const record = data.records[0];
+    return {
+      Id: record.id_fields?.Id ?? record.id,
+      ...record.fields,
+    };
+  } catch (error) {
+    console.error("Failed to fetch tool by slug from NocoDB:", error);
+    return null;
+  }
+}
+
+/** Get a displayable image URL from a NocoDB attachment. Prefers card_cover thumbnail, falls back to full signed URL. */
+export function getCoverImageUrl(attachment?: NocoDBAttachment | null): string | null {
+  if (!attachment) return null;
+  if (attachment.thumbnails?.card_cover?.signedPath) {
+    return `${NOCODB_URL}/${attachment.thumbnails.card_cover.signedPath}`;
+  }
+  if (attachment.signedPath) {
+    return `${NOCODB_URL}/${attachment.signedPath}`;
+  }
+  return null;
 }

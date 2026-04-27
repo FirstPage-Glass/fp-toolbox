@@ -136,21 +136,15 @@ export default function ToolboxPage() {
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-600">Data</span>
-                  <span className="font-medium text-cyan-600">
-                    {allTools.filter((t) => t.category === "Data").length}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-600">Integration</span>
-                  <span className="font-medium text-orange-600">
-                    {allTools.filter((t) => t.category === "Integration").length}
-                  </span>
-                </div>
-                <div className="flex justify-between">
                   <span className="text-slate-600">Utility</span>
                   <span className="font-medium text-purple-600">
                     {allTools.filter((t) => t.category === "Utility").length}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-600">System</span>
+                  <span className="font-medium text-slate-600">
+                    {allTools.filter((t) => t.category === "System").length}
                   </span>
                 </div>
               </div>
