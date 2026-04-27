@@ -76,13 +76,6 @@ export function ToolCard({ tool }: ToolCardProps) {
             >
               {tool.category}
             </span>
-            <span
-              className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
-                statusBadges[tool.status] || statusBadges.Prototype
-              }`}
-            >
-              {tool.status}
-            </span>
             {tool.status === "Building" && tool.priority && (
               <span
                 className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
