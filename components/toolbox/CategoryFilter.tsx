@@ -31,7 +31,7 @@ export function CategoryFilter({ selected, onChange, variant = "light", availabl
         <button
           key={category}
           onClick={() => onChange(category)}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer ${
             selected === category
               ? "bg-fp-500 text-white shadow-md"
               : isDark
