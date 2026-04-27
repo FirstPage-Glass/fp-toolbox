@@ -177,12 +177,22 @@ export default function SystemsPage() {
                   >
                     {/* Cover Image */}
                     {coverImage && (
-                      <Link href={`/projects/${tool.slug}`} className="block w-full h-36 overflow-hidden">
+                      <Link href={`/projects/${tool.slug}`} className="relative block w-full h-36 overflow-hidden">
                         <img
                           src={coverImage}
                           alt={tool.name}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         />
+                        {/* Type badges overlay top-right */}
+                        {tool.type && tool.type.length > 0 && (
+                          <div className="absolute top-2 right-2 flex flex-wrap justify-end gap-1">
+                            {tool.type.map((t) => (
+                              <span key={t} className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider bg-indigo-50/90 text-indigo-700 border border-indigo-200/80 backdrop-blur-sm">
+                                {t}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </Link>
                     )}
 
@@ -194,11 +204,6 @@ export default function SystemsPage() {
                             {tool.category}
                           </span>
                         )}
-                        {tool.type?.map((t) => (
-                          <span key={t} className="text-xs font-bold px-2.5 py-1 rounded-full uppercase tracking-wider bg-indigo-50 text-indigo-700 border border-indigo-200">
-                            {t}
-                          </span>
-                        ))}
                       </div>
 
                       {/* Name + Tagline */}
