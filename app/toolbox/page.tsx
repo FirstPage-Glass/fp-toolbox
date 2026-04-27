@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import Link from "next/link";
 import {
   fetchAllUnifiedTools,
   filterTools,
@@ -54,15 +53,8 @@ export default function ToolboxPage() {
           </span>
         </div>
         <p className="text-slate-600">
-          Live tools you can use right now. For the full system inventory, visit <Link href="/systems" className="text-fp-500 hover:underline">Our Systems</Link>.
+          Live tools you can use right now.
         </p>
-        <nav className="flex items-center gap-2 mt-4 text-sm text-slate-500">
-          <Link href="/" className="hover:text-fp-500 transition-colors">
-            Overview
-          </Link>
-          <span>/</span>
-          <span className="text-slate-700">Toolbox</span>
-        </nav>
       </div>
 
       {isLoading ? (
