@@ -30,7 +30,7 @@ export default async function HomePage() {
   const teamCount = Object.keys(teamCoverage).length;
 
   // Status breakdown
-  const statusOrder = ["Active", "Building", "Prototype", "Refactoring"];
+  const statusOrder = ["Active", "Building", "Prototype", "Refactoring", "Planned"];
   const statusCounts: Record<string, number> = {};
   statusOrder.forEach((s) => (statusCounts[s] = 0));
   tools.forEach((t) => {
@@ -460,6 +460,7 @@ function StatusBadge({ status }: { status: string }) {
     Building: "bg-fp-100 text-fp-700",
     Prototype: "bg-amber-100 text-amber-700",
     Refactoring: "bg-violet-100 text-violet-700",
+    Planned: "bg-blue-100 text-blue-700",
   };
   return (
     <span
