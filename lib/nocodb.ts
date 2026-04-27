@@ -15,6 +15,7 @@ export interface NocoDBTool {
   owner: string | null;
   last_updated: string | null;
   priority: string | null;
+  cover_image?: { path: string; title: string; mimetype: string; size: number; signedUrl?: string }[] | null;
 }
 
 export interface NocoDBRecord {
