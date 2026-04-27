@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getProjectBySlug, projects, teamImpact } from "@/lib/data";
+import { fetchToolBySlug, getCoverImageUrl, type NocoDBTool } from "@/lib/nocodb";
 import { notFound } from "next/navigation";
 
 export function generateStaticParams() {
@@ -15,26 +16,48 @@ interface Props {
 // ── Helpers ──────────────────────────────────────────────────────────
 
 function getCategoryGradient(category: string) {
-  return category === "AI"
-    ? "from-violet-500 via-purple-600 to-fp-600"
-    : "from-emerald-500 via-teal-600 to-fp-600";
+  const map: Record<string, string> = {
+    AI: "from-violet-500 via-purple-600 to-fp-600",
+    Automation: "from-emerald-500 via-teal-600 to-fp-600",
+    System: "from-slate-600 via-slate-700 to-fp-700",
+    Reporting: "from-amber-500 via-orange-600 to-fp-600",
+    Content: "from-fp-400 via-fp-500 to-violet-600",
+    Utility: "from-purple-500 via-violet-600 to-fp-600",
+  };
+  return map[category] || map.AI;
 }
 
 function getCategoryIcon(category: string) {
-  return category === "AI" ? "🤖" : "⚡";
+  const map: Record<string, string> = {
+    AI: "🤖",
+    Automation: "⚡",
+    System: "🖥️",
+    Reporting: "📊",
+    Content: "📝",
+    Utility: "🛠️",
+  };
+  return map[category] || "🚀";
 }
 
 function getCategoryBg(category: string) {
-  return category === "AI"
-    ? "bg-purple-100 text-purple-700"
-    : "bg-emerald-100 text-emerald-700";
+  const map: Record<string, string> = {
+    AI: "bg-purple-100 text-purple-700",
+    Automation: "bg-emerald-100 text-emerald-700",
+    System: "bg-slate-100 text-slate-700",
+    Reporting: "bg-amber-100 text-amber-700",
+    Content: "bg-fp-100 text-fp-700",
+    Utility: "bg-purple-100 text-purple-700",
+  };
+  return map[category] || "bg-slate-100 text-slate-700";
 }
 
 function getStatusBadge(status: string) {
-  if (status === "Production" || status === "Live")
+  if (status === "Production" || status === "Live" || status === "Active")
     return "bg-green-100 text-green-700";
-  if (status === "Prototype (In Use)")
+  if (status === "Prototype (In Use)" || status === "Prototype")
     return "bg-amber-100 text-amber-700";
+  if (status === "Building") return "bg-fp-100 text-fp-700";
+  if (status === "Refactoring") return "bg-violet-100 text-violet-700";
   return "bg-slate-100 text-slate-700";
 }
 
@@ -286,11 +309,34 @@ function TechTag({
 
 export default async function ProjectPage({ params }: Props) {
   const { slug } = await params;
-  const project = getProjectBySlug(slug);
+  const staticProject = getProjectBySlug(slug);
 
-  if (!project) {
+  if (!staticProject) {
     notFound();
   }
+
+  // Fetch live data from NocoDB for cover image, type, updated category/status
+  const nocoTool = await fetchToolBySlug(slug);
+
+  // Merge: static data for story/content, NocoDB for live fields
+  const coverImage = nocoTool?.cover_image && nocoTool.cover_image.length > 0
+    ? getCoverImageUrl(nocoTool.cover_image[0])
+    : staticProject.coverImage || null;
+
+  const category = nocoTool?.category || staticProject.category;
+  const status = nocoTool?.status || staticProject.status;
+  const type = nocoTool?.type || [];
+  const url = nocoTool?.live_link || staticProject.url;
+  const repoUrl = nocoTool?.gh_link || staticProject.repoUrl;
+
+  const project = {
+    ...staticProject,
+    coverImage,
+    category,
+    status,
+    url,
+    repoUrl,
+  };
 
   const flowSteps = parseFlow(project.flow);
   const teamName = findTeamForProject(slug);
@@ -371,6 +417,14 @@ export default async function ProjectPage({ params }: Props) {
           >
             {project.status}
           </span>
+          {type.length > 0 && type.map((t) => (
+            <span
+              key={t}
+              className="text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider bg-indigo-50 text-indigo-700 border border-indigo-200"
+            >
+              {t}
+            </span>
+          ))}
           {project.hasWebUi && (
             <span className="text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider bg-fp-100 text-fp-700">
               Web UI

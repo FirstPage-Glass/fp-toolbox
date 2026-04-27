@@ -12,9 +12,8 @@ const categories: (UnifiedToolCategory | "All")[] = [
   "Automation",
   "Content",
   "Reporting",
-  "Data",
-  "Integration",
   "Utility",
+  "System",
 ];
 
 export function CategoryFilter({ selected, onChange }: CategoryFilterProps) {
