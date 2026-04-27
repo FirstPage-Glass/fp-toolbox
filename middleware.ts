@@ -1,27 +1,42 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
+const BASIC_USER = "firstpage";
+const BASIC_PASS = "ilovefirstpage";
+const REALM = "FP Toolbox";
+
+function requireAuth() {
+  return new NextResponse("Authentication required", {
+    status: 401,
+    headers: { "WWW-Authenticate": `Basic realm="${REALM}"` },
+  });
+}
+
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const authCookie = request.cookies.get("fp-auth");
-  const isLoggedIn = authCookie?.value === "authenticated";
 
-  // Public paths — always accessible
+  // Allow static assets and API routes without basic auth
   if (
-    pathname === "/toolbox" ||
-    pathname === "/login" ||
-    pathname.startsWith("/api/")
+    pathname.startsWith("/_next/") ||
+    pathname.startsWith("/api/") ||
+    pathname === "/favicon.ico"
   ) {
-    // Logged-in users on login page → redirect to overview
-    if (isLoggedIn && pathname === "/login") {
-      return NextResponse.redirect(new URL("/", request.url));
-    }
     return NextResponse.next();
   }
 
-  // Not logged in → redirect to toolbox
-  if (!isLoggedIn) {
-    return NextResponse.redirect(new URL("/toolbox", request.url));
+  const authHeader = request.headers.get("authorization");
+  if (!authHeader || !authHeader.startsWith("Basic ")) {
+    return requireAuth();
+  }
+
+  try {
+    const decoded = atob(authHeader.slice(6));
+    const [user, pass] = decoded.split(":");
+    if (user !== BASIC_USER || pass !== BASIC_PASS) {
+      return requireAuth();
+    }
+  } catch {
+    return requireAuth();
   }
 
   return NextResponse.next();
