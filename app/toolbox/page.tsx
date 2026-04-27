@@ -44,17 +44,39 @@ export default function ToolboxPage() {
 
   return (
     <div className="min-h-screen">
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center gap-3 mb-2">
-          <h1 className="text-3xl font-bold text-slate-900">Toolbox</h1>
-          <span className="px-2.5 py-1 bg-fp-100 text-fp-700 text-sm font-medium rounded-full">
-            {filteredTools.length} tools
-          </span>
+      {/* Hero */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-fp-900 text-white p-8 mb-8">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-fp-500/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 left-0 w-48 h-48 bg-violet-500/10 rounded-full blur-3xl" />
+
+        <div className="relative">
+          <div className="flex items-center gap-3 mb-4">
+            <span className="text-4xl">🧰</span>
+            <div>
+              <h1 className="text-3xl font-bold">FP Toolbox</h1>
+              <p className="text-sm text-slate-300">Built by Glass Chan</p>
+            </div>
+            <span className="ml-auto px-3 py-1 bg-white/10 backdrop-blur text-sm font-medium rounded-full">
+              {filteredTools.length} live tools
+            </span>
+          </div>
+
+          <p className="text-slate-300 max-w-2xl mb-4">
+            Everything here is production-ready and running 24/7. No demos — real systems saving hours every week.
+          </p>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-xs text-slate-400">Need something new?</span>
+            <a
+              href="mailto:glass.c@firstpage.com.hk"
+              className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 bg-white/10 hover:bg-white/20 backdrop-blur rounded-lg transition-colors"
+            >
+              <span>✉️</span>
+              <span>glass.c@firstpage.com.hk</span>
+            </a>
+            <span className="text-xs text-slate-500">or Slack @glasschan</span>
+          </div>
         </div>
-        <p className="text-slate-600">
-          Welcome to the FP Toolbox — everything here is live and ready to use. Built by Glass Chan. Questions, requests, or issues? Reach me on Slack or email <a href="mailto:glass.c@firstpage.com.hk" className="text-fp-500 hover:underline">glass.c@firstpage.com.hk</a>.
-        </p>
       </div>
 
       {isLoading ? (
