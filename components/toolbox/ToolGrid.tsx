@@ -18,7 +18,7 @@ export function ToolGrid({ tools, onToggleFavorite, onClearFilters }: ToolGridPr
         {onClearFilters && (
           <button
             onClick={onClearFilters}
-            className="mt-4 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+            className="mt-4 px-4 py-2 bg-fp-500 text-white text-sm rounded-lg hover:bg-fp-700 transition-colors"
           >
             Clear all filters
           </button>

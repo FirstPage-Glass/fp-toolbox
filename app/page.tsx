@@ -20,8 +20,8 @@ export default function HomePage() {
   return (
     <div className="space-y-16">
       {/* HERO — Boss Sees Value in 3 Seconds */}
-      <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-blue-900 text-white p-10">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl" />
+      <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-fp-900 text-white p-10">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-fp-500/10 rounded-full blur-3xl" />
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-violet-500/10 rounded-full blur-3xl" />
 
         <div className="relative">
@@ -33,7 +33,7 @@ export default function HomePage() {
 
           <h1 className="text-4xl md:text-5xl font-bold mb-4 leading-tight">
             HK Team Delivers
-            <span className="text-blue-400"> Production-Ready AI</span>
+            <span className="text-fp-300"> Production-Ready AI</span>
           </h1>
           <p className="text-lg text-slate-300 max-w-2xl mb-8">
             Not demos. Not hype. Real systems running 24/7 that save hours,
@@ -45,7 +45,7 @@ export default function HomePage() {
             <MetricCard
               value={`${totalHours}h`}
               label="Saved Every Month"
-              accent="text-blue-300"
+              accent="text-fp-300"
             />
             <MetricCard
               value={`$${totalCost.toLocaleString()}`}
@@ -174,7 +174,7 @@ export default function HomePage() {
         <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
           <div className="grid md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-slate-100">
             <div className="p-6">
-              <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center mb-4">
+              <div className="w-10 h-10 rounded-lg bg-fp-50 flex items-center justify-center mb-4">
                 <span className="text-xl">🛡️</span>
               </div>
               <h3 className="font-bold text-slate-900 mb-2">
@@ -252,7 +252,7 @@ export default function HomePage() {
                     <Link
                       key={slug}
                       href={`/projects/${slug}`}
-                      className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors"
+                      className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-fp-50 text-fp-700 hover:bg-fp-100 transition-colors"
                     >
                       {project.name}
                     </Link>
@@ -270,7 +270,7 @@ export default function HomePage() {
           <h2 className="text-2xl font-bold text-slate-900">AI Projects</h2>
           <Link
             href="/ai-projects"
-            className="text-sm font-medium text-blue-600 hover:text-blue-700"
+            className="text-sm font-medium text-fp-500 hover:text-fp-700"
           >
             View all →
           </Link>
@@ -289,7 +289,7 @@ export default function HomePage() {
           </h2>
           <Link
             href="/automation-projects"
-            className="text-sm font-medium text-blue-600 hover:text-blue-700"
+            className="text-sm font-medium text-fp-500 hover:text-fp-700"
           >
             View all →
           </Link>
@@ -309,7 +309,7 @@ export default function HomePage() {
           </h2>
           <Link
             href="/architecture"
-            className="text-sm font-medium text-blue-600 hover:text-blue-700"
+            className="text-sm font-medium text-fp-500 hover:text-fp-700"
           >
             View details →
           </Link>
@@ -362,7 +362,7 @@ function ProjectCard({ project }: { project: (typeof projects)[0] }) {
   return (
     <Link
       href={`/projects/${project.slug}`}
-      className="block bg-white rounded-xl shadow-sm border border-slate-200 p-6 hover:shadow-md hover:border-blue-300 transition-all"
+      className="block bg-white rounded-xl shadow-sm border border-slate-200 p-6 hover:shadow-md hover:border-fp-300 transition-all"
     >
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-2">

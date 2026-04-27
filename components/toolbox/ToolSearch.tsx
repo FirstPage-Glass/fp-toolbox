@@ -31,7 +31,7 @@ export function ToolSearch({ value, onChange }: ToolSearchProps) {
         placeholder="Search tools by name, description, tech stack..."
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+        className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-fp-500 focus:border-transparent transition-all"
       />
     </div>
   );

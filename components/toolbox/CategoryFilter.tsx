@@ -26,7 +26,7 @@ export function CategoryFilter({ selected, onChange }: CategoryFilterProps) {
           onClick={() => onChange(category)}
           className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
             selected === category
-              ? "bg-blue-600 text-white shadow-md"
+              ? "bg-fp-500 text-white shadow-md"
               : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
           }`}
         >

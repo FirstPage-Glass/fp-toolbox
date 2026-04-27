@@ -23,30 +23,30 @@ export default function ArchitecturePage() {
         </div>
         <Link
           href="/"
-          className="text-sm font-medium text-blue-600 hover:text-blue-700"
+          className="text-sm font-medium text-fp-500 hover:text-fp-700"
         >
           ← Back to Overview
         </Link>
       </div>
 
       {/* Stack Philosophy */}
-      <div className="bg-gradient-to-r from-slate-900 to-blue-900 rounded-xl p-8 text-white">
+      <div className="bg-gradient-to-r from-slate-900 to-fp-900 rounded-xl p-8 text-white">
         <h2 className="text-xl font-bold mb-3">HK Stack Philosophy</h2>
         <div className="grid md:grid-cols-3 gap-6 text-sm">
           <div>
-            <div className="font-semibold text-blue-300 mb-1">Open Source First</div>
+            <div className="font-semibold text-fp-300 mb-1">Open Source First</div>
             <p className="text-slate-300">
               n8n, Python, FastAPI, NocoDB, SvelteKit. No vendor lock-in. No surprise licensing fees.
             </p>
           </div>
           <div>
-            <div className="font-semibold text-blue-300 mb-1">API Gateway Pattern</div>
+            <div className="font-semibold text-fp-300 mb-1">API Gateway Pattern</div>
             <p className="text-slate-300">
               OpenRouter routes to Claude, GPT, Gemini. One key, multiple models. Swap providers in minutes.
             </p>
           </div>
           <div>
-            <div className="font-semibold text-blue-300 mb-1">Database of Truth</div>
+            <div className="font-semibold text-fp-300 mb-1">Database of Truth</div>
             <p className="text-slate-300">
               NocoDB centralizes all pipeline data. Every system reads from and writes to one source.
             </p>
@@ -57,7 +57,7 @@ export default function ArchitecturePage() {
       {/* Platform Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-white rounded-xl border border-slate-200 p-5 text-center">
-          <div className="text-3xl font-bold text-blue-600">{integrations.length}</div>
+          <div className="text-3xl font-bold text-fp-500">{integrations.length}</div>
           <div className="text-sm text-slate-500">Core Integrations</div>
         </div>
         <div className="bg-white rounded-xl border border-slate-200 p-5 text-center">
@@ -99,15 +99,15 @@ export default function ArchitecturePage() {
         <h2 className="text-xl font-bold text-slate-900 mb-4">Scale Highlights</h2>
         <div className="grid grid-cols-3 gap-4">
           <div className="text-center p-4 bg-slate-50 rounded-lg">
-            <div className="text-3xl font-bold text-blue-600">180+</div>
+            <div className="text-3xl font-bold text-fp-500">180+</div>
             <div className="text-sm text-slate-600">PBN Sites Managed</div>
           </div>
           <div className="text-center p-4 bg-slate-50 rounded-lg">
-            <div className="text-3xl font-bold text-blue-600">900+</div>
+            <div className="text-3xl font-bold text-fp-500">900+</div>
             <div className="text-sm text-slate-600">Backlinks/Month</div>
           </div>
           <div className="text-center p-4 bg-slate-50 rounded-lg">
-            <div className="text-3xl font-bold text-blue-600">3</div>
+            <div className="text-3xl font-bold text-fp-500">3</div>
             <div className="text-sm text-slate-600">CMS Platforms</div>
           </div>
         </div>
