@@ -53,23 +53,18 @@ export default function NavBar() {
               await fetch("/api/logout", { method: "POST" });
               window.location.href = "/toolbox";
             }}
-            className="text-sm font-medium text-slate-500 hover:text-red-500 transition-colors"
+            className="text-sm font-medium text-slate-500 hover:text-red-500 transition-colors cursor-pointer"
           >
             Logout
           </button>
         </>
       ) : (
-        <>
-          <Link href="/toolbox" className={linkClass("/toolbox")}>
-            Toolbox
-          </Link>
-          <Link
-            href="/login"
-            className="text-sm font-medium px-4 py-2 bg-fp-500 hover:bg-fp-600 text-white rounded-lg transition-colors"
-          >
-            Login
-          </Link>
-        </>
+        <Link
+          href="/login"
+          className="text-sm font-medium px-4 py-2 bg-fp-500 hover:bg-fp-600 text-white rounded-lg transition-colors"
+        >
+          Login
+        </Link>
       )}
     </nav>
   );
