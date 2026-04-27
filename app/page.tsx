@@ -3,16 +3,12 @@ import {
   projects,
   teamImpact,
   integrations,
-  getAiProjects,
-  getAutomationProjects,
   getTotalHoursSaved,
   getTotalCostSaved,
   getProductionCount,
 } from "@/lib/data";
 
 export default function HomePage() {
-  const aiProjects = getAiProjects();
-  const automationProjects = getAutomationProjects();
   const totalHours = getTotalHoursSaved();
   const totalCost = getTotalCostSaved();
   const prodCount = getProductionCount();
@@ -264,38 +260,19 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* PROJECTS */}
+      {/* OUR SYSTEMS */}
       <section>
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-slate-900">AI Projects</h2>
+          <h2 className="text-2xl font-bold text-slate-900">Our Systems</h2>
           <Link
-            href="/ai-projects"
+            href="/systems"
             className="text-sm font-medium text-fp-500 hover:text-fp-700"
           >
-            View all →
+            View all {projects.length} systems →
           </Link>
         </div>
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {aiProjects.map((project) => (
-            <ProjectCard key={project.slug} project={project} />
-          ))}
-        </div>
-      </section>
-
-      <section>
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-slate-900">
-            Automation Projects
-          </h2>
-          <Link
-            href="/automation-projects"
-            className="text-sm font-medium text-fp-500 hover:text-fp-700"
-          >
-            View all →
-          </Link>
-        </div>
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {automationProjects.map((project) => (
+          {projects.slice(0, 6).map((project) => (
             <ProjectCard key={project.slug} project={project} />
           ))}
         </div>
