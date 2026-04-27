@@ -5,7 +5,6 @@ import { useState, useEffect, useMemo } from "react";
 import { fetchAllTools, getCoverImageUrl, type NocoDBTool } from "@/lib/nocodb";
 
 const STATUS_ORDER = [
-  "Planned",
   "Production",
   "Live",
   "Active",
@@ -13,6 +12,7 @@ const STATUS_ORDER = [
   "Prototype",
   "Building",
   "Refactoring",
+  "Planned",
 ];
 
 export default function SystemsPage() {
