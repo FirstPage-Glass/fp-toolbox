@@ -57,6 +57,16 @@ export default function SystemsPage() {
     return ts.split(/[+&,]/).map((t) => t.trim()).filter(Boolean);
   };
 
+  const serveStyles: Record<string, { emoji: string; bg: string; text: string; border: string }> = {
+    Finance:    { emoji: "💰", bg: "bg-emerald-50",    text: "text-emerald-700",    border: "border-emerald-200" },
+    AMs:        { emoji: "👤", bg: "bg-sky-50",        text: "text-sky-700",        border: "border-sky-200" },
+    Clients:    { emoji: "🤝", bg: "bg-violet-50",     text: "text-violet-700",     border: "border-violet-200" },
+    "SEO Tech": { emoji: "🔍", bg: "bg-amber-50",      text: "text-amber-700",      border: "border-amber-200" },
+    Content:    { emoji: "📝", bg: "bg-fp-50",         text: "text-fp-700",         border: "border-fp-200" },
+    Sales:      { emoji: "📈", bg: "bg-rose-50",        text: "text-rose-700",        border: "border-rose-200" },
+    Everyone:   { emoji: "🌍", bg: "bg-slate-100",      text: "text-slate-700",      border: "border-slate-200" },
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-8">
@@ -163,11 +173,14 @@ export default function SystemsPage() {
                 {/* Serve badges */}
                 {tool.serve && tool.serve.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 mb-4">
-                    {tool.serve.map((s) => (
-                      <span key={s} className="px-2 py-0.5 text-xs font-medium rounded-md border bg-orange-50 text-orange-700 border-orange-200">
-                        👤 {s}
-                      </span>
-                    ))}
+                    {tool.serve.map((s) => {
+                      const style = serveStyles[s] || serveStyles.Everyone;
+                      return (
+                        <span key={s} className={`px-2 py-0.5 text-xs font-medium rounded-md border ${style.bg} ${style.text} ${style.border}`}>
+                          {style.emoji} {s}
+                        </span>
+                      );
+                    })}
                   </div>
                 )}
 
