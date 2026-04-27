@@ -14,7 +14,7 @@ export function ToolSearch({ value, onChange, variant = "light" }: ToolSearchPro
         Search tools by name, description, tech stack...
       </label>
       <svg
-        className={`absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 ${isDark ? "text-white/70" : "text-slate-400"}`}
+        className={`absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 pointer-events-none z-10 ${isDark ? "text-white/70" : "text-slate-400"}`}
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
