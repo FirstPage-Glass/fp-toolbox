@@ -4,7 +4,6 @@ import type { UnifiedTool } from "@/lib/unified-tools";
 
 interface ToolCardProps {
   tool: UnifiedTool;
-  onToggleFavorite?: (id: string) => void;
 }
 
 const categoryColors: Record<string, string> = {
@@ -16,14 +15,14 @@ const categoryColors: Record<string, string> = {
   Utility: "bg-purple-100 text-purple-700",
 };
 
-const statusColors: Record<string, string> = {
-  Active: "bg-green-500",
-  Production: "bg-green-500",
-  Live: "bg-green-500",
-  "Internal Tool": "bg-slate-500",
-  Prototype: "bg-amber-500",
-  Inactive: "bg-red-500",
-  Building: "bg-fp-500",
+const statusBadges: Record<string, string> = {
+  Active: "bg-green-100 text-green-700",
+  Production: "bg-green-100 text-green-700",
+  Live: "bg-green-100 text-green-700",
+  "Internal Tool": "bg-slate-100 text-slate-700",
+  Prototype: "bg-amber-100 text-amber-700",
+  Inactive: "bg-red-100 text-red-700",
+  Building: "bg-fp-100 text-fp-700",
 };
 
 const priorityColors: Record<string, string> = {
@@ -32,27 +31,28 @@ const priorityColors: Record<string, string> = {
   Low: "bg-slate-100 text-slate-700",
 };
 
-export function ToolCard({ tool, onToggleFavorite }: ToolCardProps) {
+export function ToolCard({ tool }: ToolCardProps) {
   return (
     <div className="bg-white rounded-xl border border-slate-200 p-5 hover:shadow-lg hover:border-fp-300 transition-all group">
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-2 flex-wrap">
           <span
-            className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+            className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
               categoryColors[tool.category] || categoryColors.Utility
             }`}
           >
             {tool.category}
           </span>
           <span
-            className={`w-2 h-2 rounded-full ${
-              statusColors[tool.status] || statusColors.Prototype
+            className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
+              statusBadges[tool.status] || statusBadges.Prototype
             }`}
-            title={tool.status}
-          />
-          {tool.priority && (
+          >
+            {tool.status}
+          </span>
+          {tool.status === "Building" && tool.priority && (
             <span
-              className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+              className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
                 priorityColors[tool.priority] || priorityColors.Medium
               }`}
             >
@@ -60,21 +60,20 @@ export function ToolCard({ tool, onToggleFavorite }: ToolCardProps) {
             </span>
           )}
         </div>
-        {onToggleFavorite && (
-          <button
-            onClick={() => onToggleFavorite(tool.id)}
-            className="text-slate-300 hover:text-amber-500 transition-colors text-lg focus:outline-none focus:ring-2 focus:ring-amber-400 rounded w-8 h-8 flex items-center justify-center"
-            title={tool.favorite ? "Remove from favorites" : "Add to favorites"}
-            aria-label={tool.favorite ? "Remove from favorites" : "Add to favorites"}
-          >
-            {tool.favorite ? "★" : "☆"}
-          </button>
-        )}
       </div>
 
-      <h3 className="font-semibold text-slate-900 mb-2 group-hover:text-fp-500 transition-colors">
-        {tool.name}
-      </h3>
+      {tool.slug ? (
+        <a
+          href={`/projects/${tool.slug}`}
+          className="font-semibold text-slate-900 mb-2 group-hover:text-fp-500 transition-colors block"
+        >
+          {tool.name}
+        </a>
+      ) : (
+        <h3 className="font-semibold text-slate-900 mb-2">
+          {tool.name}
+        </h3>
+      )}
 
       <p className="text-sm text-slate-600 mb-4 line-clamp-2">
         {tool.description}

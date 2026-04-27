@@ -11,6 +11,7 @@ export interface NocoDBTool {
   documentation_url: string | null;
   live_link: string | null;
   gh_link: string | null;
+  slug: string | null;
   owner: string | null;
   last_updated: string | null;
   priority: string | null;

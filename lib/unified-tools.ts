@@ -17,13 +17,13 @@ export interface UnifiedTool {
   techStack: string[];
   tags: string[];
   status: string;
+  slug: string | null;
   url: string | null;
   repoUrl: string | null;
   hasWebUi: boolean;
   impact: string;
   quickAccess: boolean;
   lastUsed: string | null;
-  favorite: boolean;
   owner: string | null;
   priority: string | null;
   source: "static" | "nocodb";
@@ -63,13 +63,13 @@ function nocoDbToUnifiedTool(tool: NocoDBTool): UnifiedTool {
     techStack,
     tags,
     status: tool.status || "Unknown",
+    slug: tool.slug || null,
     url: tool.live_link || null,
     repoUrl: tool.gh_link || null,
     hasWebUi: hasLiveLink,
     impact: "",
     quickAccess: tool.priority === "High",
     lastUsed: null,
-    favorite: false,
     owner: tool.owner,
     priority: tool.priority,
     source: "nocodb",
