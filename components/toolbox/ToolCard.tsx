@@ -96,20 +96,6 @@ export function ToolCard({ tool }: ToolCardProps) {
           </div>
         )}
 
-        {/* Serve badges */}
-        {tool.serve.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mb-3">
-            {tool.serve.map((s) => (
-              <span
-                key={s}
-                className="px-2 py-0.5 text-xs font-medium rounded-md border bg-orange-50 text-orange-700 border-orange-200"
-              >
-                👤 {s}
-              </span>
-            ))}
-          </div>
-        )}
-
         {tool.slug ? (
           <a
             href={`/projects/${tool.slug}`}
