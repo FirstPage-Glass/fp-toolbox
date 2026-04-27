@@ -61,9 +61,16 @@ export default function ToolboxPage() {
             </span>
           </div>
 
-          <p className="text-slate-300 max-w-2xl mb-4">
+          <p className="text-slate-300 max-w-2xl mb-6">
             Everything here is production-ready and running 24/7. No demos — real systems saving hours every week.
           </p>
+
+          {!isLoading && (
+            <div className="space-y-4 mb-6">
+              <ToolSearch value={searchQuery} onChange={setSearchQuery} variant="dark" />
+              <CategoryFilter selected={selectedCategory} onChange={setSelectedCategory} variant="dark" />
+            </div>
+          )}
 
           <div className="flex flex-wrap items-center gap-3">
             <span className="text-xs text-slate-400">Need something new or found a bug?</span>
@@ -86,9 +93,6 @@ export default function ToolboxPage() {
         </div>
       ) : (
         <div className="space-y-5">
-            <ToolSearch value={searchQuery} onChange={setSearchQuery} />
-            <CategoryFilter selected={selectedCategory} onChange={setSelectedCategory} />
-
             {searchQuery && (
               <p className="text-sm text-slate-500">
                 Showing {filteredTools.length} results for &ldquo;{searchQuery}&rdquo;

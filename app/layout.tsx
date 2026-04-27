@@ -34,7 +34,7 @@ export default function RootLayout({
                       FirstPage Hong Kong
                     </h1>
                     <p className="text-xs text-slate-500">
-                      AI & Automation — by Glass Chan
+                      AI & Automation
                     </p>
                   </div>
                 </Link>
