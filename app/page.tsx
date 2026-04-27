@@ -307,6 +307,24 @@ export default async function HomePage() {
                   Glass for links
                 </span>
               </li>
+              <li className="flex gap-2">
+                <span>•</span>
+                <span>
+                  <strong>FAQ sections written manually</strong> — writers crafting Q&amp;A from scratch for every page
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <span>•</span>
+                <span>
+                  <strong>SEO content briefs done ad hoc</strong> — AMs googling keywords and guessing structure
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <span>•</span>
+                <span>
+                  <strong>Technical docs written from scratch</strong> — inconsistent format, hours per client
+                </span>
+              </li>
             </ul>
           </div>
 
@@ -351,6 +369,24 @@ export default async function HomePage() {
                 <span>
                   <strong>Self-service portal</strong> — every tool documented,
                   searchable, accessible
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <span>•</span>
+                <span>
+                  <strong>AI FAQ schema generator</strong> — structured Q&amp;A with JSON-LD markup in seconds
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <span>•</span>
+                <span>
+                  <strong>Content briefs auto-generated</strong> — keyword research, outline, and SEO specs in one click
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <span>•</span>
+                <span>
+                  <strong>Technical docs AI-generated</strong> — consistent format, client-ready in minutes not hours
                 </span>
               </li>
             </ul>
