@@ -1,23 +1,33 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import Link from "next/link";
 import {
-  getAllTools,
+  fetchAllUnifiedTools,
   filterTools,
   getAllTags,
-  type ToolCategory,
-  type Tool,
-} from "@/lib/data";
+  type UnifiedToolCategory,
+  type UnifiedTool,
+} from "@/lib/unified-tools";
 import { ToolSearch } from "@/components/toolbox/ToolSearch";
 import { ToolGrid } from "@/components/toolbox/ToolGrid";
 import { CategoryFilter } from "@/components/toolbox/CategoryFilter";
 import { QuickAccessPanel } from "@/components/toolbox/QuickAccessPanel";
 
+// Update ToolCard props to use id instead of slug
+declare module "@/components/toolbox/ToolCard" {
+  interface ToolCardProps {
+    tool: UnifiedTool;
+    onToggleFavorite?: (id: string) => void;
+  }
+}
+
 export default function ToolboxPage() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<ToolCategory | "All">("All");
+  const [selectedCategory, setSelectedCategory] = useState<UnifiedToolCategory | "All">("All");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [allTools, setAllTools] = useState<UnifiedTool[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [favorites, setFavorites] = useState<Set<string>>(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("toolbox-favorites");
@@ -26,13 +36,23 @@ export default function ToolboxPage() {
     return new Set();
   });
 
-  const allTools = useMemo(() => getAllTools(), []);
-  const allTags = useMemo(() => getAllTags(), []);
+  // Fetch live data from NocoDB
+  useEffect(() => {
+    const loadTools = async () => {
+      setIsLoading(true);
+      const tools = await fetchAllUnifiedTools();
+      setAllTools(tools);
+      setIsLoading(false);
+    };
+    loadTools();
+  }, []);
+
+  const allTags = useMemo(() => getAllTags(allTools), [allTools]);
 
   const enhanceToolsWithFavorites = useCallback(
-    (tools: Tool[]) => tools.map((tool) => ({
+    (tools: UnifiedTool[]) => tools.map((tool) => ({
       ...tool,
-      favorite: favorites.has(tool.slug),
+      favorite: favorites.has(tool.id),
     })),
     [favorites]
   );
@@ -43,21 +63,21 @@ export default function ToolboxPage() {
   );
 
   const filteredTools = useMemo(() => {
-    const filtered = filterTools({
+    const filtered = filterTools(allTools, {
       search: searchQuery,
       category: selectedCategory,
       tags: selectedTags.length > 0 ? selectedTags : undefined,
-    }, allTools);
+    });
     return enhanceToolsWithFavorites(filtered);
   }, [searchQuery, selectedCategory, selectedTags, allTools, enhanceToolsWithFavorites]);
 
-  const handleToggleFavorite = (slug: string) => {
+  const handleToggleFavorite = (id: string) => {
     setFavorites((prev) => {
       const next = new Set(prev);
-      if (next.has(slug)) {
-        next.delete(slug);
+      if (next.has(id)) {
+        next.delete(id);
       } else {
-        next.add(slug);
+        next.add(id);
       }
       localStorage.setItem("toolbox-favorites", JSON.stringify(Array.from(next)));
       return next;
@@ -98,10 +118,16 @@ export default function ToolboxPage() {
         </nav>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-6">
-        {/* Sidebar */}
-        <div className="lg:w-64 flex-shrink-0 space-y-5">
-          <QuickAccessPanel tools={toolsWithFavorites} />
+      {isLoading ? (
+        <div className="text-center py-16">
+          <div className="inline-block w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+          <p className="text-slate-500">Loading tools from NocoDB...</p>
+        </div>
+      ) : (
+        <div className="flex flex-col lg:flex-row gap-6">
+          {/* Sidebar */}
+          <div className="lg:w-64 flex-shrink-0 space-y-5">
+            <QuickAccessPanel tools={toolsWithFavorites} />
 
           {/* Tag Filter */}
           <div className="bg-white rounded-xl border border-slate-200 p-5">
@@ -131,56 +157,57 @@ export default function ToolboxPage() {
             )}
           </div>
 
-          {/* Stats */}
-          <div className="bg-slate-50 rounded-xl border border-slate-200 p-5">
-            <h3 className="font-semibold text-slate-900 mb-3">Stats</h3>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-slate-600">AI Tools</span>
-                <span className="font-medium text-violet-600">
-                  {allTools.filter((t) => t.category === "AI").length}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-600">Automation</span>
-                <span className="font-medium text-emerald-600">
-                  {allTools.filter((t) => t.category === "Automation").length}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-600">With Web UI</span>
-                <span className="font-medium text-blue-600">
-                  {allTools.filter((t) => t.hasWebUi).length}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-600">Live URLs</span>
-                <span className="font-medium text-green-600">
-                  {allTools.filter((t) => t.url).length}
-                </span>
+            {/* Stats */}
+            <div className="bg-slate-50 rounded-xl border border-slate-200 p-5">
+              <h3 className="font-semibold text-slate-900 mb-3">Stats</h3>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-slate-600">AI Tools</span>
+                  <span className="font-medium text-violet-600">
+                    {allTools.filter((t) => t.category === "AI").length}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-600">Automation</span>
+                  <span className="font-medium text-emerald-600">
+                    {allTools.filter((t) => t.category === "Automation").length}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-600">Reporting</span>
+                  <span className="font-medium text-amber-600">
+                    {allTools.filter((t) => t.category === "Reporting").length}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-600">Content</span>
+                  <span className="font-medium text-blue-600">
+                    {allTools.filter((t) => t.category === "Content").length}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
+
+          {/* Main Content */}
+          <div className="flex-1 space-y-5">
+            <ToolSearch value={searchQuery} onChange={setSearchQuery} />
+            <CategoryFilter selected={selectedCategory} onChange={setSelectedCategory} />
+
+            {searchQuery && (
+              <p className="text-sm text-slate-500">
+                Showing {filteredTools.length} results for "{searchQuery}"
+              </p>
+            )}
+
+            <ToolGrid
+              tools={filteredTools}
+              onToggleFavorite={handleToggleFavorite}
+              onClearFilters={handleClearFilters}
+            />
+          </div>
         </div>
-
-        {/* Main Content */}
-        <div className="flex-1 space-y-5">
-          <ToolSearch value={searchQuery} onChange={setSearchQuery} />
-          <CategoryFilter selected={selectedCategory} onChange={setSelectedCategory} />
-
-          {searchQuery && (
-            <p className="text-sm text-slate-500">
-              Showing {filteredTools.length} results for "{searchQuery}"
-            </p>
-          )}
-
-          <ToolGrid
-            tools={filteredTools}
-            onToggleFavorite={handleToggleFavorite}
-            onClearFilters={handleClearFilters}
-          />
-        </div>
-      </div>
+      )}
     </div>
   );
 }

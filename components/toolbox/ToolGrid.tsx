@@ -1,11 +1,11 @@
 "use client";
 
-import type { Tool } from "@/lib/data";
+import type { UnifiedTool } from "@/lib/unified-tools";
 import { ToolCard } from "./ToolCard";
 
 interface ToolGridProps {
-  tools: Tool[];
-  onToggleFavorite?: (slug: string) => void;
+  tools: UnifiedTool[];
+  onToggleFavorite?: (id: string) => void;
   onClearFilters?: () => void;
 }
 
@@ -30,7 +30,7 @@ export function ToolGrid({ tools, onToggleFavorite, onClearFilters }: ToolGridPr
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
       {tools.map((tool) => (
-        <ToolCard key={tool.slug} tool={tool} onToggleFavorite={onToggleFavorite} />
+        <ToolCard key={tool.id} tool={tool} onToggleFavorite={onToggleFavorite} />
       ))}
     </div>
   );

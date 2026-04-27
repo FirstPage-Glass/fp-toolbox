@@ -1,32 +1,41 @@
 "use client";
 
-import Link from "next/link";
-import type { Tool } from "@/lib/data";
+import type { UnifiedTool } from "@/lib/unified-tools";
 
 interface ToolCardProps {
-  tool: Tool;
-  onToggleFavorite?: (slug: string) => void;
+  tool: UnifiedTool;
+  onToggleFavorite?: (id: string) => void;
 }
 
 const categoryColors: Record<string, string> = {
   AI: "bg-violet-100 text-violet-700",
   Automation: "bg-emerald-100 text-emerald-700",
+  Reporting: "bg-amber-100 text-amber-700",
+  Content: "bg-blue-100 text-blue-700",
   Internal: "bg-slate-100 text-slate-700",
-  Analytics: "bg-amber-100 text-amber-700",
+  Analytics: "bg-purple-100 text-purple-700",
 };
 
 const statusColors: Record<string, string> = {
+  Active: "bg-green-500",
   Production: "bg-green-500",
   Live: "bg-green-500",
   "Internal Tool": "bg-slate-500",
   Prototype: "bg-amber-500",
+  Inactive: "bg-red-500",
+};
+
+const priorityColors: Record<string, string> = {
+  High: "bg-red-100 text-red-700",
+  Medium: "bg-amber-100 text-amber-700",
+  Low: "bg-slate-100 text-slate-700",
 };
 
 export function ToolCard({ tool, onToggleFavorite }: ToolCardProps) {
   return (
     <div className="bg-white rounded-xl border border-slate-200 p-5 hover:shadow-lg hover:border-blue-300 transition-all group">
       <div className="flex items-start justify-between mb-3">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <span
             className={`px-2 py-0.5 rounded-full text-xs font-medium ${
               categoryColors[tool.category] || categoryColors.Internal
@@ -40,10 +49,19 @@ export function ToolCard({ tool, onToggleFavorite }: ToolCardProps) {
             }`}
             title={tool.status}
           />
+          {tool.priority && (
+            <span
+              className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                priorityColors[tool.priority] || priorityColors.Medium
+              }`}
+            >
+              {tool.priority} Priority
+            </span>
+          )}
         </div>
         {onToggleFavorite && (
           <button
-            onClick={() => onToggleFavorite(tool.slug)}
+            onClick={() => onToggleFavorite(tool.id)}
             className="text-slate-300 hover:text-amber-500 transition-colors text-lg focus:outline-none focus:ring-2 focus:ring-amber-400 rounded w-8 h-8 flex items-center justify-center"
             title={tool.favorite ? "Remove from favorites" : "Add to favorites"}
             aria-label={tool.favorite ? "Remove from favorites" : "Add to favorites"}
@@ -54,7 +72,7 @@ export function ToolCard({ tool, onToggleFavorite }: ToolCardProps) {
       </div>
 
       <h3 className="font-semibold text-slate-900 mb-2 group-hover:text-blue-600 transition-colors">
-        <Link href={`/projects/${tool.slug}`}>{tool.name}</Link>
+        {tool.name}
       </h3>
 
       <p className="text-sm text-slate-600 mb-4 line-clamp-2">
@@ -98,14 +116,13 @@ export function ToolCard({ tool, onToggleFavorite }: ToolCardProps) {
               className="text-xs px-2.5 py-1 bg-slate-700 text-white rounded-md hover:bg-slate-800 transition-colors"
               onClick={(e) => e.stopPropagation()}
             >
-              Code ↗
+              Repo ↗
             </a>
           )}
         </div>
-        {tool.hasWebUi && (
-          <span className="text-xs text-slate-500 flex items-center gap-1">
-            <span className="w-1.5 h-1.5 bg-green-500 rounded-full" />
-            Web UI
+        {tool.owner && (
+          <span className="text-xs text-slate-500">
+            {tool.owner}
           </span>
         )}
       </div>
