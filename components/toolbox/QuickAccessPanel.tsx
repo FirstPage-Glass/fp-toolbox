@@ -7,7 +7,7 @@ interface QuickAccessPanelProps {
 }
 
 export function QuickAccessPanel({ tools }: QuickAccessPanelProps) {
-  const quickAccessTools = tools.filter((t) => t.quickAccess || t.favorite);
+  const quickAccessTools = tools.filter((t) => t.quickAccess);
 
   if (quickAccessTools.length === 0) return null;
 

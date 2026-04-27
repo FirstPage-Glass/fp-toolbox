@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import {
   fetchAllUnifiedTools,
@@ -12,15 +12,7 @@ import {
 import { ToolSearch } from "@/components/toolbox/ToolSearch";
 import { ToolGrid } from "@/components/toolbox/ToolGrid";
 import { CategoryFilter } from "@/components/toolbox/CategoryFilter";
-import { QuickAccessPanel } from "@/components/toolbox/QuickAccessPanel";
 
-// Update ToolCard props to use id instead of slug
-declare module "@/components/toolbox/ToolCard" {
-  interface ToolCardProps {
-    tool: UnifiedTool;
-    onToggleFavorite?: (id: string) => void;
-  }
-}
 
 export default function ToolboxPage() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -28,13 +20,6 @@ export default function ToolboxPage() {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [allTools, setAllTools] = useState<UnifiedTool[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [favorites, setFavorites] = useState<Set<string>>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("toolbox-favorites");
-      return saved ? new Set(JSON.parse(saved)) : new Set();
-    }
-    return new Set();
-  });
 
   // Fetch live data from NocoDB
   useEffect(() => {
@@ -49,40 +34,13 @@ export default function ToolboxPage() {
 
   const allTags = useMemo(() => getAllTags(allTools), [allTools]);
 
-  const enhanceToolsWithFavorites = useCallback(
-    (tools: UnifiedTool[]) => tools.map((tool) => ({
-      ...tool,
-      favorite: favorites.has(tool.id),
-    })),
-    [favorites]
-  );
-
-  const toolsWithFavorites = useMemo(
-    () => enhanceToolsWithFavorites(allTools),
-    [allTools, enhanceToolsWithFavorites]
-  );
-
   const filteredTools = useMemo(() => {
-    const filtered = filterTools(allTools, {
+    return filterTools(allTools, {
       search: searchQuery,
       category: selectedCategory,
       tags: selectedTags.length > 0 ? selectedTags : undefined,
     });
-    return enhanceToolsWithFavorites(filtered);
-  }, [searchQuery, selectedCategory, selectedTags, allTools, enhanceToolsWithFavorites]);
-
-  const handleToggleFavorite = (id: string) => {
-    setFavorites((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      localStorage.setItem("toolbox-favorites", JSON.stringify(Array.from(next)));
-      return next;
-    });
-  };
+  }, [searchQuery, selectedCategory, selectedTags, allTools]);
 
   const handleClearFilters = () => {
     setSearchQuery("");
@@ -127,8 +85,6 @@ export default function ToolboxPage() {
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Sidebar */}
           <div className="lg:w-64 flex-shrink-0 space-y-5">
-            <QuickAccessPanel tools={toolsWithFavorites} />
-
           {/* Tag Filter */}
           <div className="bg-white rounded-xl border border-slate-200 p-5">
             <h3 className="font-semibold text-slate-900 mb-4">Filter by Tags</h3>
@@ -214,7 +170,6 @@ export default function ToolboxPage() {
 
             <ToolGrid
               tools={filteredTools}
-              onToggleFavorite={handleToggleFavorite}
               onClearFilters={handleClearFilters}
             />
           </div>
