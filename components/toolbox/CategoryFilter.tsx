@@ -7,7 +7,15 @@ interface CategoryFilterProps {
   onChange: (category: UnifiedToolCategory | "All") => void;
 }
 
-const categories: (UnifiedToolCategory | "All")[] = ["All", "AI", "Automation", "Reporting", "Content", "Internal", "Analytics"];
+const categories: (UnifiedToolCategory | "All")[] = [
+  "All",
+  "Automation",
+  "Content",
+  "Reporting",
+  "Data",
+  "Integration",
+  "Utility",
+];
 
 export function CategoryFilter({ selected, onChange }: CategoryFilterProps) {
   return (

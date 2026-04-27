@@ -9,6 +9,8 @@ export interface NocoDBTool {
   tech_stack: string;
   repository_path: string | null;
   documentation_url: string | null;
+  live_link: string | null;
+  gh_link: string | null;
   owner: string | null;
   last_updated: string | null;
   priority: string | null;
@@ -26,7 +28,7 @@ const NOCODB_TOOLS_TABLE_ID = process.env.NOCODB_TOOLS_TABLE_ID || "m84ca9736466
 
 export async function fetchAllTools(): Promise<NocoDBTool[]> {
   try {
-    const url = `${NOCODB_URL}/api/v2/tables/${NOCODB_TOOLS_TABLE_ID}/records?limit=100`;
+    const url = `${NOCODB_URL}/api/v3/data/${NOCODB_TOOLS_BASE_ID}/${NOCODB_TOOLS_TABLE_ID}/records?pageSize=100`;
     const response = await fetch(url, {
       headers: {
         "xc-token": NOCODB_API_TOKEN,
@@ -40,7 +42,7 @@ export async function fetchAllTools(): Promise<NocoDBTool[]> {
     }
 
     const data = await response.json();
-    return data.list.map((record: NocoDBRecord) => record.fields);
+    return data.records.map((record: NocoDBRecord) => record.fields);
   } catch (error) {
     console.error("Failed to fetch tools from NocoDB:", error);
     return [];

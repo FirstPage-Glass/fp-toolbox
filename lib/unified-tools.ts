@@ -1,6 +1,13 @@
 import { fetchAllTools, type NocoDBTool } from "./nocodb";
 
-export type UnifiedToolCategory = "AI" | "Automation" | "Reporting" | "Content" | "Internal" | "Analytics";
+// Categories from NocoDB schema: Automation, Data, Reporting, Content, Integration, Utility
+export type UnifiedToolCategory =
+  | "Automation"
+  | "Data"
+  | "Reporting"
+  | "Content"
+  | "Integration"
+  | "Utility";
 
 export interface UnifiedTool {
   id: string;
@@ -36,24 +43,29 @@ function nocoDbToUnifiedTool(tool: NocoDBTool): UnifiedTool {
     ? tool.tech_stack.split(/[+,]/).map((t) => t.trim()).filter(Boolean)
     : [];
 
+  const hasLiveLink = Boolean(tool.live_link);
+  const hasGhLink = Boolean(tool.gh_link);
+
   const tags = [
     tool.category,
     tool.status,
     tool.priority,
-    ...techStack,
+    ...(hasGhLink ? ["Open Source"] : []),
+    ...(hasLiveLink ? ["Live"] : []),
+    ...techStack.slice(0, 3),
   ].filter((t): t is string => Boolean(t));
 
   return {
     id: `nocodb-${tool.Id}`,
     name: tool.name,
-    category: tool.category as UnifiedToolCategory,
+    category: (tool.category as UnifiedToolCategory) || "Automation",
     description: tool.description || "",
     techStack,
     tags,
     status: tool.status || "Unknown",
-    url: tool.documentation_url,
-    repoUrl: tool.repository_path,
-    hasWebUi: false,
+    url: tool.live_link || null,
+    repoUrl: tool.gh_link || null,
+    hasWebUi: hasLiveLink,
     impact: "",
     quickAccess: tool.priority === "High",
     lastUsed: null,
@@ -68,9 +80,6 @@ function nocoDbToUnifiedTool(tool: NocoDBTool): UnifiedTool {
 export async function fetchAllUnifiedTools(): Promise<UnifiedTool[]> {
   const nocoDbTools = await fetchAllTools();
   const unifiedFromNoco = nocoDbTools.map(nocoDbToUnifiedTool);
-
-  // We'll only use NocoDB tools for now since that's the live source
-  // In the future, we could merge with static tools from data.ts
   return unifiedFromNoco;
 }
 
@@ -87,8 +96,12 @@ export function filterTools(
         (tool) =>
           tool.name.toLowerCase().includes(searchLower) ||
           tool.description.toLowerCase().includes(searchLower) ||
-          tool.techStack.some((tech) => tech.toLowerCase().includes(searchLower)) ||
-          tool.tags.some((tag) => tag && tag.toLowerCase().includes(searchLower)) ||
+          tool.techStack.some((tech) =>
+            tech.toLowerCase().includes(searchLower)
+          ) ||
+          tool.tags.some(
+            (tag) => tag && tag.toLowerCase().includes(searchLower)
+          ) ||
           (tool.owner && tool.owner.toLowerCase().includes(searchLower))
       );
     }

@@ -8,12 +8,12 @@ interface ToolCardProps {
 }
 
 const categoryColors: Record<string, string> = {
-  AI: "bg-violet-100 text-violet-700",
   Automation: "bg-emerald-100 text-emerald-700",
+  Data: "bg-cyan-100 text-cyan-700",
   Reporting: "bg-amber-100 text-amber-700",
   Content: "bg-blue-100 text-blue-700",
-  Internal: "bg-slate-100 text-slate-700",
-  Analytics: "bg-purple-100 text-purple-700",
+  Integration: "bg-orange-100 text-orange-700",
+  Utility: "bg-purple-100 text-purple-700",
 };
 
 const statusColors: Record<string, string> = {
@@ -23,6 +23,7 @@ const statusColors: Record<string, string> = {
   "Internal Tool": "bg-slate-500",
   Prototype: "bg-amber-500",
   Inactive: "bg-red-500",
+  Building: "bg-blue-500",
 };
 
 const priorityColors: Record<string, string> = {
@@ -38,7 +39,7 @@ export function ToolCard({ tool, onToggleFavorite }: ToolCardProps) {
         <div className="flex items-center gap-2 flex-wrap">
           <span
             className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-              categoryColors[tool.category] || categoryColors.Internal
+              categoryColors[tool.category] || categoryColors.Utility
             }`}
           >
             {tool.category}

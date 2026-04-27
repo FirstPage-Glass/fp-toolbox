@@ -162,15 +162,15 @@ export default function ToolboxPage() {
               <h3 className="font-semibold text-slate-900 mb-3">Stats</h3>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-slate-600">AI Tools</span>
-                  <span className="font-medium text-violet-600">
-                    {allTools.filter((t) => t.category === "AI").length}
-                  </span>
-                </div>
-                <div className="flex justify-between">
                   <span className="text-slate-600">Automation</span>
                   <span className="font-medium text-emerald-600">
                     {allTools.filter((t) => t.category === "Automation").length}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-600">Content</span>
+                  <span className="font-medium text-blue-600">
+                    {allTools.filter((t) => t.category === "Content").length}
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -180,9 +180,21 @@ export default function ToolboxPage() {
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-600">Content</span>
-                  <span className="font-medium text-blue-600">
-                    {allTools.filter((t) => t.category === "Content").length}
+                  <span className="text-slate-600">Data</span>
+                  <span className="font-medium text-cyan-600">
+                    {allTools.filter((t) => t.category === "Data").length}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-600">Integration</span>
+                  <span className="font-medium text-orange-600">
+                    {allTools.filter((t) => t.category === "Integration").length}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-600">Utility</span>
+                  <span className="font-medium text-purple-600">
+                    {allTools.filter((t) => t.category === "Utility").length}
                   </span>
                 </div>
               </div>
