@@ -69,10 +69,18 @@ export default async function HomePage() {
             HK AI & Automation
             <span className="text-fp-300"> Portfolio</span>
           </h1>
-          <p className="text-lg text-slate-300 max-w-2xl mb-8">
+          <p className="text-lg text-slate-300 max-w-2xl mb-6">
             Real systems running 24/7. Every number below is live from NocoDB —
             not estimates.
           </p>
+          <div className="mb-8">
+            <Link
+              href="/presentation"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 backdrop-blur border border-white/20 rounded-xl text-sm font-medium transition-colors"
+            >
+              <span>▶️</span> Present Mode — Jobs Done Deck
+            </Link>
+          </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <MetricCard
