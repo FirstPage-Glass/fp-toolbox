@@ -149,34 +149,25 @@ export default async function HomePage() {
             <h3 className="text-lg font-semibold text-slate-900 mb-4">
               Team Coverage
             </h3>
-            <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
               {Object.entries(teamCoverage)
                 .sort((a, b) => b[1].count - a[1].count)
                 .map(([team, data]) => (
-                  <div
+                  <Link
                     key={team}
-                    className="flex items-center justify-between p-3 bg-slate-50 rounded-lg"
+                    href="/systems"
+                    className="flex flex-col items-center justify-center p-4 bg-slate-50 rounded-lg hover:bg-fp-50 hover:border-fp-200 border border-transparent transition-all text-center"
                   >
-                    <div className="flex items-center gap-3">
-                      <span className="text-lg">
-                        {teamEmoji(team)}
-                      </span>
-                      <span className="font-medium text-slate-800">
-                        {team}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm text-slate-500">
-                        {data.count} tool{data.count > 1 ? "s" : ""}
-                      </span>
-                      <Link
-                        href="/systems"
-                        className="text-xs font-medium text-fp-500 hover:text-fp-700"
-                      >
-                        View →
-                      </Link>
-                    </div>
-                  </div>
+                    <span className="text-2xl mb-2">
+                      {teamEmoji(team)}
+                    </span>
+                    <span className="font-medium text-slate-800 text-sm">
+                      {team}
+                    </span>
+                    <span className="text-xs text-slate-500 mt-1">
+                      {data.count} tool{data.count > 1 ? "s" : ""}
+                    </span>
+                  </Link>
                 ))}
             </div>
           </div>
