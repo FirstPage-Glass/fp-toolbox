@@ -142,17 +142,6 @@ export function ToolCard({ tool }: ToolCardProps) {
                 Open ↗
               </a>
             )}
-            {tool.repoUrl && (
-              <a
-                href={tool.repoUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs px-2.5 py-1 bg-slate-700 text-white rounded-md hover:bg-slate-800 transition-colors"
-                onClick={(e) => e.stopPropagation()}
-              >
-                Repo ↗
-              </a>
-            )}
           </div>
           {tool.owner && (
             <span className="text-xs text-slate-500">
