@@ -347,14 +347,10 @@ export default async function ProjectPage({ params }: Props) {
         </Link>
         <span className="text-slate-300">/</span>
         <Link
-          href={
-            project.category === "AI"
-              ? "/ai-projects"
-              : "/automation-projects"
-          }
+          href="/systems"
           className="hover:text-fp-500 transition-colors"
         >
-          {project.category} Projects
+          Our Systems
         </Link>
         <span className="text-slate-300">/</span>
         <span className="text-slate-900 font-medium">{project.name}</span>
