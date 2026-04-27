@@ -60,7 +60,7 @@ export default function RootLayout({
                     href="/architecture"
                     className="text-sm font-medium text-slate-600 hover:text-fp-500 transition-colors"
                   >
-                    Architecture
+                    Stack
                   </Link>
                 </nav>
               </div>
