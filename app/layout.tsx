@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import Link from "next/link";
+import NavBar from "./components/NavBar";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -37,32 +38,7 @@ export default function RootLayout({
                     </p>
                   </div>
                 </Link>
-                <nav className="hidden md:flex items-center gap-6">
-                  <Link
-                    href="/"
-                    className="text-sm font-medium text-slate-600 hover:text-fp-500 transition-colors"
-                  >
-                    Overview
-                  </Link>
-                  <Link
-                    href="/toolbox"
-                    className="text-sm font-medium text-slate-600 hover:text-fp-500 transition-colors"
-                  >
-                    Toolbox
-                  </Link>
-                  <Link
-                    href="/systems"
-                    className="text-sm font-medium text-slate-600 hover:text-fp-500 transition-colors"
-                  >
-                    Our Systems
-                  </Link>
-                  <Link
-                    href="/architecture"
-                    className="text-sm font-medium text-slate-600 hover:text-fp-500 transition-colors"
-                  >
-                    Stack
-                  </Link>
-                </nav>
+                <NavBar />
               </div>
             </div>
           </header>
