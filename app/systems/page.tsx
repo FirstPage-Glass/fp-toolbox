@@ -156,9 +156,20 @@ export default function SystemsPage() {
                 <h3 className="text-lg font-bold text-slate-900 mb-1 group-hover:text-fp-600 transition-colors">
                   {tool.name}
                 </h3>
-                <p className="text-sm text-slate-500 mb-4 line-clamp-2">
+                <p className="text-sm text-slate-500 mb-3 line-clamp-2">
                   {tool.tagline || tool.description}
                 </p>
+
+                {/* Serve badges */}
+                {tool.serve && tool.serve.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mb-4">
+                    {tool.serve.map((s) => (
+                      <span key={s} className="px-2 py-0.5 text-xs font-medium rounded-md border bg-orange-50 text-orange-700 border-orange-200">
+                        👤 {s}
+                      </span>
+                    ))}
+                  </div>
+                )}
 
                 {/* Metrics */}
                 {hasMetrics && (

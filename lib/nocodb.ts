@@ -42,6 +42,7 @@ export interface NocoDBTool {
   uptime?: string | null;
   since?: string | null;
   ai_models?: string | null;
+  serve?: string[] | null;
 }
 
 export interface NocoDBRecord {
