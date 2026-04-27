@@ -29,13 +29,20 @@ export default function ToolboxPage() {
     loadTools();
   }, []);
 
+  const liveTools = useMemo(() => allTools.filter((t) => Boolean(t.url)), [allTools]);
+
   const filteredTools = useMemo(() => {
-    const liveTools = allTools.filter((t) => Boolean(t.url));
     return filterTools(liveTools, {
       search: searchQuery,
       category: selectedCategory,
     });
-  }, [searchQuery, selectedCategory, allTools]);
+  }, [searchQuery, selectedCategory, liveTools]);
+
+  const availableCategories = useMemo(() => {
+    const cats = new Set<string>();
+    liveTools.forEach((t) => { if (t.category) cats.add(t.category); });
+    return Array.from(cats).sort() as UnifiedToolCategory[];
+  }, [liveTools]);
 
   const handleClearFilters = () => {
     setSearchQuery("");
@@ -68,7 +75,7 @@ export default function ToolboxPage() {
           {!isLoading && (
             <div className="space-y-4 mb-6">
               <ToolSearch value={searchQuery} onChange={setSearchQuery} variant="dark" />
-              <CategoryFilter selected={selectedCategory} onChange={setSelectedCategory} variant="dark" />
+              <CategoryFilter selected={selectedCategory} onChange={setSelectedCategory} variant="dark" availableCategories={availableCategories} />
             </div>
           )}
 
