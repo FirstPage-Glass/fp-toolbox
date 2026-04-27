@@ -24,7 +24,7 @@ export default function HomePage() {
           {/* Leadership Badge */}
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur text-sm font-medium mb-6">
             <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-            Led by Glass Chan — HK AI & Automation Team
+            HK AI & Automation Team
           </div>
 
           <h1 className="text-4xl md:text-5xl font-bold mb-4 leading-tight">
