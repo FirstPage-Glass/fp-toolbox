@@ -6,9 +6,10 @@ interface CategoryFilterProps {
   selected: UnifiedToolCategory | "All";
   onChange: (category: UnifiedToolCategory | "All") => void;
   variant?: "light" | "dark";
+  availableCategories?: UnifiedToolCategory[];
 }
 
-const categories: (UnifiedToolCategory | "All")[] = [
+const allCategories: (UnifiedToolCategory | "All")[] = [
   "All",
   "Automation",
   "Content",
@@ -17,8 +18,13 @@ const categories: (UnifiedToolCategory | "All")[] = [
   "System",
 ];
 
-export function CategoryFilter({ selected, onChange, variant = "light" }: CategoryFilterProps) {
+export function CategoryFilter({ selected, onChange, variant = "light", availableCategories }: CategoryFilterProps) {
   const isDark = variant === "dark";
+
+  const categories: (UnifiedToolCategory | "All")[] = availableCategories
+    ? ["All", ...availableCategories]
+    : allCategories;
+
   return (
     <div className="flex flex-wrap gap-2">
       {categories.map((category) => (

@@ -14,7 +14,7 @@ export function ToolSearch({ value, onChange, variant = "light" }: ToolSearchPro
         Search tools by name, description, tech stack...
       </label>
       <svg
-        className={`absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 ${isDark ? "text-slate-400" : "text-slate-400"}`}
+        className={`absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 ${isDark ? "text-white/70" : "text-slate-400"}`}
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
@@ -35,7 +35,7 @@ export function ToolSearch({ value, onChange, variant = "light" }: ToolSearchPro
         onChange={(e) => onChange(e.target.value)}
         className={`w-full pl-10 pr-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-fp-500 focus:border-transparent transition-all ${
           isDark
-            ? "bg-white/10 border border-white/20 text-white placeholder-slate-400 backdrop-blur"
+            ? "bg-white/10 border border-white/20 text-white placeholder-white/60 backdrop-blur"
             : "bg-white border border-slate-200 text-slate-900 placeholder-slate-400"
         }`}
       />
