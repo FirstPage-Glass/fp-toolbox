@@ -5,6 +5,7 @@ import { useState, useEffect, useMemo } from "react";
 import { fetchAllTools, getCoverImageUrl, type NocoDBTool } from "@/lib/nocodb";
 
 const STATUS_ORDER = [
+  "Planned",
   "Production",
   "Live",
   "Active",
@@ -53,6 +54,12 @@ export default function SystemsPage() {
   }, [tools]);
 
   const getStatusSectionStyle = (status: string) => {
+    if (status === "Planned")
+      return {
+        badge: "bg-blue-100 text-blue-700",
+        dot: "bg-blue-400",
+        border: "border-blue-200",
+      };
     if (["Production", "Live", "Active"].includes(status))
       return {
         badge: "bg-green-100 text-green-700",
