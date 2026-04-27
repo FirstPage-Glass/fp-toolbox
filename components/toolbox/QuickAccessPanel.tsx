@@ -34,7 +34,7 @@ export function QuickAccessPanel({ tools }: QuickAccessPanelProps) {
                     : tool.category === "Reporting"
                     ? "bg-amber-500"
                     : tool.category === "Content"
-                    ? "bg-blue-500"
+                    ? "bg-fp-500"
                     : tool.category === "Data"
                     ? "bg-cyan-500"
                     : tool.category === "Integration"
@@ -42,7 +42,7 @@ export function QuickAccessPanel({ tools }: QuickAccessPanelProps) {
                     : "bg-purple-500"
                 }`}
               />
-              <span className="text-sm text-slate-700 group-hover:text-blue-600 transition-colors flex-1 truncate">
+              <span className="text-sm text-slate-700 group-hover:text-fp-500 transition-colors flex-1 truncate">
                 {tool.name}
               </span>
               <span className="text-xs px-1.5 py-0.5 bg-green-100 text-green-700 rounded">
@@ -58,7 +58,7 @@ export function QuickAccessPanel({ tools }: QuickAccessPanelProps) {
                     : tool.category === "Reporting"
                     ? "bg-amber-500"
                     : tool.category === "Content"
-                    ? "bg-blue-500"
+                    ? "bg-fp-500"
                     : tool.category === "Data"
                     ? "bg-cyan-500"
                     : tool.category === "Integration"

@@ -18,13 +18,26 @@ export interface NocoDBTool {
 
 export interface NocoDBRecord {
   id: number;
-  fields: NocoDBTool;
+  id_fields: { Id: number };
+  fields: Omit<NocoDBTool, "Id">;
 }
 
-const NOCODB_URL = process.env.NOCODB_URL || "https://nocodb.firstpage.com.hk";
-const NOCODB_API_TOKEN = process.env.NOCODB_API_TOKEN || "";
-const NOCODB_TOOLS_BASE_ID = process.env.NOCODB_TOOLS_BASE_ID || "p9ri10dzcq5d71l";
-const NOCODB_TOOLS_TABLE_ID = process.env.NOCODB_TOOLS_TABLE_ID || "m84ca9736466jfm";
+const NOCODB_URL =
+  process.env.NOCODB_URL ||
+  process.env.NEXT_PUBLIC_NOCODB_URL ||
+  "https://nocodb.firstpage.com.hk";
+const NOCODB_API_TOKEN =
+  process.env.NOCODB_API_TOKEN ||
+  process.env.NEXT_PUBLIC_NOCODB_API_TOKEN ||
+  "";
+const NOCODB_TOOLS_BASE_ID =
+  process.env.NOCODB_TOOLS_BASE_ID ||
+  process.env.NEXT_PUBLIC_NOCODB_TOOLS_BASE_ID ||
+  "p9ri10dzcq5d71l";
+const NOCODB_TOOLS_TABLE_ID =
+  process.env.NOCODB_TOOLS_TABLE_ID ||
+  process.env.NEXT_PUBLIC_NOCODB_TOOLS_TABLE_ID ||
+  "m84ca9736466jfm";
 
 export async function fetchAllTools(): Promise<NocoDBTool[]> {
   try {
@@ -42,7 +55,10 @@ export async function fetchAllTools(): Promise<NocoDBTool[]> {
     }
 
     const data = await response.json();
-    return data.records.map((record: NocoDBRecord) => record.fields);
+    return data.records.map((record: NocoDBRecord) => ({
+      Id: record.id,
+      ...record.fields,
+    }));
   } catch (error) {
     console.error("Failed to fetch tools from NocoDB:", error);
     return [];
@@ -51,7 +67,7 @@ export async function fetchAllTools(): Promise<NocoDBTool[]> {
 
 export async function fetchToolById(id: number): Promise<NocoDBTool | null> {
   try {
-    const url = `${NOCODB_URL}/api/v2/tables/${NOCODB_TOOLS_TABLE_ID}/records/${id}`;
+    const url = `${NOCODB_URL}/api/v3/data/${NOCODB_TOOLS_BASE_ID}/${NOCODB_TOOLS_TABLE_ID}/records/${id}`;
     const response = await fetch(url, {
       headers: {
         "xc-token": NOCODB_API_TOKEN,
@@ -65,7 +81,10 @@ export async function fetchToolById(id: number): Promise<NocoDBTool | null> {
     }
 
     const data = await response.json();
-    return data.fields;
+    return {
+      Id: data.id,
+      ...data.fields,
+    };
   } catch (error) {
     console.error("Failed to fetch tool from NocoDB:", error);
     return null;

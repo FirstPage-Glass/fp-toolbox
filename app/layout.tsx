@@ -25,7 +25,7 @@ export default function RootLayout({
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="flex items-center justify-between h-16">
                 <Link href="/" className="flex items-center gap-3">
-                  <div className="w-9 h-9 bg-gradient-to-br from-blue-600 to-violet-600 rounded-lg flex items-center justify-center shadow-sm">
+                  <div className="w-9 h-9 bg-gradient-to-br from-fp-500 to-violet-600 rounded-lg flex items-center justify-center shadow-sm">
                     <span className="text-white font-bold text-sm">FP</span>
                   </div>
                   <div>
@@ -40,31 +40,31 @@ export default function RootLayout({
                 <nav className="hidden md:flex items-center gap-6">
                   <Link
                     href="/"
-                    className="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors"
+                    className="text-sm font-medium text-slate-600 hover:text-fp-500 transition-colors"
                   >
                     Overview
                   </Link>
                   <Link
                     href="/toolbox"
-                    className="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors"
+                    className="text-sm font-medium text-slate-600 hover:text-fp-500 transition-colors"
                   >
                     Toolbox
                   </Link>
                   <Link
                     href="/ai-projects"
-                    className="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors"
+                    className="text-sm font-medium text-slate-600 hover:text-fp-500 transition-colors"
                   >
                     AI Projects
                   </Link>
                   <Link
                     href="/automation-projects"
-                    className="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors"
+                    className="text-sm font-medium text-slate-600 hover:text-fp-500 transition-colors"
                   >
                     Automation
                   </Link>
                   <Link
                     href="/architecture"
-                    className="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors"
+                    className="text-sm font-medium text-slate-600 hover:text-fp-500 transition-colors"
                   >
                     Architecture
                   </Link>

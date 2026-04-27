@@ -102,7 +102,7 @@ export default function ToolboxPage() {
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-2">
           <h1 className="text-3xl font-bold text-slate-900">Toolbox</h1>
-          <span className="px-2.5 py-1 bg-blue-100 text-blue-700 text-sm font-medium rounded-full">
+          <span className="px-2.5 py-1 bg-fp-100 text-fp-700 text-sm font-medium rounded-full">
             {filteredTools.length} tools
           </span>
         </div>
@@ -110,7 +110,7 @@ export default function ToolboxPage() {
           All AI and automation tools in one place. Search, filter, and star your favorites.
         </p>
         <nav className="flex items-center gap-2 mt-4 text-sm text-slate-500">
-          <Link href="/" className="hover:text-blue-600 transition-colors">
+          <Link href="/" className="hover:text-fp-500 transition-colors">
             Overview
           </Link>
           <span>/</span>
@@ -120,7 +120,7 @@ export default function ToolboxPage() {
 
       {isLoading ? (
         <div className="text-center py-16">
-          <div className="inline-block w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+          <div className="inline-block w-8 h-8 border-4 border-fp-500 border-t-transparent rounded-full animate-spin mb-4"></div>
           <p className="text-slate-500">Loading tools from NocoDB...</p>
         </div>
       ) : (
@@ -139,7 +139,7 @@ export default function ToolboxPage() {
                   onClick={() => toggleTag(tag)}
                   className={`px-2.5 py-1 text-xs rounded-md transition-all ${
                     selectedTags.includes(tag)
-                      ? "bg-blue-600 text-white"
+                      ? "bg-fp-500 text-white"
                       : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                   }`}
                 >
@@ -169,7 +169,7 @@ export default function ToolboxPage() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-600">Content</span>
-                  <span className="font-medium text-blue-600">
+                  <span className="font-medium text-fp-500">
                     {allTools.filter((t) => t.category === "Content").length}
                   </span>
                 </div>

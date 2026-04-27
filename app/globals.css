@@ -9,6 +9,19 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+
+  /* FirstPage Brand Colors */
+  --color-fp-50: #eff4fc;
+  --color-fp-100: #d9e6f7;
+  --color-fp-200: #b8d0f2;
+  --color-fp-300: #8ab3ea;
+  --color-fp-400: #6a9de8;
+  --color-fp-500: #427edf;
+  --color-fp-600: #3368c4;
+  --color-fp-700: #2a54a0;
+  --color-fp-800: #264885;
+  --color-fp-900: #243e6e;
+  --color-fp-950: #182745;
 }
 
 body {

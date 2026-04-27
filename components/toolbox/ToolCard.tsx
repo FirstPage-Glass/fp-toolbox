@@ -11,7 +11,7 @@ const categoryColors: Record<string, string> = {
   Automation: "bg-emerald-100 text-emerald-700",
   Data: "bg-cyan-100 text-cyan-700",
   Reporting: "bg-amber-100 text-amber-700",
-  Content: "bg-blue-100 text-blue-700",
+  Content: "bg-fp-100 text-fp-700",
   Integration: "bg-orange-100 text-orange-700",
   Utility: "bg-purple-100 text-purple-700",
 };
@@ -23,7 +23,7 @@ const statusColors: Record<string, string> = {
   "Internal Tool": "bg-slate-500",
   Prototype: "bg-amber-500",
   Inactive: "bg-red-500",
-  Building: "bg-blue-500",
+  Building: "bg-fp-500",
 };
 
 const priorityColors: Record<string, string> = {
@@ -34,7 +34,7 @@ const priorityColors: Record<string, string> = {
 
 export function ToolCard({ tool, onToggleFavorite }: ToolCardProps) {
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-5 hover:shadow-lg hover:border-blue-300 transition-all group">
+    <div className="bg-white rounded-xl border border-slate-200 p-5 hover:shadow-lg hover:border-fp-300 transition-all group">
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-2 flex-wrap">
           <span
@@ -72,7 +72,7 @@ export function ToolCard({ tool, onToggleFavorite }: ToolCardProps) {
         )}
       </div>
 
-      <h3 className="font-semibold text-slate-900 mb-2 group-hover:text-blue-600 transition-colors">
+      <h3 className="font-semibold text-slate-900 mb-2 group-hover:text-fp-500 transition-colors">
         {tool.name}
       </h3>
 
@@ -103,7 +103,7 @@ export function ToolCard({ tool, onToggleFavorite }: ToolCardProps) {
               href={tool.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-xs px-2.5 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+              className="text-xs px-2.5 py-1 bg-fp-500 text-white rounded-md hover:bg-fp-700 transition-colors"
               onClick={(e) => e.stopPropagation()}
             >
               Open ↗

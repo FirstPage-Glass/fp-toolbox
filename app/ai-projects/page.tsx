@@ -15,7 +15,7 @@ export default function AiProjectsPage() {
         </div>
         <Link
           href="/"
-          className="text-sm font-medium text-blue-600 hover:text-blue-700"
+          className="text-sm font-medium text-fp-500 hover:text-fp-700"
         >
           ← Back to Overview
         </Link>
@@ -26,7 +26,7 @@ export default function AiProjectsPage() {
           <Link
             key={project.slug}
             href={`/projects/${project.slug}`}
-            className="block bg-white rounded-xl shadow-sm border border-slate-200 p-6 hover:shadow-md hover:border-blue-300 transition-all"
+            className="block bg-white rounded-xl shadow-sm border border-slate-200 p-6 hover:shadow-md hover:border-fp-300 transition-all"
           >
             <div className="flex items-center gap-2 mb-3">
               <span className="text-xs font-semibold px-2 py-1 rounded-full bg-purple-100 text-purple-700">
