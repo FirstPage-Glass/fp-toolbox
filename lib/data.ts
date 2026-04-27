@@ -268,6 +268,50 @@ export const projects: Project[] = [
     uptime: "100%",
     since: "Oct 2025",
   },
+  {
+    slug: "content-brief-generate",
+    name: "Content Brief Generate",
+    category: "Automation",
+    description: "38-node n8n workflow: form submission or sheet trigger → SERP data via Serper → competitor analysis with Cloudflare bypass → search intent classification → AI brief generation using minimax-m2, haiku-4.5, sonnet-4.5, and Gemini 2.5 Flash → Google Doc created from template → status tracking in Sheets.",
+    techStack: ["n8n", "Serper API", "OpenRouter", "Google Sheets", "Google Docs", "Google Drive", "HTTP Request"],
+    integrations: ["Serper API", "OpenRouter", "Google Sheets", "Google Docs", "Google Drive"],
+    status: "Production",
+    url: null,
+    repoUrl: null,
+    hasWebUi: false,
+    before: "Manual competitor research + content brief writing — 1-2 hours per brief, inconsistent quality",
+    after: "Form submission → SERP + competitor analysis + AI brief generation → Google Doc output in minutes",
+    flow: "Form Trigger → Google Sheets → Serper SERP → Split Competitors → Call Competitors Analysis Flow → Merge → Search Intent (LLM) → Brief Agent (LLM) → Google Doc Template → Update Sheets",
+    aiModels: ["minimax-m2", "haiku-4.5", "sonnet-4.5", "Gemini 2.5 Flash"],
+    impact: "Automated content brief generation with multi-model AI pipeline",
+    hoursSavedPerMonth: 40,
+    costSavedPerMonth: 1200,
+    volumePerMonth: "~20 briefs",
+    uptime: "99.5%",
+    since: "Mar 2026",
+  },
+  {
+    slug: "td-generator-mvp",
+    name: "TD Generator MVP",
+    category: "Automation",
+    description: "33-node n8n workflow system: form submission → Google Sheets → Jina Reader content scraping → CAPTCHA detection → TD Writer sub-workflow generates meta title and description via Google Gemini + OpenRouter → length validation with iterative shortening → writes back to Sheets with status tracking.",
+    techStack: ["n8n", "Jina Reader", "Google Gemini", "OpenRouter", "Google Sheets", "HTTP Request"],
+    integrations: ["Jina Reader", "Google Gemini", "OpenRouter", "Google Sheets"],
+    status: "Production",
+    url: null,
+    repoUrl: null,
+    hasWebUi: false,
+    before: "Manual meta title and description writing for each page — inconsistent length, no SEO validation",
+    after: "URL input → Auto-scrape → AI-generated title + description → Length-validated → Auto-write to Sheets",
+    flow: "Form Trigger → Google Sheets → Jina Reader → CAPTCHA Check → Call TD Writer → Gemini/OpeRouter Title+Desc → Length Check → Iterative Shorten → Update Sheets",
+    aiModels: ["Google Gemini", "OpenRouter"],
+    impact: "Automated TD (title/description) generation with length validation and iterative refinement",
+    hoursSavedPerMonth: 30,
+    costSavedPerMonth: 900,
+    volumePerMonth: "~30 pages",
+    uptime: "99.5%",
+    since: "Apr 2026",
+  },
 ];
 
 export const getProjectBySlug = (slug: string): Project | undefined =>
@@ -287,8 +331,8 @@ export const getProductionCount = () =>
 
 export const teamImpact = {
   "SEO / Link Building": {
-    projects: ["pbn-content-automation", "blog-upload", "faq-schema-generator"],
-    monthlyVolume: "900+ backlinks + 30+ blog posts",
+    projects: ["pbn-content-automation", "blog-upload", "faq-schema-generator", "content-brief-generate", "td-generator-mvp"],
+    monthlyVolume: "900+ backlinks + 30+ blog posts + 50+ TDs/briefs",
     keyMetrics: [
       { label: "PBN Sites Managed", value: "180+" },
       { label: "Backlinks/Month", value: "900+" },
@@ -330,12 +374,14 @@ export const teamImpact = {
 
 export const integrations = [
   { name: "NocoDB", type: "Database", usedBy: ["PBN", "CX FAQ", "Blog Upload", "Invoice Review"] },
-  { name: "OpenRouter", type: "AI Gateway", usedBy: ["PBN", "CX FAQ", "Lovable", "Proposal"] },
+  { name: "OpenRouter", type: "AI Gateway", usedBy: ["PBN", "CX FAQ", "Lovable", "Proposal", "Content Brief", "TD Generator"] },
   { name: "Resend", type: "Email API", usedBy: ["Blog Upload", "Invoice Review", "Overdue Reports"] },
-  { name: "Google APIs", type: "Data Source", usedBy: ["PBN", "CX FAQ", "Blog Upload"] },
+  { name: "Google APIs", type: "Data Source", usedBy: ["PBN", "CX FAQ", "Blog Upload", "Content Brief", "TD Generator"] },
   { name: "WordPress API", type: "CMS/PBN", usedBy: ["PBN (180+ sites)", "Blog Upload"] },
   { name: "Claude", type: "AI Model", usedBy: ["PBN", "CX FAQ", "Proposal"] },
-  { name: "Gemini", type: "AI Model", usedBy: ["FAQ Schema Generator"] },
+  { name: "Gemini", type: "AI Model", usedBy: ["FAQ Schema Generator", "TD Generator"] },
+  { name: "Serper API", type: "SERP Data", usedBy: ["Content Brief"] },
+  { name: "Jina Reader", type: "Web Scraper", usedBy: ["TD Generator"] },
 ];
 
 // ===== Toolbox Data & Helpers =====

@@ -1,13 +1,13 @@
 "use client";
 
-import type { ToolCategory } from "@/lib/data";
+import type { UnifiedToolCategory } from "@/lib/unified-tools";
 
 interface CategoryFilterProps {
-  selected: ToolCategory | "All";
-  onChange: (category: ToolCategory | "All") => void;
+  selected: UnifiedToolCategory | "All";
+  onChange: (category: UnifiedToolCategory | "All") => void;
 }
 
-const categories: (ToolCategory | "All")[] = ["All", "AI", "Automation", "Internal", "Analytics"];
+const categories: (UnifiedToolCategory | "All")[] = ["All", "AI", "Automation", "Reporting", "Content", "Internal", "Analytics"];
 
 export function CategoryFilter({ selected, onChange }: CategoryFilterProps) {
   return (

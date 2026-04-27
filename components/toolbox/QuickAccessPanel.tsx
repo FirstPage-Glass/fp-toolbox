@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import type { Tool } from "@/lib/data";
+import type { UnifiedTool } from "@/lib/unified-tools";
 
 interface QuickAccessPanelProps {
-  tools: Tool[];
+  tools: UnifiedTool[];
 }
 
 export function QuickAccessPanel({ tools }: QuickAccessPanelProps) {
@@ -20,25 +20,47 @@ export function QuickAccessPanel({ tools }: QuickAccessPanelProps) {
       </h3>
       <div className="space-y-2">
         {quickAccessTools.slice(0, 6).map((tool) => (
-          <Link
-            key={tool.slug}
-            href={`/projects/${tool.slug}`}
-            className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 transition-colors group"
-          >
-            <span
-              className={`w-2 h-2 rounded-full ${
-                tool.category === "AI" ? "bg-violet-500" : "bg-emerald-500"
-              }`}
-            />
-            <span className="text-sm text-slate-700 group-hover:text-blue-600 transition-colors flex-1 truncate">
-              {tool.name}
-            </span>
-            {tool.url && (
-              <span className="text-xs px-1.5 py-0.5 bg-green-100 text-green-700 rounded">
-                Live
+          tool.url ? (
+            <a
+              key={tool.id}
+              href={tool.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 transition-colors group"
+            >
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  tool.category === "AI" ? "bg-violet-500" :
+                  tool.category === "Reporting" ? "bg-amber-500" :
+                  tool.category === "Content" ? "bg-blue-500" :
+                  "bg-emerald-500"
+                }`}
+              />
+              <span className="text-sm text-slate-700 group-hover:text-blue-600 transition-colors flex-1 truncate">
+                {tool.name}
               </span>
-            )}
-          </Link>
+              <span className="text-xs px-1.5 py-0.5 bg-green-100 text-green-700 rounded">
+                Open ↗
+              </span>
+            </a>
+          ) : (
+            <div
+              key={tool.id}
+              className="flex items-center gap-3 p-2 rounded-lg"
+            >
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  tool.category === "AI" ? "bg-violet-500" :
+                  tool.category === "Reporting" ? "bg-amber-500" :
+                  tool.category === "Content" ? "bg-blue-500" :
+                  "bg-emerald-500"
+                }`}
+              />
+              <span className="text-sm text-slate-700 flex-1 truncate">
+                {tool.name}
+              </span>
+            </div>
+          )
         ))}
       </div>
     </div>
