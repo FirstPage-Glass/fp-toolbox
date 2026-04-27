@@ -66,7 +66,7 @@ export default function ToolboxPage() {
           </p>
 
           <div className="flex flex-wrap items-center gap-3">
-            <span className="text-xs text-slate-400">Need something new?</span>
+            <span className="text-xs text-slate-400">Need something new or found a bug?</span>
             <a
               href="mailto:glass.c@firstpage.com.hk"
               className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 bg-white/10 hover:bg-white/20 backdrop-blur rounded-lg transition-colors"
