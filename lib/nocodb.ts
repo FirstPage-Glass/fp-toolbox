@@ -30,6 +30,18 @@ export interface NocoDBTool {
   priority: string | null;
   cover_image?: NocoDBAttachment[] | null;
   type?: string[] | null;
+  // Rich detail fields
+  tagline?: string | null;
+  before?: string | null;
+  after?: string | null;
+  flow?: string | null;
+  impact?: string | null;
+  hours_saved_per_month?: number | null;
+  cost_saved_per_month?: number | null;
+  volume_per_month?: string | null;
+  uptime?: string | null;
+  since?: string | null;
+  ai_models?: string | null;
 }
 
 export interface NocoDBRecord {
