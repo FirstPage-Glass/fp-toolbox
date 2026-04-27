@@ -77,7 +77,7 @@ export default function ToolboxPage() {
 
             {searchQuery && (
               <p className="text-sm text-slate-500">
-                Showing {filteredTools.length} results for "{searchQuery}"
+                Showing {filteredTools.length} results for &ldquo;{searchQuery}&rdquo;
               </p>
             )}
 
