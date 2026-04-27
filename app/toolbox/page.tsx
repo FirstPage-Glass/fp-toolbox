@@ -18,6 +18,7 @@ export default function ToolboxPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<UnifiedToolCategory | "All">("All");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [liveOnly, setLiveOnly] = useState(false);
   const [allTools, setAllTools] = useState<UnifiedTool[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -35,12 +36,16 @@ export default function ToolboxPage() {
   const allTags = useMemo(() => getAllTags(allTools), [allTools]);
 
   const filteredTools = useMemo(() => {
-    return filterTools(allTools, {
+    let results = filterTools(allTools, {
       search: searchQuery,
       category: selectedCategory,
       tags: selectedTags.length > 0 ? selectedTags : undefined,
     });
-  }, [searchQuery, selectedCategory, selectedTags, allTools]);
+    if (liveOnly) {
+      results = results.filter((t) => Boolean(t.url));
+    }
+    return results;
+  }, [searchQuery, selectedCategory, selectedTags, allTools, liveOnly]);
 
   const handleClearFilters = () => {
     setSearchQuery("");
@@ -65,8 +70,26 @@ export default function ToolboxPage() {
           </span>
         </div>
         <p className="text-slate-600">
-          All AI and automation tools in one place. Search, filter, and star your favorites.
+          All AI and automation tools in one place. Search, filter, and access live tools.
         </p>
+        <div className="flex items-center gap-3 mt-3">
+          <button
+            onClick={() => setLiveOnly(!liveOnly)}
+            className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+              liveOnly
+                ? "bg-green-500 text-white shadow-md"
+                : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
+            }`}
+          >
+            <span className={`w-2 h-2 rounded-full ${liveOnly ? "bg-white" : "bg-green-500"}`} />
+            {liveOnly ? "Showing live tools only" : "Show live tools only"}
+          </button>
+          {liveOnly && (
+            <span className="text-xs text-slate-500">
+              {allTools.filter((t) => t.url).length} of {allTools.length} have live links
+            </span>
+          )}
+        </div>
         <nav className="flex items-center gap-2 mt-4 text-sm text-slate-500">
           <Link href="/" className="hover:text-fp-500 transition-colors">
             Overview
