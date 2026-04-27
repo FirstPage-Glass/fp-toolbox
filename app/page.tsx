@@ -104,9 +104,9 @@ export default async function HomePage() {
         <h2 className="text-2xl font-bold text-slate-900 mb-6">
           Portfolio at a Glance
         </h2>
-        <div className="grid md:grid-cols-3 gap-6">
+        <div className="grid md:grid-cols-2 gap-6">
           {/* Status Breakdown */}
-          <div className="md:col-span-2 bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
             <h3 className="text-lg font-semibold text-slate-900 mb-4">
               System Status
             </h3>
