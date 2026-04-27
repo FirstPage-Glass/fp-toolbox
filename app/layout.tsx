@@ -51,16 +51,10 @@ export default function RootLayout({
                     Toolbox
                   </Link>
                   <Link
-                    href="/ai-projects"
+                    href="/systems"
                     className="text-sm font-medium text-slate-600 hover:text-fp-500 transition-colors"
                   >
-                    AI Projects
-                  </Link>
-                  <Link
-                    href="/automation-projects"
-                    className="text-sm font-medium text-slate-600 hover:text-fp-500 transition-colors"
-                  >
-                    Automation
+                    Our Systems
                   </Link>
                   <Link
                     href="/architecture"
