@@ -29,6 +29,7 @@ export interface UnifiedTool {
   lastUpdated: string | null;
   type: string[];
   coverImage: string | null;
+  serve: string[];
 }
 
 export type UnifiedToolFilter = {
@@ -85,6 +86,7 @@ function nocoDbToUnifiedTool(tool: NocoDBTool): UnifiedTool {
     lastUpdated: tool.UpdatedAt || null,
     type: tool.type || [],
     coverImage,
+    serve: tool.serve || [],
   };
 }
 
