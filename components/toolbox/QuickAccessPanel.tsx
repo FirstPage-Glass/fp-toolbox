@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import type { UnifiedTool } from "@/lib/unified-tools";
 
 interface QuickAccessPanelProps {
@@ -19,7 +18,7 @@ export function QuickAccessPanel({ tools }: QuickAccessPanelProps) {
         Quick Access
       </h3>
       <div className="space-y-2">
-        {quickAccessTools.slice(0, 6).map((tool) => (
+        {quickAccessTools.slice(0, 6).map((tool) =>
           tool.url ? (
             <a
               key={tool.id}
@@ -30,10 +29,17 @@ export function QuickAccessPanel({ tools }: QuickAccessPanelProps) {
             >
               <span
                 className={`w-2 h-2 rounded-full ${
-                  tool.category === "AI" ? "bg-violet-500" :
-                  tool.category === "Reporting" ? "bg-amber-500" :
-                  tool.category === "Content" ? "bg-blue-500" :
-                  "bg-emerald-500"
+                  tool.category === "Automation"
+                    ? "bg-emerald-500"
+                    : tool.category === "Reporting"
+                    ? "bg-amber-500"
+                    : tool.category === "Content"
+                    ? "bg-blue-500"
+                    : tool.category === "Data"
+                    ? "bg-cyan-500"
+                    : tool.category === "Integration"
+                    ? "bg-orange-500"
+                    : "bg-purple-500"
                 }`}
               />
               <span className="text-sm text-slate-700 group-hover:text-blue-600 transition-colors flex-1 truncate">
@@ -44,16 +50,20 @@ export function QuickAccessPanel({ tools }: QuickAccessPanelProps) {
               </span>
             </a>
           ) : (
-            <div
-              key={tool.id}
-              className="flex items-center gap-3 p-2 rounded-lg"
-            >
+            <div key={tool.id} className="flex items-center gap-3 p-2 rounded-lg">
               <span
                 className={`w-2 h-2 rounded-full ${
-                  tool.category === "AI" ? "bg-violet-500" :
-                  tool.category === "Reporting" ? "bg-amber-500" :
-                  tool.category === "Content" ? "bg-blue-500" :
-                  "bg-emerald-500"
+                  tool.category === "Automation"
+                    ? "bg-emerald-500"
+                    : tool.category === "Reporting"
+                    ? "bg-amber-500"
+                    : tool.category === "Content"
+                    ? "bg-blue-500"
+                    : tool.category === "Data"
+                    ? "bg-cyan-500"
+                    : tool.category === "Integration"
+                    ? "bg-orange-500"
+                    : "bg-purple-500"
                 }`}
               />
               <span className="text-sm text-slate-700 flex-1 truncate">
@@ -61,7 +71,7 @@ export function QuickAccessPanel({ tools }: QuickAccessPanelProps) {
               </span>
             </div>
           )
-        ))}
+        )}
       </div>
     </div>
   );
