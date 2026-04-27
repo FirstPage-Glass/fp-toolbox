@@ -1,12 +1,12 @@
 import Link from "next/link";
-import { getProjectBySlug, projects, teamImpact } from "@/lib/data";
-import { fetchToolBySlug, getCoverImageUrl, type NocoDBTool } from "@/lib/nocodb";
-import { notFound } from "next/navigation";
+import { teamImpact } from "@/lib/data";
+import { fetchAllTools, fetchToolBySlug, getCoverImageUrl } from "@/lib/nocodb";
 
-export function generateStaticParams() {
-  return projects.map((project) => ({
-    slug: project.slug,
-  }));
+export async function generateStaticParams() {
+  const tools = await fetchAllTools();
+  return tools
+    .filter((t) => t.slug)
+    .map((tool) => ({ slug: tool.slug! }));
 }
 
 interface Props {
@@ -24,7 +24,7 @@ function getCategoryGradient(category: string) {
     Content: "from-fp-400 via-fp-500 to-violet-600",
     Utility: "from-purple-500 via-violet-600 to-fp-600",
   };
-  return map[category] || map.AI;
+  return map[category] || "from-violet-500 via-purple-600 to-fp-600";
 }
 
 function getCategoryIcon(category: string) {
@@ -62,10 +62,17 @@ function getStatusBadge(status: string) {
 }
 
 function parseFlow(flow: string): string[] {
-  return flow
-    .split(/[→]|(->)/)
-    .map((s) => s?.trim())
-    .filter(Boolean);
+  return flow.split(/[→]|(->)/).map((s) => s?.trim()).filter(Boolean);
+}
+
+function parseTechStack(ts?: string | null): string[] {
+  if (!ts) return [];
+  return ts.split(/[+&,]/).map((t) => t.trim()).filter(Boolean);
+}
+
+function parseAiModels(am?: string | null): string[] {
+  if (!am) return [];
+  return am.split(",").map((m) => m.trim()).filter(Boolean);
 }
 
 function findTeamForProject(slug: string): string | null {
@@ -78,68 +85,45 @@ function findTeamForProject(slug: string): string | null {
 // ── Components ───────────────────────────────────────────────────────
 
 function CoverImage({
-  project,
+  name,
+  category,
+  coverImage,
 }: {
-  project: {
-    name: string;
-    category: string;
-    coverImage?: string | null;
-  };
+  name: string;
+  category: string;
+  coverImage?: string | null;
 }) {
-  if (project.coverImage) {
+  if (coverImage) {
     return (
       <div className="w-full aspect-[21/9] rounded-2xl overflow-hidden shadow-lg">
-        <img
-          src={project.coverImage}
-          alt={project.name}
-          className="w-full h-full object-cover"
-        />
+        <img src={coverImage} alt={name} className="w-full h-full object-cover" />
       </div>
     );
   }
 
-  const gradient = getCategoryGradient(project.category);
-  const icon = getCategoryIcon(project.category);
-  const initial = project.name.charAt(0).toUpperCase();
+  const gradient = getCategoryGradient(category);
+  const icon = getCategoryIcon(category);
+  const initial = name.charAt(0).toUpperCase();
 
   return (
-    <div
-      className={`relative w-full aspect-[21/9] rounded-2xl overflow-hidden shadow-lg bg-gradient-to-br ${gradient}`}
-    >
-      {/* Decorative pattern */}
+    <div className={`relative w-full aspect-[21/9] rounded-2xl overflow-hidden shadow-lg bg-gradient-to-br ${gradient}`}>
       <div className="absolute inset-0 opacity-10">
         <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
           <defs>
-            <pattern
-              id="grid"
-              width="40"
-              height="40"
-              patternUnits="userSpaceOnUse"
-            >
-              <path
-                d="M 40 0 L 0 0 0 40"
-                fill="none"
-                stroke="white"
-                strokeWidth="1"
-              />
+            <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+              <path d="M 40 0 L 0 0 0 40" fill="none" stroke="white" strokeWidth="1" />
             </pattern>
           </defs>
           <rect width="100%" height="100%" fill="url(#grid)" />
         </svg>
       </div>
-
-      {/* Floating circles */}
       <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-2xl" />
       <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
-
-      {/* Center content */}
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center text-4xl shadow-xl border border-white/30 mb-3">
           {icon}
         </div>
-        <span className="text-white/90 font-bold text-4xl tracking-tight drop-shadow-lg">
-          {initial}
-        </span>
+        <span className="text-white/90 font-bold text-4xl tracking-tight drop-shadow-lg">{initial}</span>
       </div>
     </div>
   );
@@ -165,13 +149,10 @@ function RoiCard({
   };
 
   return (
-    <div
-      className={`relative overflow-hidden rounded-xl border p-5 ${colorMap[color]}`}
-    >
+    <div className={`relative overflow-hidden rounded-xl border p-5 ${colorMap[color]}`}>
       <div className="text-2xl mb-2">{icon}</div>
       <div className="text-3xl font-extrabold tracking-tight">{value}</div>
       <div className="text-sm font-medium opacity-80 mt-1">{label}</div>
-      {/* Subtle decorative dot */}
       <div className="absolute -top-2 -right-2 w-12 h-12 rounded-full bg-current opacity-5" />
     </div>
   );
@@ -187,39 +168,14 @@ function StoryCard({
   content: string;
 }) {
   const styles = {
-    problem: {
-      wrapper:
-        "bg-red-50/80 border-red-200",
-      accent: "bg-red-500",
-      icon: "❌",
-      title: "text-red-800",
-      text: "text-red-700",
-    },
-    solution: {
-      wrapper:
-        "bg-green-50/80 border-green-200",
-      accent: "bg-green-500",
-      icon: "✅",
-      title: "text-green-800",
-      text: "text-green-700",
-    },
-    proof: {
-      wrapper:
-        "bg-fp-50/80 border-fp-200",
-      accent: "bg-fp-500",
-      icon: "📊",
-      title: "text-fp-800",
-      text: "text-fp-700",
-    },
+    problem: { wrapper: "bg-red-50/80 border-red-200", accent: "bg-red-500", icon: "❌", title: "text-red-800", text: "text-red-700" },
+    solution: { wrapper: "bg-green-50/80 border-green-200", accent: "bg-green-500", icon: "✅", title: "text-green-800", text: "text-green-700" },
+    proof: { wrapper: "bg-fp-50/80 border-fp-200", accent: "bg-fp-500", icon: "📊", title: "text-fp-800", text: "text-fp-700" },
   };
-
   const s = styles[type];
-
   return (
     <div className={`relative rounded-xl border p-6 ${s.wrapper}`}>
-      <div
-        className={`absolute left-0 top-6 bottom-6 w-1 rounded-r-full ${s.accent}`}
-      />
+      <div className={`absolute left-0 top-6 bottom-6 w-1 rounded-r-full ${s.accent}`} />
       <div className="flex items-center gap-2 mb-3">
         <span className="text-xl">{s.icon}</span>
         <h3 className={`text-lg font-bold ${s.title}`}>{title}</h3>
@@ -229,50 +185,24 @@ function StoryCard({
   );
 }
 
-function FlowStep({
-  step,
-  index,
-  total,
-}: {
-  step: string;
-  index: number;
-  total: number;
-}) {
+function FlowStep({ step, index, total }: { step: string; index: number; total: number }) {
   return (
     <div className="flex items-center gap-2">
       <div className="flex-shrink-0">
         <div className="relative">
-          <div className="w-10 h-10 rounded-lg bg-fp-500 text-white flex items-center justify-center font-bold text-sm shadow-md">
-            {index + 1}
-          </div>
-          {index < total - 1 && (
-            <div className="absolute left-1/2 -translate-x-1/2 top-full h-4 w-0.5 bg-fp-200 md:hidden" />
-          )}
+          <div className="w-10 h-10 rounded-lg bg-fp-500 text-white flex items-center justify-center font-bold text-sm shadow-md">{index + 1}</div>
+          {index < total - 1 && <div className="absolute left-1/2 -translate-x-1/2 top-full h-4 w-0.5 bg-fp-200 md:hidden" />}
         </div>
       </div>
       <div className="flex-1 min-w-0">
         <div className="bg-white rounded-lg border border-slate-200 px-4 py-3 shadow-sm">
-          <p className="text-sm font-medium text-slate-800 truncate">
-            {step}
-          </p>
+          <p className="text-sm font-medium text-slate-800 truncate">{step}</p>
         </div>
       </div>
       {index < total - 1 && (
         <div className="hidden md:flex flex-shrink-0 items-center justify-center w-8">
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 20 20"
-            fill="none"
-            className="text-fp-400"
-          >
-            <path
-              d="M4 10H16M16 10L12 6M16 10L12 14"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="text-fp-400">
+            <path d="M4 10H16M16 10L12 6M16 10L12 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </div>
       )}
@@ -280,23 +210,14 @@ function FlowStep({
   );
 }
 
-function TechTag({
-  name,
-  variant,
-}: {
-  name: string;
-  variant: "tech" | "integration" | "ai";
-}) {
+function TechTag({ name, variant }: { name: string; variant: "tech" | "integration" | "ai" }) {
   const styles = {
     tech: "bg-slate-100 text-slate-700 border-slate-200",
     integration: "bg-fp-50 text-fp-700 border-fp-200",
     ai: "bg-purple-50 text-purple-700 border-purple-200",
   };
-
   return (
-    <span
-      className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium border ${styles[variant]}`}
-    >
+    <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium border ${styles[variant]}`}>
       {variant === "ai" && <span className="mr-1.5">🤖</span>}
       {variant === "integration" && <span className="mr-1.5">🔗</span>}
       {name}
@@ -308,296 +229,154 @@ function TechTag({
 
 export default async function ProjectPage({ params }: Props) {
   const { slug } = await params;
-  const staticProject = getProjectBySlug(slug);
+  const tool = await fetchToolBySlug(slug);
 
-  if (!staticProject) {
-    notFound();
+  if (!tool || !tool.slug) {
+    return (
+      <div className="max-w-5xl mx-auto py-20 text-center">
+        <h1 className="text-2xl font-bold text-slate-900 mb-2">System Not Found</h1>
+        <p className="text-slate-500 mb-6">This system doesn&apos;t exist in NocoDB.</p>
+        <Link href="/systems" className="text-fp-500 font-medium hover:underline">← Back to Our Systems</Link>
+      </div>
+    );
   }
 
-  // Fetch live data from NocoDB for cover image, type, updated category/status
-  const nocoTool = await fetchToolBySlug(slug);
+  // All data from NocoDB
+  const name = tool.name;
+  const category = tool.category || "Utility";
+  const status = tool.status || "Unknown";
+  const type = tool.type || [];
+  const description = tool.description || "";
+  const tagline = tool.tagline || description;
+  const url = tool.live_link || null;
+  const repoUrl = tool.gh_link || null;
+  const hasWebUi = Boolean(url);
+  const owner = tool.owner || null;
+  const coverImage = tool.cover_image && tool.cover_image.length > 0 ? getCoverImageUrl(tool.cover_image[0]) : null;
 
-  // Merge: static data for story/content, NocoDB for live fields
-  const coverImage = nocoTool?.cover_image && nocoTool.cover_image.length > 0
-    ? getCoverImageUrl(nocoTool.cover_image[0])
-    : staticProject.coverImage || null;
+  // Rich content from NocoDB
+  const before = tool.before || null;
+  const after = tool.after || null;
+  const impact = tool.impact || null;
+  const flow = tool.flow || null;
+  const hoursSaved = tool.hours_saved_per_month || null;
+  const costSaved = tool.cost_saved_per_month || null;
+  const volume = tool.volume_per_month || null;
+  const uptime = tool.uptime || null;
+  const since = tool.since || null;
+  const techStack = parseTechStack(tool.tech_stack);
+  const aiModels = parseAiModels(tool.ai_models);
 
-  const category = nocoTool?.category || staticProject.category;
-  const status = nocoTool?.status || staticProject.status;
-  const type = nocoTool?.type || [];
-  const url = nocoTool?.live_link || staticProject.url;
-  const repoUrl = nocoTool?.gh_link || staticProject.repoUrl;
-
-  const project = {
-    ...staticProject,
-    coverImage,
-    category,
-    status,
-    url,
-    repoUrl,
-  };
-
-  const flowSteps = parseFlow(project.flow);
+  const flowSteps = flow ? parseFlow(flow) : [];
   const teamName = findTeamForProject(slug);
 
-  // ROI data
+  // ROI cards
   const roiCards: { value: string; label: string; color: Parameters<typeof RoiCard>[0]["color"]; icon: string }[] = [];
-
-  if (project.costSavedPerMonth) {
-    roiCards.push({
-      value: `$${project.costSavedPerMonth.toLocaleString()}`,
-      label: "Value / Month",
-      color: "fp",
-      icon: "💰",
-    });
-  }
-  if (project.hoursSavedPerMonth) {
-    roiCards.push({
-      value: `${project.hoursSavedPerMonth}h`,
-      label: "Hours Saved / Month",
-      color: "green",
-      icon: "⏱️",
-    });
-  }
-  if (project.volumePerMonth) {
-    roiCards.push({
-      value: project.volumePerMonth,
-      label: "Monthly Volume",
-      color: "violet",
-      icon: "📈",
-    });
-  }
-  if (project.uptime) {
-    roiCards.push({
-      value: project.uptime,
-      label: "Uptime",
-      color: "slate",
-      icon: "🟢",
-    });
-  } else if (project.since) {
-    roiCards.push({
-      value: project.since,
-      label: "Running Since",
-      color: "amber",
-      icon: "📅",
-    });
-  }
+  if (costSaved) roiCards.push({ value: `$${costSaved.toLocaleString()}`, label: "Value / Month", color: "fp", icon: "💰" });
+  if (hoursSaved) roiCards.push({ value: `${hoursSaved}h`, label: "Hours Saved / Month", color: "green", icon: "⏱️" });
+  if (volume) roiCards.push({ value: volume, label: "Monthly Volume", color: "violet", icon: "📈" });
+  if (uptime) roiCards.push({ value: uptime, label: "Uptime", color: "slate", icon: "🟢" });
+  else if (since) roiCards.push({ value: since, label: "Running Since", color: "amber", icon: "📅" });
 
   return (
     <div className="max-w-5xl mx-auto space-y-10 pb-16">
-      {/* ── Breadcrumb ── */}
+      {/* Breadcrumb */}
       <nav className="flex items-center gap-2 text-sm text-slate-500">
-        <Link href="/" className="hover:text-fp-500 transition-colors">
-          Home
-        </Link>
+        <Link href="/" className="hover:text-fp-500 transition-colors">Home</Link>
         <span className="text-slate-300">/</span>
-        <Link
-          href="/systems"
-          className="hover:text-fp-500 transition-colors"
-        >
-          Our Systems
-        </Link>
+        <Link href="/systems" className="hover:text-fp-500 transition-colors">Our Systems</Link>
         <span className="text-slate-300">/</span>
-        <span className="text-slate-900 font-medium">{project.name}</span>
+        <span className="text-slate-900 font-medium">{name}</span>
       </nav>
 
-      {/* ── Hero Section ── */}
+      {/* Hero */}
       <section className="space-y-5">
-        <CoverImage project={project} />
+        <CoverImage name={name} category={category} coverImage={coverImage} />
 
         <div className="flex flex-wrap items-center gap-2">
-          <span
-            className={`text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider ${getCategoryBg(project.category)}`}
-          >
-            {project.category}
-          </span>
-          <span
-            className={`text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider ${getStatusBadge(project.status)}`}
-          >
-            {project.status}
-          </span>
-          {type.length > 0 && type.map((t) => (
-            <span
-              key={t}
-              className="text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider bg-indigo-50 text-indigo-700 border border-indigo-200"
-            >
-              {t}
-            </span>
+          <span className={`text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider ${getCategoryBg(category)}`}>{category}</span>
+          <span className={`text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider ${getStatusBadge(status)}`}>{status}</span>
+          {type.map((t) => (
+            <span key={t} className="text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider bg-indigo-50 text-indigo-700 border border-indigo-200">{t}</span>
           ))}
-          {project.hasWebUi && (
-            <span className="text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider bg-fp-100 text-fp-700">
-              Web UI
-            </span>
-          )}
-          {teamName && (
-            <span className="text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider bg-slate-100 text-slate-600">
-              {teamName}
-            </span>
-          )}
+          {hasWebUi && <span className="text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider bg-fp-100 text-fp-700">Web UI</span>}
+          {teamName && <span className="text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider bg-slate-100 text-slate-600">{teamName}</span>}
         </div>
 
         <div>
-          <h1 className="text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight">
-            {project.name}
-          </h1>
-          <p className="mt-3 text-lg md:text-xl text-slate-600 font-medium leading-relaxed max-w-3xl">
-            {project.tagline}
-          </p>
+          <h1 className="text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight">{name}</h1>
+          <p className="mt-3 text-lg md:text-xl text-slate-600 font-medium leading-relaxed max-w-3xl">{tagline}</p>
         </div>
       </section>
 
-      {/* ── ROI Dashboard ── */}
+      {/* ROI */}
       {roiCards.length > 0 && (
         <section>
-          <h2 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">
-            Business Impact at a Glance
-          </h2>
+          <h2 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">Business Impact at a Glance</h2>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {roiCards.map((card, i) => (
-              <RoiCard key={i} {...card} />
-            ))}
+            {roiCards.map((card, i) => <RoiCard key={i} {...card} />)}
           </div>
         </section>
       )}
 
-      {/* ── The Story ── */}
-      <section className="space-y-4">
-        <h2 className="text-sm font-bold text-slate-400 uppercase tracking-widest">
-          The Story
-        </h2>
-        <div className="grid md:grid-cols-3 gap-4">
-          <StoryCard
-            type="problem"
-            title="The Problem"
-            content={project.before}
-          />
-          <StoryCard
-            type="solution"
-            title="The Solution"
-            content={project.after}
-          />
-          <StoryCard
-            type="proof"
-            title="The Proof"
-            content={project.impact}
-          />
-        </div>
-      </section>
-
-      {/* ── How It Works ── */}
-      <section className="bg-white rounded-2xl border border-slate-200 p-6 md:p-8 shadow-sm">
-        <h2 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
-          <span>🔀</span> How It Works
-        </h2>
-        <div className="space-y-3">
-          {flowSteps.map((step, i) => (
-            <FlowStep
-              key={i}
-              step={step}
-              index={i}
-              total={flowSteps.length}
-            />
-          ))}
-        </div>
-      </section>
-
-      {/* ── Tech Under the Hood ── */}
-      <section className="grid md:grid-cols-2 gap-6">
-        {/* Tech Stack */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-          <h2 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
-            <span>🛠️</span> Tech Stack
-          </h2>
-          <div className="flex flex-wrap gap-2">
-            {project.techStack.map((tech) => (
-              <TechTag key={tech} name={tech} variant="tech" />
-            ))}
+      {/* Story */}
+      {before && after && impact && (
+        <section className="space-y-4">
+          <h2 className="text-sm font-bold text-slate-400 uppercase tracking-widest">The Story</h2>
+          <div className="grid md:grid-cols-3 gap-4">
+            <StoryCard type="problem" title="The Problem" content={before} />
+            <StoryCard type="solution" title="The Solution" content={after} />
+            <StoryCard type="proof" title="The Proof" content={impact} />
           </div>
-        </div>
+        </section>
+      )}
 
-        {/* Integrations */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-          <h2 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
-            <span>🔗</span> Integrations
-          </h2>
-          <div className="flex flex-wrap gap-2">
-            {project.integrations.map((integration) => (
-              <TechTag
-                key={integration}
-                name={integration}
-                variant="integration"
-              />
-            ))}
+      {/* Flow */}
+      {flowSteps.length > 0 && (
+        <section className="bg-white rounded-2xl border border-slate-200 p-6 md:p-8 shadow-sm">
+          <h2 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2"><span>🔀</span> How It Works</h2>
+          <div className="space-y-3">
+            {flowSteps.map((step, i) => <FlowStep key={i} step={step} index={i} total={flowSteps.length} />)}
           </div>
-        </div>
+        </section>
+      )}
 
-        {/* AI Models */}
-        {project.aiModels.length > 0 && (
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm md:col-span-2">
-            <h2 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
-              <span>🧠</span> AI Models
-            </h2>
-            <div className="flex flex-wrap gap-2">
-              {project.aiModels.map((model) => (
-                <TechTag key={model} name={model} variant="ai" />
-              ))}
+      {/* Tech */}
+      {(techStack.length > 0 || aiModels.length > 0) && (
+        <section className="grid md:grid-cols-2 gap-6">
+          {techStack.length > 0 && (
+            <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+              <h2 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2"><span>🛠️</span> Tech Stack</h2>
+              <div className="flex flex-wrap gap-2">
+                {techStack.map((tech) => <TechTag key={tech} name={tech} variant="tech" />)}
+              </div>
             </div>
-          </div>
-        )}
-      </section>
+          )}
+          {aiModels.length > 0 && (
+            <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+              <h2 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2"><span>🧠</span> AI Models</h2>
+              <div className="flex flex-wrap gap-2">
+                {aiModels.map((model) => <TechTag key={model} name={model} variant="ai" />)}
+              </div>
+            </div>
+          )}
+        </section>
+      )}
 
-      {/* ── Action Links ── */}
+      {/* Links */}
       <section className="flex flex-wrap gap-4">
-        {project.url && (
-          <a
-            href={project.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-fp-500 text-white rounded-xl font-semibold hover:bg-fp-600 transition-all shadow-lg shadow-fp-500/25 hover:shadow-fp-500/40 hover:-translate-y-0.5"
-          >
-            <span>🌐</span>
-            Open Live Tool
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 16 16"
-              fill="none"
-              className="opacity-70"
-            >
-              <path
-                d="M6 12L10 8L6 4"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
+        {url && (
+          <a href={url} target="_blank" rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-fp-500 text-white rounded-xl font-semibold hover:bg-fp-600 transition-all shadow-lg shadow-fp-500/25 hover:shadow-fp-500/40 hover:-translate-y-0.5">
+            <span>🌐</span> Open Live Tool
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="opacity-70"><path d="M6 12L10 8L6 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
           </a>
         )}
-        {project.repoUrl && (
-          <a
-            href={project.repoUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-slate-800 text-white rounded-xl font-semibold hover:bg-slate-900 transition-all shadow-lg shadow-slate-800/25 hover:shadow-slate-800/40 hover:-translate-y-0.5"
-          >
-            <span>📁</span>
-            View Source Code
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 16 16"
-              fill="none"
-              className="opacity-70"
-            >
-              <path
-                d="M6 12L10 8L6 4"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
+        {repoUrl && (
+          <a href={repoUrl} target="_blank" rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-slate-800 text-white rounded-xl font-semibold hover:bg-slate-900 transition-all shadow-lg shadow-slate-800/25 hover:shadow-slate-800/40 hover:-translate-y-0.5">
+            <span>📁</span> View Source Code
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="opacity-70"><path d="M6 12L10 8L6 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
           </a>
         )}
       </section>
