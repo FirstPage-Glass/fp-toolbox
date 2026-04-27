@@ -14,17 +14,6 @@ const categoryColors: Record<string, string> = {
   System: "bg-slate-100 text-slate-700",
 };
 
-const statusBadges: Record<string, string> = {
-  Active: "bg-green-100 text-green-700",
-  Production: "bg-green-100 text-green-700",
-  Live: "bg-green-100 text-green-700",
-  "Internal Tool": "bg-slate-100 text-slate-700",
-  Prototype: "bg-amber-100 text-amber-700",
-  Inactive: "bg-red-100 text-red-700",
-  Building: "bg-fp-100 text-fp-700",
-  Refactoring: "bg-violet-100 text-violet-700",
-};
-
 const priorityColors: Record<string, string> = {
   High: "bg-red-100 text-red-700",
   Medium: "bg-amber-100 text-amber-700",
