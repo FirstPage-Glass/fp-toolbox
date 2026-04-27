@@ -42,13 +42,12 @@ export function ToolCard({ tool }: ToolCardProps) {
     <div className="bg-white rounded-xl border border-slate-200 overflow-hidden hover:shadow-lg hover:border-fp-300 transition-all group">
       {/* Cover Image */}
       {tool.coverImage && (
-        <div className="relative w-full h-32 overflow-hidden">
+        <div className="w-full h-32 overflow-hidden">
           <img
             src={tool.coverImage}
             alt={tool.name}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
         </div>
       )}
 

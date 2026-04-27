@@ -88,13 +88,12 @@ function CoverImage({
 }) {
   if (project.coverImage) {
     return (
-      <div className="relative w-full aspect-[21/9] rounded-2xl overflow-hidden shadow-lg">
+      <div className="w-full aspect-[21/9] rounded-2xl overflow-hidden shadow-lg">
         <img
           src={project.coverImage}
           alt={project.name}
           className="w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
       </div>
     );
   }
