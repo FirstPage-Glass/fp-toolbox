@@ -19,8 +19,11 @@ export default function NavBar() {
   const pathname = usePathname();
 
   useEffect(() => {
-    setMounted(true);
-    setIsLoggedIn(getAuthCookie() === "authenticated");
+    const timer = setTimeout(() => {
+      setMounted(true);
+      setIsLoggedIn(getAuthCookie() === "authenticated");
+    }, 0);
+    return () => clearTimeout(timer);
   }, [pathname]);
 
   const handleLogout = async () => {

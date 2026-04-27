@@ -251,7 +251,6 @@ export default async function ProjectPage({ params }: Props) {
   const url = tool.live_link || null;
   const repoUrl = tool.gh_link || null;
   const hasWebUi = Boolean(url);
-  const owner = tool.owner || null;
   const coverImage = tool.cover_image && tool.cover_image.length > 0 ? getCoverImageUrl(tool.cover_image[0]) : null;
 
   // Rich content from NocoDB
