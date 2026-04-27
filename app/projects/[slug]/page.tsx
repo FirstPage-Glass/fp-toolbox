@@ -246,7 +246,6 @@ export default async function ProjectPage({ params }: Props) {
   const category = tool.category || "Utility";
   const status = tool.status || "Unknown";
   const type = tool.type || [];
-  const serve = tool.serve || [];
   const description = tool.description || "";
   const tagline = tool.tagline || description;
   const url = tool.live_link || null;
@@ -299,9 +298,6 @@ export default async function ProjectPage({ params }: Props) {
           <span className={`text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider ${getStatusBadge(status)}`}>{status}</span>
           {type.map((t) => (
             <span key={t} className="text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider bg-indigo-50 text-indigo-700 border border-indigo-200">{t}</span>
-          ))}
-          {serve.map((s) => (
-            <span key={s} className="text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider bg-orange-50 text-orange-700 border border-orange-200">👤 {s}</span>
           ))}
           {hasWebUi && <span className="text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider bg-fp-100 text-fp-700">Web UI</span>}
           {teamName && <span className="text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider bg-slate-100 text-slate-600">{teamName}</span>}
