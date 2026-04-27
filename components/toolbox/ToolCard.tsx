@@ -28,10 +28,10 @@ const typeColors: Record<string, string> = {
 
 export function ToolCard({ tool }: ToolCardProps) {
   return (
-    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden hover:shadow-lg hover:border-fp-300 transition-all group">
+    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden hover:shadow-lg hover:border-fp-300 transition-all group flex flex-col">
       {/* Cover Image */}
       {tool.coverImage && (
-        <div className="relative w-full h-32 overflow-hidden">
+        <div className="relative w-full h-32 overflow-hidden shrink-0">
           <img
             src={tool.coverImage}
             alt={tool.name}
@@ -55,7 +55,7 @@ export function ToolCard({ tool }: ToolCardProps) {
         </div>
       )}
 
-      <div className="p-5">
+      <div className="p-5 flex-1 flex flex-col">
         <div className="flex items-start justify-between mb-3">
           <div className="flex items-center gap-2 flex-wrap">
             <span
@@ -110,24 +110,17 @@ export function ToolCard({ tool }: ToolCardProps) {
           )}
         </div>
 
-        <div className="flex items-center justify-between pt-3 border-t border-slate-100">
-          <div className="flex gap-2">
-            {tool.url && (
-              <a
-                href={tool.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs px-2.5 py-1 bg-fp-500 text-white rounded-md hover:bg-fp-700 transition-colors"
-                onClick={(e) => e.stopPropagation()}
-              >
-                Open ↗
-              </a>
-            )}
-          </div>
-          {tool.owner && (
-            <span className="text-xs text-slate-500">
-              {tool.owner}
-            </span>
+        <div className="mt-auto pt-3 border-t border-slate-100">
+          {tool.url && (
+            <a
+              href={tool.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block w-full text-center text-xs px-2.5 py-2 bg-fp-500 text-white rounded-md hover:bg-fp-700 transition-colors"
+              onClick={(e) => e.stopPropagation()}
+            >
+              Open ↗
+            </a>
           )}
         </div>
       </div>
