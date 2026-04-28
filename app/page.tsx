@@ -104,6 +104,10 @@ export default async function HomePage() {
               accent="text-violet-300"
             />
           </div>
+          <p className="text-xs text-slate-400 mt-4">
+            💡 Cost savings = hours saved × blended hourly rate, estimated
+            per-system by the owning team lead and recorded in NocoDB.
+          </p>
         </div>
       </section>
 
