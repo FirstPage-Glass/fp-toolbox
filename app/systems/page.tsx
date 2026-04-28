@@ -56,38 +56,44 @@ export default function SystemsPage() {
   const getStatusSectionStyle = (status: string) => {
     if (status === "Planned")
       return {
-        badge: "bg-blue-100 text-blue-700",
+        badge: "bg-blue-500/20 text-blue-100",
         dot: "bg-blue-400",
-        border: "border-blue-200",
+        border: "border-blue-500",
+        headerBg: "bg-blue-900",
       };
     if (["Production", "Live", "Active"].includes(status))
       return {
-        badge: "bg-green-100 text-green-700",
-        dot: "bg-green-500",
-        border: "border-green-200",
+        badge: "bg-green-500/20 text-green-100",
+        dot: "bg-green-400",
+        border: "border-green-500",
+        headerBg: "bg-green-900",
       };
     if (["Prototype", "Prototype (In Use)"].includes(status))
       return {
-        badge: "bg-amber-100 text-amber-700",
-        dot: "bg-amber-500",
-        border: "border-amber-200",
+        badge: "bg-amber-500/20 text-amber-100",
+        dot: "bg-amber-400",
+        border: "border-amber-500",
+        headerBg: "bg-amber-900",
       };
     if (status === "Building")
       return {
-        badge: "bg-fp-100 text-fp-700",
-        dot: "bg-fp-500",
-        border: "border-fp-200",
+        badge: "bg-fp-500/20 text-fp-100",
+        dot: "bg-fp-400",
+        border: "border-fp-500",
+        headerBg: "bg-fp-900",
       };
     if (status === "Refactoring")
       return {
-        badge: "bg-violet-100 text-violet-700",
-        dot: "bg-violet-500",
-        border: "border-violet-200",
+        badge: "bg-violet-500/20 text-violet-100",
+        dot: "bg-violet-400",
+        border: "border-violet-500",
+        headerBg: "bg-violet-900",
       };
     return {
-      badge: "bg-slate-100 text-slate-700",
+      badge: "bg-slate-500/20 text-slate-100",
       dot: "bg-slate-400",
-      border: "border-slate-200",
+      border: "border-slate-500",
+      headerBg: "bg-slate-800",
     };
   };
 
@@ -153,11 +159,11 @@ export default function SystemsPage() {
         return (
           <section key={status} className="space-y-4">
             {/* Section Header */}
-            <div className="flex items-center gap-3 pb-2 border-b border-slate-200">
-              <span className={`w-2.5 h-2.5 rounded-full ${style.dot}`} />
-              <h2 className="text-lg font-bold text-slate-800">{status}</h2>
-              <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${style.badge}`}>
-                {sectionTools.length}
+            <div className={`flex items-center gap-3 p-4 rounded-xl ${style.headerBg} shadow-md`}>
+              <span className={`w-3 h-3 rounded-full ${style.dot} ring-2 ring-white/30`} />
+              <h2 className="text-2xl font-extrabold text-white tracking-tight">{status}</h2>
+              <span className={`text-sm font-bold px-3 py-1 rounded-full ${style.badge}`}>
+                {sectionTools.length} system{sectionTools.length !== 1 ? 's' : ''}
               </span>
             </div>
 
