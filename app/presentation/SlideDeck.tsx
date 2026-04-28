@@ -135,7 +135,6 @@ function SlideContent({
   tools,
   totalHours,
   totalCost,
-  activeCount,
   teamCount,
   statusCounts,
   teamCoverage,
@@ -143,7 +142,7 @@ function SlideContent({
 }: {
   slide: number;
   direction: "left" | "right";
-} & SlideDeckProps) {
+} & Omit<SlideDeckProps, "activeCount">) {
   const slides = [
     <TitleSlide key="title" totalHours={totalHours} totalCost={totalCost} totalTools={tools.length} />,
     <MissionSlide key="mission" />,
