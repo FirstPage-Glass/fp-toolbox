@@ -13,7 +13,6 @@ interface SlideDeckProps {
   tools: NocoDBTool[];
   totalHours: number;
   totalCost: number;
-  activeCount: number;
   teamCount: number;
   statusCounts: Record<string, number>;
   teamCoverage: { name: string; count: number }[];
@@ -26,7 +25,6 @@ export default function SlideDeck({
   tools,
   totalHours,
   totalCost,
-  activeCount,
   teamCount,
   statusCounts,
   teamCoverage,
@@ -87,7 +85,6 @@ export default function SlideDeck({
           tools={tools}
           totalHours={totalHours}
           totalCost={totalCost}
-          activeCount={activeCount}
           teamCount={teamCount}
           statusCounts={statusCounts}
           teamCoverage={teamCoverage}

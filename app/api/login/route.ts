@@ -1,9 +1,16 @@
 import { NextResponse } from "next/server";
 
 const VALID_USER = process.env.AUTH_USER || "firstpage";
-const VALID_PASS = process.env.AUTH_PASS || "TYRRs61MwW7vWR1M2i6EFJB9HCL7t5Eu";
+const VALID_PASS = process.env.AUTH_PASS;
 
 export async function POST(request: Request) {
+  if (!VALID_PASS) {
+    return NextResponse.json(
+      { success: false, message: "Server configuration error" },
+      { status: 500 }
+    );
+  }
+
   const { username, password } = await request.json();
 
   if (username === VALID_USER && password === VALID_PASS) {
