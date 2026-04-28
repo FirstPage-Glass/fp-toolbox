@@ -13,9 +13,6 @@ export default async function PresentationPage() {
     (sum, t) => sum + (t.cost_saved_per_month || 0),
     0
   );
-  const activeCount = tools.filter((t) =>
-    ["Active", "Live", "Production"].includes(t.status)
-  ).length;
 
   // Teams served (from serve MultiSelect)
   const teamCoverageMap: Record<string, number> = {};
@@ -51,7 +48,6 @@ export default async function PresentationPage() {
       tools={tools}
       totalHours={totalHours}
       totalCost={totalCost}
-      activeCount={activeCount}
       teamCount={teamCount}
       statusCounts={statusCounts}
       teamCoverage={teamCoverage}
