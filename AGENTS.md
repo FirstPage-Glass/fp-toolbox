@@ -280,3 +280,43 @@ Make sure these are set in your hosting environment:
 3. **Auth redirect loops**: If middleware redirects infinitely, check that `/toolbox` and `/login` are listed as public paths in `middleware.ts`.
 4. **Hydration mismatch in NavBar**: `NavBar` renders a minimal placeholder on the server (`mounted === false`) to prevent hydration mismatches because it reads `document.cookie`.
 5. **Dynamic project pages 404 at runtime**: The `generateStaticParams()` in `projects/[slug]/page.tsx` fetches slugs from NocoDB at build time, with `revalidate: 300` (5-minute ISR). New slugs added to NocoDB will be picked up automatically within 5 minutes in production. In dev mode, restart the server to see new slugs.
+
+---
+
+## OpenCode / ECC Integration
+
+This project includes an **Everything Claude Code (ECC)** plugin configuration for OpenCode.
+
+### Configuration
+
+- **Config file**: `.opencode/opencode.json`
+- **Plugins**: `.opencode/plugins/` (hook-based automations)
+- **Agents**: `.opencode/prompts/agents/` (specialized subagents)
+- **Commands**: `.opencode/commands/` (slash command templates)
+
+### Available Commands
+
+| Command | Description | Agent |
+|---------|-------------|-------|
+| `/plan` | Create implementation plan | planner |
+| `/tdd` | TDD workflow (80%+ coverage) | tdd-guide |
+| `/code-review` | Review code quality | code-reviewer |
+| `/security` | Security audit | security-reviewer |
+| `/build-fix` | Fix TypeScript/build errors | build-error-resolver |
+| `/e2e` | Generate/run E2E tests | e2e-runner |
+| `/refactor-clean` | Remove dead code | refactor-cleaner |
+| `/update-docs` | Update documentation | doc-updater |
+
+### Referenced Skills (External)
+
+The following ECC skills are referenced from the external ECC installation:
+
+- **coding-standards** — Naming, immutability, error handling, code quality
+- **frontend-patterns** — React 19, Next.js, hooks, state management
+- **security-review** — Auth, input validation, secrets management
+- **tdd-workflow** — Test-driven development, 80%+ coverage
+- **api-design** — REST conventions, response formats, error handling
+
+### Setup
+
+No additional setup required. The `.opencode/` directory is self-contained (324KB). Skills are loaded from the external ECC installation at `/home/glasschan/everything-claude-code/skills/`.

@@ -14,6 +14,15 @@ export const metadata: Metadata = {
   title: "FirstPage HK — AI & Automation Portfolio",
   description:
     "Hong Kong AI & Automation Team led by Glass Chan. Production-ready systems delivering measurable ROI across SEO, Finance, Sales, and CX.",
+  icons: {
+    icon: [
+      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+    ],
+    apple: "/apple-touch-icon.png",
+    shortcut: "/favicon.ico",
+  },
+  manifest: "/site.webmanifest",
 };
 
 export default function RootLayout({
@@ -30,15 +39,17 @@ export default function RootLayout({
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="flex items-center justify-between h-16">
                 <Link href="/" className="flex items-center gap-3">
-                  <div className="w-9 h-9 bg-gradient-to-br from-fp-500 to-violet-600 rounded-lg flex items-center justify-center shadow-sm">
-                    <span className="text-white font-bold text-sm">FP</span>
-                  </div>
+                  <img
+                    src="/logo.png"
+                    alt="FirstPage"
+                    className="w-9 h-9 rounded-lg shadow-sm"
+                  />
                   <div>
                     <h1 className="text-lg font-bold text-slate-900 leading-tight">
-                      FirstPage Hong Kong
+                      FIRSTPAGE HK
                     </h1>
                     <p className="text-xs text-slate-500">
-                      AI & Automation
+                      AI & Automation Toolbox
                     </p>
                   </div>
                 </Link>
