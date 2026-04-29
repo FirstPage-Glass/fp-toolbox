@@ -113,6 +113,13 @@ export default function SystemsPage() {
     return ts.split(/[+&,]/).map((t) => t.trim()).filter(Boolean);
   };
 
+  const formatSince = (value?: string | null) => {
+    if (!value) return "";
+    const date = new Date(value + "-01");
+    if (isNaN(date.getTime())) return value;
+    return date.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+  };
+
   const serveStyles: Record<string, { emoji: string; bg: string; text: string; border: string }> = {
     Finance:    { emoji: "💰", bg: "bg-emerald-50",    text: "text-emerald-700",    border: "border-emerald-200" },
     AMs:        { emoji: "👤", bg: "bg-sky-50",        text: "text-sky-700",        border: "border-sky-200" },
@@ -238,8 +245,13 @@ export default function SystemsPage() {
                       )}
 
                       {/* Metrics */}
-                      {hasMetrics && (
-                        <div className="mb-4 flex items-center gap-3">
+                      {(hasMetrics || tool.since) && (
+                        <div className="mb-4 flex items-center gap-3 flex-wrap">
+                          {tool.since && (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 text-amber-700 rounded-full text-xs font-semibold">
+                              📅 Since {formatSince(tool.since)}
+                            </span>
+                          )}
                           {tool.hours_saved_per_month && (
                             <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-green-50 text-green-700 rounded-full text-xs font-semibold">
                               ⏱️ {tool.hours_saved_per_month}h/mo
