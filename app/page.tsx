@@ -443,13 +443,19 @@ export default async function HomePage() {
                   {tool.tagline || tool.description}
                 </p>
 
-                {calculateCostSaved(tool.hours_saved_per_month) > 0 ? (
-                  <div className="mb-3 inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-50 text-green-700 rounded-full text-xs font-medium">
-                    <span>💰</span>
-                    {tool.hours_saved_per_month}h saved · HK$
-                    {calculateCostSaved(tool.hours_saved_per_month).toLocaleString()}/mo
-                  </div>
-                ) : null}
+                <div className="flex flex-wrap items-center gap-2 mb-3">
+                  {tool.since && (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 text-amber-700 rounded-full text-xs font-medium">
+                      📅 Since {formatSince(tool.since)}
+                    </span>
+                  )}
+                  {calculateCostSaved(tool.hours_saved_per_month) > 0 && (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-50 text-green-700 rounded-full text-xs font-medium">
+                      💰 {tool.hours_saved_per_month}h saved · HK$
+                      {calculateCostSaved(tool.hours_saved_per_month).toLocaleString()}/mo
+                    </span>
+                  )}
+                </div>
 
                 <div className="flex flex-wrap gap-1">
                   {parseTech(tool.tech_stack)
@@ -525,6 +531,13 @@ function teamEmoji(team: string): string {
     Everyone: "🌍",
   };
   return map[team] || "🔧";
+}
+
+function formatSince(value?: string | null): string {
+  if (!value) return "";
+  const date = new Date(value + "-01");
+  if (isNaN(date.getTime())) return value;
+  return date.toLocaleDateString("en-US", { month: "short", year: "numeric" });
 }
 
 function parseTech(ts?: string | null): string[] {

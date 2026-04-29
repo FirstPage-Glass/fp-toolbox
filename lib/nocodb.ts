@@ -1,3 +1,19 @@
+export interface NocoDBShowcase {
+  Id: number;
+  title?: string | null;
+  Title?: string | null;
+  image?: NocoDBAttachment[] | null;
+  Image?: NocoDBAttachment[] | null;
+  description?: string | null;
+  Description?: string | null;
+  tool_id?: number | null;
+  Tool?: { id: number; [key: string]: any } | null; // Link record as object
+  display_order?: number | null;
+  "Display Order"?: number | null;
+  created_at?: string;
+  CreatedAt?: string;
+}
+
 export interface NocoDBAttachment {
   path: string;
   title: string;
@@ -167,4 +183,101 @@ export function getCoverImageUrl(attachment?: NocoDBAttachment | null): string |
     return `${NOCODB_URL}/${attachment.signedPath}`;
   }
   return null;
+}
+
+/** Get full-resolution image URL from a NocoDB attachment (no thumbnail). */
+export function getFullImageUrl(attachment?: NocoDBAttachment | null): string | null {
+  if (!attachment) return null;
+  if (attachment.signedPath) {
+    return `${NOCODB_URL}/${attachment.signedPath}`;
+  }
+  return null;
+}
+
+// Showcase table config
+const NOCODB_SHOWCASES_TABLE_ID = process.env.NOCODB_SHOWCASES_TABLE_ID || process.env.NEXT_PUBLIC_NOCODB_SHOWCASES_TABLE_ID || "";
+
+/** Fetch showcases for a specific tool by tool_id or Link record */
+export async function fetchShowcasesByToolId(toolId: number): Promise<NocoDBShowcase[]> {
+  if (!NOCODB_SHOWCASES_TABLE_ID) {
+    console.warn("NOCODB_SHOWCASES_TABLE_ID not configured, skipping showcase fetch");
+    return [];
+  }
+  
+  try {
+    // NocoDB Link fields don't support nested filtering (Tool.id,eq,X)
+    // So we fetch all showcases and filter client-side
+    const url = `${NOCODB_URL}/api/v3/data/${NOCODB_TOOLS_BASE_ID}/${NOCODB_SHOWCASES_TABLE_ID}/records?pageSize=100`;
+    const response = await fetch(url, {
+      headers: {
+        "xc-token": NOCODB_API_TOKEN,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      console.warn(`Failed to fetch showcases: ${response.status}`);
+      return [];
+    }
+
+    const data = await response.json();
+    const showcases = normalizeShowcases(data.records || []);
+    
+    // Filter by tool_id (Number field) or Tool (Link record)
+    return showcases.filter((s: NocoDBShowcase) => {
+      // Check tool_id Number field
+      if (s.tool_id === toolId) return true;
+      // Check Tool Link record (object with id)
+      if (s.Tool?.id === toolId) return true;
+      // Check Tool as array (if multiple links supported in future)
+      if (Array.isArray(s.Tool) && s.Tool.some((t) => t.id === toolId)) return true;
+      return false;
+    });
+  } catch (error) {
+    console.error("Failed to fetch showcases from NocoDB:", error);
+    return [];
+  }
+}
+
+/** Normalize showcase record fields from NocoDB */
+function normalizeShowcases(records: any[]): NocoDBShowcase[] {
+  return records.map((record: any) => {
+    const fields = record.fields || {};
+    return {
+      Id: record.id || fields.Id,
+      title: fields.title || fields.Title,
+      Title: fields.Title,
+      image: fields.image || fields.Image,
+      Image: fields.Image,
+      description: fields.description || fields.Description,
+      Description: fields.Description,
+      tool_id: fields.tool_id,
+      Tool: fields.Tool,
+      display_order: fields.display_order || fields["Display Order"],
+      "Display Order": fields["Display Order"],
+      created_at: fields.created_at || fields.CreatedAt,
+      CreatedAt: fields.CreatedAt,
+    };
+  }).sort((a: NocoDBShowcase, b: NocoDBShowcase) => {
+    const orderA = a.display_order || a["Display Order"] || 0;
+    const orderB = b.display_order || b["Display Order"] || 0;
+    return orderA - orderB;
+  });
+}
+
+/** Get showcase image URL from NocoDB attachment (full resolution) */
+export function getShowcaseImageUrl(showcase?: NocoDBShowcase | null): string | null {
+  const images = showcase?.image || showcase?.Image;
+  if (!images || images.length === 0) return null;
+  return getFullImageUrl(images[0]);
+}
+
+/** Get showcase title with fallback */
+export function getShowcaseTitle(showcase?: NocoDBShowcase | null): string {
+  return showcase?.title || showcase?.Title || "Showcase";
+}
+
+/** Get showcase description with fallback */
+export function getShowcaseDescription(showcase?: NocoDBShowcase | null): string | null {
+  return showcase?.description || showcase?.Description || null;
 }

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { teamImpact } from "@/lib/data";
-import { fetchAllTools, fetchToolBySlug, getCoverImageUrl, calculateCostSaved } from "@/lib/nocodb";
+import { fetchAllTools, fetchToolBySlug, getCoverImageUrl, calculateCostSaved, fetchShowcasesByToolId, getShowcaseImageUrl, type NocoDBShowcase } from "@/lib/nocodb";
+import ShowcaseSection from "./ShowcaseSection";
 
 export async function generateStaticParams() {
   const tools = await fetchAllTools();
@@ -261,21 +262,29 @@ export default async function ProjectPage({ params }: Props) {
   const hoursSaved = tool.hours_saved_per_month || null;
   const costSaved = calculateCostSaved(tool.hours_saved_per_month) || null;
   const volume = tool.volume_per_month || null;
-  const uptime = tool.uptime || null;
   const since = tool.since || null;
   const techStack = parseTechStack(tool.tech_stack);
   const aiModels = parseAiModels(tool.ai_models);
 
   const flowSteps = flow ? parseFlow(flow) : [];
   const teamName = findTeamForProject(slug);
+  
+  // Fetch showcases for this tool
+  const showcases = tool.Id ? await fetchShowcasesByToolId(tool.Id) : [];
+
+  const showcaseItems = showcases.map((s) => ({
+    Id: s.Id,
+    title: s.title || s.Title,
+    imageUrl: getShowcaseImageUrl(s),
+  }));
 
   // ROI cards
   const roiCards: { value: string; label: string; color: Parameters<typeof RoiCard>[0]["color"]; icon: string }[] = [];
   if (costSaved) roiCards.push({ value: `HK$${costSaved.toLocaleString()}`, label: "Value / Month", color: "fp", icon: "💰" });
   if (hoursSaved) roiCards.push({ value: `${hoursSaved}h`, label: "Hours Saved / Month", color: "green", icon: "⏱️" });
   if (volume) roiCards.push({ value: volume, label: "Monthly Volume", color: "violet", icon: "📈" });
-  if (uptime) roiCards.push({ value: uptime, label: "Uptime", color: "slate", icon: "🟢" });
-  else if (since) roiCards.push({ value: since, label: "Running Since", color: "amber", icon: "📅" });
+
+  if (since) roiCards.push({ value: since, label: "Running Since", color: "amber", icon: "📅" });
 
   return (
     <div className="max-w-5xl mx-auto space-y-10 pb-16">
@@ -317,6 +326,9 @@ export default async function ProjectPage({ params }: Props) {
           </div>
         </section>
       )}
+
+      {/* Showcase */}
+      <ShowcaseSection showcases={showcaseItems} />
 
       {/* Story */}
       {before && after && impact && (
