@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { fetchAllTools, type NocoDBTool } from "@/lib/nocodb";
+import { fetchAllTools, calculateCostSaved, type NocoDBTool } from "@/lib/nocodb";
 
 export default async function HomePage() {
   const tools = await fetchAllTools();
@@ -10,7 +10,7 @@ export default async function HomePage() {
     0
   );
   const totalCost = tools.reduce(
-    (sum, t) => sum + (t.cost_saved_per_month || 0),
+    (sum, t) => sum + calculateCostSaved(t.hours_saved_per_month),
     0
   );
   const activeCount = tools.filter((t) =>
@@ -42,7 +42,7 @@ export default async function HomePage() {
   const topTools = [...tools]
     .sort(
       (a, b) =>
-        (b.cost_saved_per_month || 0) - (a.cost_saved_per_month || 0)
+        calculateCostSaved(b.hours_saved_per_month) - calculateCostSaved(a.hours_saved_per_month)
     )
     .slice(0, 5);
 
@@ -248,7 +248,7 @@ export default async function HomePage() {
                     </td>
                     <td className="px-6 py-4 text-right font-semibold text-green-700">
                       HK$
-                      {(tool.cost_saved_per_month || 0).toLocaleString()}
+                      {calculateCostSaved(tool.hours_saved_per_month).toLocaleString()}
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-wrap gap-1">
@@ -443,11 +443,11 @@ export default async function HomePage() {
                   {tool.tagline || tool.description}
                 </p>
 
-                {tool.cost_saved_per_month ? (
+                {calculateCostSaved(tool.hours_saved_per_month) > 0 ? (
                   <div className="mb-3 inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-50 text-green-700 rounded-full text-xs font-medium">
                     <span>💰</span>
                     {tool.hours_saved_per_month}h saved · HK$
-                    {tool.cost_saved_per_month.toLocaleString()}/mo
+                    {calculateCostSaved(tool.hours_saved_per_month).toLocaleString()}/mo
                   </div>
                 ) : null}
 

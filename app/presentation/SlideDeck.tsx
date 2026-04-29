@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import type { NocoDBTool } from "@/lib/nocodb";
+import { calculateCostSaved, type NocoDBTool } from "@/lib/nocodb";
 
 /* ────────────────────────────────
    Presentation Deck — Jobs Done
@@ -494,7 +494,7 @@ function ImpactSlide({ topTools }: { topTools: NocoDBTool[] }) {
               <div key={tool.slug} className="flex justify-between text-sm">
                 <span className="text-slate-300">{tool.name}</span>
                 <span className="text-green-400 font-medium">
-                  {tool.hours_saved_per_month || 0}h · HK${(tool.cost_saved_per_month || 0).toLocaleString()}/mo
+                  {tool.hours_saved_per_month || 0}h · HK${calculateCostSaved(tool.hours_saved_per_month).toLocaleString()}/mo
                 </span>
               </div>
             ))}

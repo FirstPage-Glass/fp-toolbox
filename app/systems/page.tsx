@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState, useEffect, useMemo } from "react";
-import { fetchAllTools, getCoverImageUrl, type NocoDBTool } from "@/lib/nocodb";
+import { fetchAllTools, getCoverImageUrl, calculateCostSaved, type NocoDBTool } from "@/lib/nocodb";
 
 const STATUS_ORDER = [
   "Production",
@@ -174,7 +174,8 @@ export default function SystemsPage() {
                   ? getCoverImageUrl(tool.cover_image[0])
                   : null;
                 const techStack = parseTech(tool.tech_stack);
-                const hasMetrics = tool.hours_saved_per_month || tool.cost_saved_per_month;
+                const calculatedCost = calculateCostSaved(tool.hours_saved_per_month);
+                const hasMetrics = tool.hours_saved_per_month || calculatedCost > 0;
 
                 return (
                   <div
@@ -244,9 +245,9 @@ export default function SystemsPage() {
                               ⏱️ {tool.hours_saved_per_month}h/mo
                             </span>
                           )}
-                          {tool.cost_saved_per_month && (
+                          {calculatedCost > 0 && (
                             <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-fp-50 text-fp-700 rounded-full text-xs font-semibold">
-                              💰 HK${tool.cost_saved_per_month.toLocaleString()}/mo
+                              💰 HK${calculatedCost.toLocaleString()}/mo
                             </span>
                           )}
                         </div>
