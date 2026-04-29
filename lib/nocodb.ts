@@ -149,6 +149,14 @@ export async function fetchToolBySlug(slug: string): Promise<NocoDBTool | null> 
   }
 }
 
+const HOURLY_RATE = Number(process.env.NEXT_PUBLIC_HOURLY_RATE || process.env.HOURLY_RATE || "1000");
+
+/** Calculate cost saved from hours at configured hourly rate (default HKD$1000/hr) */
+export function calculateCostSaved(hours?: number | null): number {
+  if (!hours || hours <= 0) return 0;
+  return hours * HOURLY_RATE;
+}
+
 /** Get a displayable image URL from a NocoDB attachment. Prefers card_cover thumbnail, falls back to full signed URL. */
 export function getCoverImageUrl(attachment?: NocoDBAttachment | null): string | null {
   if (!attachment) return null;

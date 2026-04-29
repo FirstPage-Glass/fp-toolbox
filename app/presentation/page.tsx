@@ -1,4 +1,4 @@
-import { fetchAllTools } from "@/lib/nocodb";
+import { fetchAllTools, calculateCostSaved } from "@/lib/nocodb";
 import SlideDeck from "./SlideDeck";
 
 export default async function PresentationPage() {
@@ -10,7 +10,7 @@ export default async function PresentationPage() {
     0
   );
   const totalCost = tools.reduce(
-    (sum, t) => sum + (t.cost_saved_per_month || 0),
+    (sum, t) => sum + calculateCostSaved(t.hours_saved_per_month),
     0
   );
 
@@ -39,7 +39,7 @@ export default async function PresentationPage() {
   const topTools = [...tools]
     .sort(
       (a, b) =>
-        (b.cost_saved_per_month || 0) - (a.cost_saved_per_month || 0)
+        calculateCostSaved(b.hours_saved_per_month) - calculateCostSaved(a.hours_saved_per_month)
     )
     .slice(0, 5);
 

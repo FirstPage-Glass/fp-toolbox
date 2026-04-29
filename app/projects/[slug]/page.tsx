@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { teamImpact } from "@/lib/data";
-import { fetchAllTools, fetchToolBySlug, getCoverImageUrl } from "@/lib/nocodb";
+import { fetchAllTools, fetchToolBySlug, getCoverImageUrl, calculateCostSaved } from "@/lib/nocodb";
 
 export async function generateStaticParams() {
   const tools = await fetchAllTools();
@@ -259,7 +259,7 @@ export default async function ProjectPage({ params }: Props) {
   const impact = tool.impact || null;
   const flow = tool.flow || null;
   const hoursSaved = tool.hours_saved_per_month || null;
-  const costSaved = tool.cost_saved_per_month || null;
+  const costSaved = calculateCostSaved(tool.hours_saved_per_month) || null;
   const volume = tool.volume_per_month || null;
   const uptime = tool.uptime || null;
   const since = tool.since || null;
