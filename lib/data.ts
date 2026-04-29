@@ -1,3 +1,5 @@
+import { calculateCostSaved } from "./nocodb";
+
 export interface Project {
   slug: string;
   name: string;
@@ -69,7 +71,6 @@ export const projects: Project[] = [
     tagline: "900+ backlinks/month across 180+ PBN sites — fully automated, zero manual uploads",
     coverImage: null,
     hoursSavedPerMonth: 280,
-    costSavedPerMonth: 8400,
     volumePerMonth: "900+ backlinks",
     uptime: "99.2%",
     since: "Oct 2025",
@@ -93,7 +94,6 @@ export const projects: Project[] = [
     tagline: "AI rewrites Cathay Pacific FAQs with QA scoring — no copywriter needed",
     coverImage: null,
     hoursSavedPerMonth: 35,
-    costSavedPerMonth: 1050,
     volumePerMonth: "~50 items",
     uptime: "100%",
     since: "Jan 2026",
@@ -117,7 +117,6 @@ export const projects: Project[] = [
     tagline: "Paste any URL → SEO-ready FAQ schema in 10 seconds",
     coverImage: null,
     hoursSavedPerMonth: 20,
-    costSavedPerMonth: 600,
     volumePerMonth: "~40 schemas",
     uptime: "99.9%",
     since: "Mar 2026",
@@ -141,7 +140,6 @@ export const projects: Project[] = [
     tagline: "One client URL → complete landing page package in 85 seconds",
     coverImage: null,
     hoursSavedPerMonth: 50,
-    costSavedPerMonth: 1500,
     volumePerMonth: "~10 pages",
     uptime: "N/A",
     since: "Feb 2026",
@@ -165,7 +163,6 @@ export const projects: Project[] = [
     tagline: "Visual no-code workflows orchestrating AI FAQ processing at scale",
     coverImage: null,
     hoursSavedPerMonth: 15,
-    costSavedPerMonth: 450,
     volumePerMonth: "~50 items",
     uptime: "100%",
     since: "Jan 2026",
@@ -189,7 +186,6 @@ export const projects: Project[] = [
     tagline: "Turns blank proposals into structured strategic advice in 60 seconds",
     coverImage: null,
     hoursSavedPerMonth: 60,
-    costSavedPerMonth: 1800,
     volumePerMonth: "~20 proposals",
     uptime: "N/A",
     since: "Apr 2026",
@@ -213,7 +209,6 @@ export const projects: Project[] = [
     tagline: "Google Doc → WordPress/Wix/Shopify draft in one click",
     coverImage: null,
     hoursSavedPerMonth: 45,
-    costSavedPerMonth: 1350,
     volumePerMonth: "~30 posts",
     uptime: "99.5%",
     since: "Nov 2025",
@@ -237,7 +232,6 @@ export const projects: Project[] = [
     tagline: "Full invoice review portal for 16 AMs — evolved from email to web app based on team feedback",
     coverImage: null,
     hoursSavedPerMonth: 120,
-    costSavedPerMonth: 3600,
     volumePerMonth: "~400 invoices",
     uptime: "99.8%",
     since: "Dec 2025",
@@ -261,7 +255,6 @@ export const projects: Project[] = [
     tagline: "Monday AR reports auto-delivered to every AM, color-coded by urgency",
     coverImage: null,
     hoursSavedPerMonth: 32,
-    costSavedPerMonth: 960,
     volumePerMonth: "~200 invoices",
     uptime: "100%",
     since: "Sep 2025",
@@ -285,7 +278,6 @@ export const projects: Project[] = [
     tagline: "Pre-structured invoice lists ready for AM review — no manual grouping",
     coverImage: null,
     hoursSavedPerMonth: 16,
-    costSavedPerMonth: 480,
     volumePerMonth: "~400 invoices",
     uptime: "N/A",
     since: "Apr 2026",
@@ -309,7 +301,6 @@ export const projects: Project[] = [
     tagline: "Twice-monthly invoice lists with commission tracking — auto-generated on schedule",
     coverImage: null,
     hoursSavedPerMonth: 20,
-    costSavedPerMonth: 600,
     volumePerMonth: "~800 invoices/cycle",
     uptime: "N/A",
     since: "Apr 2026",
@@ -333,7 +324,6 @@ export const projects: Project[] = [
     tagline: "Automated commission checks with 96.5% retention threshold — no spreadsheet errors",
     coverImage: null,
     hoursSavedPerMonth: 24,
-    costSavedPerMonth: 720,
     volumePerMonth: "~400 invoices",
     uptime: "100%",
     since: "Oct 2025",
@@ -357,7 +347,6 @@ export const projects: Project[] = [
     tagline: "SERP + competitor analysis + AI brief → Google Doc in minutes",
     coverImage: null,
     hoursSavedPerMonth: 40,
-    costSavedPerMonth: 1200,
     volumePerMonth: "~20 briefs",
     uptime: "99.5%",
     since: "Mar 2026",
@@ -381,7 +370,6 @@ export const projects: Project[] = [
     tagline: "Auto-generates SEO title/description with length validation",
     coverImage: null,
     hoursSavedPerMonth: 30,
-    costSavedPerMonth: 900,
     volumePerMonth: "~30 pages",
     uptime: "99.5%",
     since: "Apr 2026",
@@ -398,7 +386,7 @@ export const getTotalHoursSaved = () =>
   projects.reduce((sum, p) => sum + (p.hoursSavedPerMonth || 0), 0);
 
 export const getTotalCostSaved = () =>
-  projects.reduce((sum, p) => sum + (p.costSavedPerMonth || 0), 0);
+  projects.reduce((sum, p) => sum + calculateCostSaved(p.hoursSavedPerMonth), 0);
 
 export const getProductionCount = () =>
   projects.filter((p) => p.status === "Production" || p.status === "Live").length;

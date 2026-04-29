@@ -94,6 +94,13 @@ export function ToolCard({ tool }: ToolCardProps) {
           {tool.description}
         </p>
 
+        {/* Since badge */}
+        {tool.since && (
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 mb-4 bg-amber-50 text-amber-700 rounded-full text-xs font-semibold">
+            📅 Since {tool.since}
+          </span>
+        )}
+
         <div className="flex flex-wrap gap-1.5 mb-4">
           {tool.tags.slice(0, 5).map((tag) => (
             <span

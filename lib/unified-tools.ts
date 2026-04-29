@@ -30,6 +30,7 @@ export interface UnifiedTool {
   type: string[];
   coverImage: string | null;
   serve: string[];
+  since: string | null;
 }
 
 export type UnifiedToolFilter = {
@@ -87,6 +88,7 @@ function nocoDbToUnifiedTool(tool: NocoDBTool): UnifiedTool {
     type: tool.type || [],
     coverImage,
     serve: tool.serve || [],
+    since: tool.since || null,
   };
 }
 
