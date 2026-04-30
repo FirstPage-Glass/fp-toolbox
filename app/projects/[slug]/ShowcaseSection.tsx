@@ -79,12 +79,11 @@ export default function ShowcaseSection({ showcases }: { showcases: ShowcaseItem
               Close ✕
             </button>
             <div className="relative w-full">
-              <Image
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
                 src={lightbox.imageUrl}
                 alt={lightbox.title || "Showcase image"}
-                fill
-                sizes="(max-width: 1200px) 100vw, 1024px"
-                className="object-contain rounded-xl shadow-2xl"
+                className="w-full h-auto object-contain rounded-xl shadow-2xl"
               />
             </div>
             {lightbox.title && (
