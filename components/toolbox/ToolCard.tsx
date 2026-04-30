@@ -31,11 +31,11 @@ export function ToolCard({ tool }: ToolCardProps) {
     <div className="bg-white rounded-xl border border-slate-200 overflow-hidden hover:shadow-lg hover:border-fp-300 transition-all group flex flex-col">
       {/* Cover Image */}
       {tool.coverImage && (
-        <div className="relative w-full h-32 overflow-hidden shrink-0">
+        <div className="relative w-full aspect-[5/3] overflow-hidden shrink-0">
           <img
             src={tool.coverImage}
             alt={tool.name}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
           />
           {/* Type badges overlay top-right */}
           {tool.type.length > 0 && (

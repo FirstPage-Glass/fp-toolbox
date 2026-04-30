@@ -59,11 +59,9 @@ function nocoDbToUnifiedTool(tool: NocoDBTool): UnifiedTool {
   ].filter((t): t is string => Boolean(t));
 
   const coverImage = tool.cover_image && tool.cover_image.length > 0
-    ? (tool.cover_image[0].thumbnails?.card_cover?.signedPath
-        ? `https://nocodb.firstpage.com.hk/${tool.cover_image[0].thumbnails.card_cover.signedPath}`
-        : tool.cover_image[0].signedPath
-          ? `https://nocodb.firstpage.com.hk/${tool.cover_image[0].signedPath}`
-          : null)
+    ? (tool.cover_image[0].signedPath
+        ? `https://nocodb.firstpage.com.hk/${tool.cover_image[0].signedPath}`
+        : null)
     : null;
 
   return {
