@@ -188,26 +188,30 @@ function StoryCard({
 }
 
 function FlowStep({ step, index, total }: { step: string; index: number; total: number }) {
+  const isLast = index === total - 1;
+
   return (
-    <div className="flex items-center gap-2">
-      <div className="flex-shrink-0">
-        <div className="relative">
-          <div className="w-10 h-10 rounded-lg bg-fp-500 text-white flex items-center justify-center font-bold text-sm shadow-md">{index + 1}</div>
-          {index < total - 1 && <div className="absolute left-1/2 -translate-x-1/2 top-full h-4 w-0.5 bg-fp-200 md:hidden" />}
+    <div className="relative flex flex-col items-center text-center group">
+      {/* Step circle + connector */}
+      <div className="relative flex items-center w-full">
+        {/* Connector line left */}
+        {index > 0 && (
+          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1/2 h-px bg-gradient-to-r from-transparent to-fp-300" />
+        )}
+        {/* Circle */}
+        <div className="relative z-10 mx-auto w-12 h-12 rounded-2xl bg-gradient-to-br from-fp-500 to-fp-600 text-white flex items-center justify-center font-bold text-sm shadow-lg shadow-fp-500/25 ring-4 ring-fp-100 group-hover:scale-110 transition-transform duration-300">
+          {index + 1}
         </div>
+        {/* Connector line right */}
+        {!isLast && (
+          <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1/2 h-px bg-gradient-to-l from-transparent to-fp-300" />
+        )}
       </div>
-      <div className="flex-1 min-w-0">
-        <div className="bg-white rounded-lg border border-slate-200 px-4 py-3 shadow-sm">
-          <p className="text-sm font-medium text-slate-800 truncate">{step}</p>
-        </div>
+
+      {/* Step text */}
+      <div className="mt-4 px-1 max-w-[160px]">
+        <p className="text-sm font-medium text-slate-700 leading-snug">{step}</p>
       </div>
-      {index < total - 1 && (
-        <div className="hidden md:flex flex-shrink-0 items-center justify-center w-8">
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="text-fp-400">
-            <path d="M4 10H16M16 10L12 6M16 10L12 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </div>
-      )}
     </div>
   );
 }
@@ -345,9 +349,11 @@ export default async function ProjectPage({ params }: Props) {
       {/* Flow */}
       {flowSteps.length > 0 && (
         <section className="bg-white rounded-2xl border border-slate-200 p-6 md:p-8 shadow-sm">
-          <h2 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2"><span>🔀</span> How It Works</h2>
-          <div className="space-y-3">
-            {flowSteps.map((step, i) => <FlowStep key={i} step={step} index={i} total={flowSteps.length} />)}
+          <h2 className="text-lg font-bold text-slate-900 mb-8 flex items-center gap-2"><span>🔀</span> How It Works</h2>
+          <div className="overflow-x-auto -mx-2 px-2 pb-2">
+            <div className="grid gap-y-8 min-w-max" style={{ gridTemplateColumns: `repeat(${flowSteps.length}, minmax(0, 1fr))` }}>
+              {flowSteps.map((step, i) => <FlowStep key={i} step={step} index={i} total={flowSteps.length} />)}
+            </div>
           </div>
         </section>
       )}
