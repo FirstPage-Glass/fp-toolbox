@@ -7,7 +7,7 @@ export interface NocoDBShowcase {
   description?: string | null;
   Description?: string | null;
   tool_id?: number | null;
-  Tool?: { id: number; [key: string]: any } | null; // Link record as object
+  Tool?: { id: number; [key: string]: unknown } | null; // Link record as object
   display_order?: number | null;
   "Display Order"?: number | null;
   created_at?: string;
@@ -240,23 +240,23 @@ export async function fetchShowcasesByToolId(toolId: number): Promise<NocoDBShow
 }
 
 /** Normalize showcase record fields from NocoDB */
-function normalizeShowcases(records: any[]): NocoDBShowcase[] {
-  return records.map((record: any) => {
-    const fields = record.fields || {};
+function normalizeShowcases(records: Record<string, unknown>[]): NocoDBShowcase[] {
+  return records.map((record) => {
+    const fields = (record.fields || {}) as Record<string, unknown>;
     return {
-      Id: record.id || fields.Id,
-      title: fields.title || fields.Title,
-      Title: fields.Title,
-      image: fields.image || fields.Image,
-      Image: fields.Image,
-      description: fields.description || fields.Description,
-      Description: fields.Description,
-      tool_id: fields.tool_id,
-      Tool: fields.Tool,
-      display_order: fields.display_order || fields["Display Order"],
-      "Display Order": fields["Display Order"],
-      created_at: fields.created_at || fields.CreatedAt,
-      CreatedAt: fields.CreatedAt,
+      Id: (record.id || fields.Id) as number,
+      title: (fields.title || fields.Title) as string | undefined,
+      Title: fields.Title as string | undefined,
+      image: (fields.image || fields.Image) as NocoDBAttachment[] | undefined,
+      Image: fields.Image as NocoDBAttachment[] | undefined,
+      description: (fields.description || fields.Description) as string | undefined,
+      Description: fields.Description as string | undefined,
+      tool_id: fields.tool_id as number | undefined,
+      Tool: fields.Tool as NocoDBShowcase["Tool"],
+      display_order: (fields.display_order || fields["Display Order"]) as number | undefined,
+      "Display Order": fields["Display Order"] as number | undefined,
+      created_at: (fields.created_at || fields.CreatedAt) as string | undefined,
+      CreatedAt: fields.CreatedAt as string | undefined,
     };
   }).sort((a: NocoDBShowcase, b: NocoDBShowcase) => {
     const orderA = a.display_order || a["Display Order"] || 0;

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState, useEffect, useMemo } from "react";
-import { fetchAllTools, getCoverImageUrl, calculateCostSaved, type NocoDBTool } from "@/lib/nocodb";
+import { fetchAllTools, getFullImageUrl, calculateCostSaved, type NocoDBTool } from "@/lib/nocodb";
 
 const STATUS_ORDER = [
   "Production",
@@ -178,7 +178,7 @@ export default function SystemsPage() {
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {sectionTools.map((tool) => {
                 const coverImage = tool.cover_image && tool.cover_image.length > 0
-                  ? getCoverImageUrl(tool.cover_image[0])
+                  ? getFullImageUrl(tool.cover_image[0])
                   : null;
                 const techStack = parseTech(tool.tech_stack);
                 const calculatedCost = calculateCostSaved(tool.hours_saved_per_month);
@@ -191,11 +191,11 @@ export default function SystemsPage() {
                   >
                     {/* Cover Image */}
                     {coverImage && (
-                      <Link href={`/projects/${tool.slug}`} className="relative block w-full h-36 overflow-hidden">
+                      <Link href={`/projects/${tool.slug}`} className="relative block w-full aspect-[5/3] overflow-hidden">
                         <img
                           src={coverImage}
                           alt={tool.name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
                         />
                         {/* Type badges overlay top-right */}
                         {tool.type && tool.type.length > 0 && (

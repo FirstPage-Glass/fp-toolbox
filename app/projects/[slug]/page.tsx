@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { teamImpact } from "@/lib/data";
-import { fetchAllTools, fetchToolBySlug, getCoverImageUrl, calculateCostSaved, fetchShowcasesByToolId, getShowcaseImageUrl, type NocoDBShowcase } from "@/lib/nocodb";
+import { fetchAllTools, fetchToolBySlug, getFullImageUrl, calculateCostSaved, fetchShowcasesByToolId, getShowcaseImageUrl } from "@/lib/nocodb";
 import ShowcaseSection from "./ShowcaseSection";
 
 export async function generateStaticParams() {
@@ -97,7 +97,7 @@ function CoverImage({
   if (coverImage) {
     return (
       <div className="w-full aspect-[21/9] rounded-2xl overflow-hidden shadow-lg">
-        <img src={coverImage} alt={name} className="w-full h-full object-cover" />
+        <img src={coverImage} alt={name} className="w-full h-full object-cover object-top" />
       </div>
     );
   }
@@ -252,7 +252,7 @@ export default async function ProjectPage({ params }: Props) {
   const url = tool.live_link || null;
   const repoUrl = tool.gh_link || null;
   const hasWebUi = Boolean(url);
-  const coverImage = tool.cover_image && tool.cover_image.length > 0 ? getCoverImageUrl(tool.cover_image[0]) : null;
+  const coverImage = tool.cover_image && tool.cover_image.length > 0 ? getFullImageUrl(tool.cover_image[0]) : null;
 
   // Rich content from NocoDB
   const before = tool.before || null;
@@ -283,7 +283,6 @@ export default async function ProjectPage({ params }: Props) {
   if (costSaved) roiCards.push({ value: `HK$${costSaved.toLocaleString()}`, label: "Value / Month", color: "fp", icon: "💰" });
   if (hoursSaved) roiCards.push({ value: `${hoursSaved}h`, label: "Hours Saved / Month", color: "green", icon: "⏱️" });
   if (volume) roiCards.push({ value: volume, label: "Monthly Volume", color: "violet", icon: "📈" });
-
   if (since) roiCards.push({ value: since, label: "Running Since", color: "amber", icon: "📅" });
 
   return (
