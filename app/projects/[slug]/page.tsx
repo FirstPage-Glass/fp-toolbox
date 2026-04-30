@@ -98,7 +98,7 @@ function CoverImage({
   if (coverImage) {
     return (
       <div className="w-full aspect-[21/9] rounded-2xl overflow-hidden shadow-lg relative">
-        <Image src={coverImage} alt={name} fill sizes="100vw" className="object-cover object-top" />
+        <Image src={coverImage} alt={name} fill sizes="100vw" className="object-cover object-top" loading="eager" />
       </div>
     );
   }
