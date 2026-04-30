@@ -1,6 +1,7 @@
 "use client";
 
 import type { UnifiedTool } from "@/lib/unified-tools";
+import Image from "next/image";
 
 interface ToolCardProps {
   tool: UnifiedTool;
@@ -32,10 +33,12 @@ export function ToolCard({ tool }: ToolCardProps) {
       {/* Cover Image */}
       {tool.coverImage && (
         <div className="relative w-full aspect-[5/3] overflow-hidden shrink-0">
-          <img
+          <Image
             src={tool.coverImage}
             alt={tool.name}
-            className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
+            fill
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            className="object-cover object-top group-hover:scale-105 transition-transform duration-500"
           />
           {/* Type badges overlay top-right */}
           {tool.type.length > 0 && (

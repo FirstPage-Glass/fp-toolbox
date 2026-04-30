@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 
 interface ShowcaseItem {
   Id: number;
@@ -38,11 +39,13 @@ export default function ShowcaseSection({ showcases }: { showcases: ShowcaseItem
               onClick={() => setLightbox(showcase)}
               className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer text-left"
             >
-              <div className="aspect-video w-full overflow-hidden">
-                <img
+              <div className="aspect-video w-full overflow-hidden relative">
+                <Image
                   src={showcase.imageUrl}
                   alt={showcase.title || "Showcase image"}
-                  className="w-full h-full object-cover object-top"
+                  fill
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  className="object-cover object-top"
                 />
               </div>
               <div className="p-4">
@@ -75,11 +78,15 @@ export default function ShowcaseSection({ showcases }: { showcases: ShowcaseItem
             >
               Close ✕
             </button>
-            <img
-              src={lightbox.imageUrl}
-              alt={lightbox.title || "Showcase image"}
-              className="w-full rounded-xl shadow-2xl"
-            />
+            <div className="relative w-full">
+              <Image
+                src={lightbox.imageUrl}
+                alt={lightbox.title || "Showcase image"}
+                fill
+                sizes="(max-width: 1200px) 100vw, 1024px"
+                className="object-contain rounded-xl shadow-2xl"
+              />
+            </div>
             {lightbox.title && (
               <p className="text-white/80 text-sm mt-3 text-center mb-8">{lightbox.title}</p>
             )}

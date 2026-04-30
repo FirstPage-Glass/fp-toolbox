@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { teamImpact } from "@/lib/data";
 import { fetchAllTools, fetchToolBySlug, getFullImageUrl, calculateCostSaved, fetchShowcasesByToolId, getShowcaseImageUrl } from "@/lib/nocodb";
 import ShowcaseSection from "./ShowcaseSection";
@@ -96,8 +97,8 @@ function CoverImage({
 }) {
   if (coverImage) {
     return (
-      <div className="w-full aspect-[21/9] rounded-2xl overflow-hidden shadow-lg">
-        <img src={coverImage} alt={name} className="w-full h-full object-cover object-top" />
+      <div className="w-full aspect-[21/9] rounded-2xl overflow-hidden shadow-lg relative">
+        <Image src={coverImage} alt={name} fill sizes="100vw" className="object-cover object-top" />
       </div>
     );
   }

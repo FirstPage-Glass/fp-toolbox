@@ -3,6 +3,7 @@ import { Poppins } from "next/font/google";
 import "./globals.css";
 import Link from "next/link";
 import NavBar from "./components/NavBar";
+import Image from "next/image";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -39,9 +40,12 @@ export default function RootLayout({
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="flex items-center justify-between h-16">
                 <Link href="/" className="flex items-center gap-3">
-                  <img
+                  <Image
                     src="/logo.png"
                     alt="FirstPage"
+                    width={36}
+                    height={36}
+                    unoptimized
                     className="w-9 h-9 rounded-lg shadow-sm"
                   />
                   <div>
