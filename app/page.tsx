@@ -90,7 +90,7 @@ export default async function HomePage() {
             />
             <MetricCard
               value={`HK$${totalCost.toLocaleString()}`}
-              label="Monthly Cost Reduction"
+              label="Op. Cost Saving"
               accent="text-green-300"
             />
             <MetricCard
