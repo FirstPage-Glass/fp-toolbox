@@ -136,11 +136,13 @@ function RoiCard({
   label,
   color,
   icon,
+  sublabel,
 }: {
   value: string;
   label: string;
   color: "green" | "fp" | "violet" | "slate" | "amber";
   icon: string;
+  sublabel?: string;
 }) {
   const colorMap = {
     green: "bg-green-50 text-green-700 border-green-200",
@@ -155,6 +157,7 @@ function RoiCard({
       <div className="text-2xl mb-2">{icon}</div>
       <div className="text-3xl font-extrabold tracking-tight">{value}</div>
       <div className="text-sm font-medium opacity-80 mt-1">{label}</div>
+      {sublabel && <div className="text-xs opacity-60 mt-1">{sublabel}</div>}
       <div className="absolute -top-2 -right-2 w-12 h-12 rounded-full bg-current opacity-5" />
     </div>
   );
@@ -284,8 +287,8 @@ export default async function ProjectPage({ params }: Props) {
   }));
 
   // ROI cards
-  const roiCards: { value: string; label: string; color: Parameters<typeof RoiCard>[0]["color"]; icon: string }[] = [];
-  if (costSaved) roiCards.push({ value: `HK$${costSaved.toLocaleString()}`, label: "Value / Month", color: "fp", icon: "💰" });
+  const roiCards: { value: string; label: string; color: Parameters<typeof RoiCard>[0]["color"]; icon: string; sublabel?: string }[] = [];
+  if (costSaved) roiCards.push({ value: `~HK$${costSaved.toLocaleString()}`, label: "Op. Cost Saved / Mo", color: "fp", icon: "💰", sublabel: "hours saved × hourly rate, est. by team lead" });
   if (hoursSaved) roiCards.push({ value: `${hoursSaved}h`, label: "Hours Saved / Month", color: "green", icon: "⏱️" });
   if (volume) roiCards.push({ value: volume, label: "Monthly Volume", color: "violet", icon: "📈" });
   if (since) roiCards.push({ value: since, label: "Running Since", color: "amber", icon: "📅" });
