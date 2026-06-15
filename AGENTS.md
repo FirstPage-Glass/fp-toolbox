@@ -25,7 +25,7 @@ The app is a Next.js server-rendered application that fetches live data from Noc
 | Language | TypeScript | ^5 |
 | Styling | Tailwind CSS | ^4 (v4 with `@import "tailwindcss"`) |
 | Build Tool | PostCSS with `@tailwindcss/postcss` | ^4 |
-| Package Manager | pnpm | (workspace declared in `pnpm-workspace.yaml`) |
+| Package Manager | pnpm | **enforced — npm/yarn/bun blocked** |
 | Linter | ESLint | ^9 with `eslint-config-next` |
 
 ---
@@ -265,11 +265,14 @@ Make sure these are set in your hosting environment:
 
 ---
 
+## Package Manager
+
+**pnpm is the only allowed package manager.** Do not use `npm`, `yarn`, or `bun` — they are blocked by a `preinstall` hook and will fail. All install, add, remove, and run commands must go through `pnpm`.
+
 ## Key Dependencies & Compatibility
 
 - **Next.js 16** requires React 19. Do not downgrade React to 18.
 - **Tailwind CSS v4** uses a new configuration style (`@import "tailwindcss"`, `@theme inline`) — do not use the old `tailwind.config.js` format.
-- The project uses **pnpm**. Using npm or yarn may produce lockfile conflicts.
 
 ---
 
