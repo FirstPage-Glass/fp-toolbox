@@ -15,7 +15,9 @@ All data access and tool logic: tool registry, LLM + data-source clients, Postgr
 - `lib/usage.ts` — `logUsage()` + `getUsageStats()` for the `usage_events` table.
 - `lib/content.ts` — loads brand guide + case studies from `content/` as markdown.
 - `lib/auth.ts` — `AUTH_USERS` env parsing + credential validation.
-- `lib/hubspot.ts` — HubSpot recent-leads client (`HUBSPOT_SERVICE_KEY`), spam filter + Postgres cache (1h TTL) via `getRecentLeads()`.
+- `lib/hubspot.ts` — HubSpot recent-leads client (`HUBSPOT_SERVICE_KEY`), spam filter (email domain must match website domain), paginated fetch, Postgres cache (1h TTL) via `getRecentLeads()`.
+- `lib/outputs.ts` — `tool_outputs` persistence: saveOutput / listOutputs / getOutput.
+- `lib/tool-runtime.ts` — shared tool API path: PSI/Ahrefs enrichment + generate + logUsage + saveOutput + refine resolution.
 - `lib/nocodb.ts`, `lib/unified-tools.ts`, `lib/data.ts` — **legacy, retired**. No live page reads them; kept for reference only.
 
 ## Local Contracts
@@ -23,6 +25,7 @@ All data access and tool logic: tool registry, LLM + data-source clients, Postgr
 - **Code is the source of truth.** The tool registry is a static index of `app/tools/<slug>/tool.ts` manifests — no external DB for tool metadata, so the directory can never drift.
 - **Postgres is the runtime store.** Usage events only. `CREATE TABLE IF NOT EXISTS` on first use — no migration framework (ponytail: fine at this scale).
 - **Metrics are real.** Every tool API route must call `logUsage()` on each run (user from `fp-auth` cookie, tokens, cost). Never hand-claim numbers in dashboards.
+- **Every generation is persisted** to `tool_outputs` (brief + output JSON) — history, reload, and refine all read from it. Refine is owner-only.
 - **Secrets stay server-side.** `OPENROUTER_API`, `AHREFS_API_KEY`, `DATABASE_URL` never reach client components.
 - **Network calls are tolerant.** PSI/Ahrefs failures degrade gracefully (generation proceeds without them).
 - LLM cost estimate uses a static price map in `llm.ts` — update from the OpenRouter dashboard when the key is live.

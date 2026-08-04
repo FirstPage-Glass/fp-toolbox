@@ -11,6 +11,8 @@ Reusable toolbox UI components shared by the client-side pages.
 - `components/toolbox/ToolGrid.tsx` — responsive grid with empty state.
 - `components/toolbox/CategoryFilter.tsx` — horizontal category filter buttons.
 - `components/tools/BriefForm.tsx` — shared client-brief form used by Pitch Deck and Proposal tools.
+- `components/tools/HubSpotLeads.tsx` — right-rail HubSpot lead picker (prefills the brief).
+- `components/tools/OutputHistory.tsx` — saved-output history list (reload a previous generation).
 - Page-local components (e.g. `NavBar`) live next to their pages in `app/`, not here.
 
 ## Local Contracts

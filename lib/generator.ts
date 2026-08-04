@@ -48,6 +48,11 @@ export interface GenerationData {
   competitors?: { target: string; keywords: { keyword: string; volume: number }[] } | null;
 }
 
+export interface RefineInput {
+  instruction: string;
+  previous: unknown;
+}
+
 function buildContext(brief: ClientBrief, data: GenerationData): string {
   const brand = loadBrandGuide();
   const cases = loadCaseStudies();
@@ -78,26 +83,34 @@ function buildContext(brief: ClientBrief, data: GenerationData): string {
   return parts.join("\n\n");
 }
 
-export async function generateDeck(brief: ClientBrief, data: GenerationData) {
+export async function generateDeck(brief: ClientBrief, data: GenerationData, refine?: RefineInput) {
   const context = buildContext(brief, data);
   const system = `You are the senior pitch deck writer at First Page Digital, a Hong Kong performance marketing agency.
 Produce a pitch deck for the given client brief. Output STRICT JSON only, no prose around it, in this shape:
 {"title": string, "subtitle": string, "slides": [{"heading": string, "bullets": string[], "stat"?: {"value": string, "label": string}}]}
 Guidelines: 8-12 slides. Use the real data provided (case studies, PSI, competitor keywords) — never fabricate numbers. Be specific and direct. Slides should cover: client challenge, why us, data insights, proposed approach, channel mix, case proof, investment, next steps.`;
-  const user = `## Client Brief\n${JSON.stringify(brief, null, 2)}\n\n${context}`;
+  const user = buildUserPrompt(brief, context, refine);
   const result = await complete({ system, user });
   const deck = parseJson<Deck>(result.text);
   return { ...result, deck };
 }
 
-export async function generateProposal(brief: ClientBrief, data: GenerationData) {
+export async function generateProposal(brief: ClientBrief, data: GenerationData, refine?: RefineInput) {
   const context = buildContext(brief, data);
   const system = `You are the senior proposal writer at First Page Digital, a Hong Kong performance marketing agency.
 Write a full proposal draft for the given client brief. Output STRICT JSON only, no prose around it, in this shape:
 {"title": string, "sections": [{"heading": string, "paragraphs": string[], "bullets": string[]}]}
 Guidelines: sections should cover Executive Summary, Our Understanding of Your Challenge, Strategic Approach, Channel Plan, Case Proof, Investment, Next Steps. Use the real data provided (case studies, PSI, competitor keywords) — never fabricate numbers. Be specific and direct.`;
-  const user = `## Client Brief\n${JSON.stringify(brief, null, 2)}\n\n${context}`;
+  const user = buildUserPrompt(brief, context, refine);
   const result = await complete({ system, user });
   const proposal = parseJson<Proposal>(result.text);
   return { ...result, proposal };
+}
+
+function buildUserPrompt(brief: ClientBrief, context: string, refine?: RefineInput): string {
+  let user = `## Client Brief\n${JSON.stringify(brief, null, 2)}\n\n${context}`;
+  if (refine) {
+    user += `\n\n## Previous Version\n${JSON.stringify(refine.previous)}\n\n## Refine Instruction\n${refine.instruction}\n\nRevise ONLY what the instruction asks. Keep everything else identical. Output the same JSON shape as before.`;
+  }
+  return user;
 }

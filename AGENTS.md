@@ -301,12 +301,12 @@ If you add tests:
 ### Environment Variables for Production
 
 Make sure these are set in your hosting environment:
-- `NOCODB_URL`
-- `NOCODB_API_TOKEN`
-- `NOCODB_TOOLS_BASE_ID`
-- `NOCODB_TOOLS_TABLE_ID`
-- `AUTH_USER` (optional, has default)
-- `AUTH_PASS` (optional, has default)
+- `AUTH_USERS` — per-user credentials (`name:pass,name2:pass2`)
+- `DATABASE_URL` — Postgres connection (usage events + tool outputs + leads cache)
+- `OPENROUTER_API` — OpenRouter key for deck/proposal generation
+- `AHREFS_API_KEY` — competitor data for the deck pipeline
+- `HUBSPOT_SERVICE_KEY` — HubSpot private app token for recent-leads import
+- A Postgres service must be provisioned (Coolify container; schema auto-creates on first use)
 
 ---
 

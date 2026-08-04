@@ -21,63 +21,113 @@ const SOCIAL_HOSTS = new Set([
   "t.me", "pinterest.com", "snapchat.com", "reddit.com", "wechat.com",
 ]);
 
+/** Domains that are platforms / utilities, never a real client website. */
+const PLATFORM_HOSTS = new Set([
+  "google.com", "google.co.uk", "google.com.hk", "apple.com", "microsoft.com",
+  "amazon.com", "ebay.com", "etsy.com", "alibaba.com", "taobao.com",
+  "jd.com", "shopify.com", "myshopify.com", "squarespace.com", "wix.com",
+  "wordpress.com", "blogspot.com", "medium.com", "tumblr.com",
+]);
+
 function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
 }
 
-function isValidWebsite(url: string | null): boolean {
-  if (!url) return false;
+/** Extract the host (lowercase, no www) from a URL string, or null if invalid. */
+function getHost(url: string): string | null {
   try {
     const u = new URL(url);
-    if (u.protocol !== "http:" && u.protocol !== "https:") return false;
-    const host = u.hostname.toLowerCase().replace(/^www\./, "");
-    if (SOCIAL_HOSTS.has(host)) return false;
-    return host.includes(".");
+    if (u.protocol !== "http:" && u.protocol !== "https:") return null;
+    return u.hostname.toLowerCase().replace(/^www\./, "");
   } catch {
-    return false;
+    return null;
   }
 }
 
-function isSpam(email: string, website: string | null): boolean {
-  if (!isValidEmail(email)) return true;
-  const domain = email.split("@")[1]?.toLowerCase() ?? "";
-  if (DISPOSABLE_EMAIL_DOMAINS.has(domain)) return true;
-  // ponytail: require a real website — drops social-profile-only and blank entries
-  if (!isValidWebsite(website)) return true;
+function isValidWebsite(url: string | null): boolean {
+  if (!url) return false;
+  // Reject raw email addresses pasted as website before URL parsing ("http://x@gmail.com")
+  if (url.includes("@")) return false;
+  const host = getHost(url);
+  if (!host) return false;
+  if (SOCIAL_HOSTS.has(host) || PLATFORM_HOSTS.has(host)) return false;
+  // Reject pure-numeric hosts (phone numbers, "1234", "67696969")
+  if (/^\d+$/.test(host.replace(/\./g, ""))) return false;
+  return host.includes(".");
+}
+
+/**
+ * The strongest spam signal: when the email domain is a corporate domain,
+ * the website must be on that same domain. Free email (gmail etc.) is allowed,
+ * but the website must still be a real domain.
+ */
+function domainMatches(emailDomain: string, websiteHost: string): boolean {
+  // Same exact domain, or website is a subdomain of the email domain
+  if (websiteHost === emailDomain || websiteHost.endsWith("." + emailDomain)) return true;
   return false;
 }
 
-/** Recent contacts (default last 3 days) from HubSpot, spam-filtered + deduped by email. */
-export async function fetchRecentLeads(days = 3): Promise<HubSpotLead[]> {
+export function isSpam(email: string, website: string | null): boolean {
+  if (!isValidEmail(email)) return true;
+  const emailDomain = email.split("@")[1]?.toLowerCase() ?? "";
+  if (DISPOSABLE_EMAIL_DOMAINS.has(emailDomain)) return true;
+  if (!isValidWebsite(website)) return true;
+
+  const websiteHost = getHost(website!)!;
+  // ponytail: leads that enter FirstPage's own site are test entries / spam
+  if (websiteHost.includes("firstpage")) return true;
+  // Only show leads whose email domain matches their website domain —
+  // a corporate email on the same domain is the strongest real-lead signal.
+  if (!domainMatches(emailDomain, websiteHost)) return true;
+  return false;
+}
+
+/** Recent contacts (default last 7 days) from HubSpot, spam-filtered + deduped by email. */
+export async function fetchRecentLeads(days = 7): Promise<HubSpotLead[]> {
   const token = process.env.HUBSPOT_SERVICE_KEY;
   if (!token) {
     throw new Error("HUBSPOT_SERVICE_KEY not configured");
   }
   const then = Date.now() - days * 24 * 3600 * 1000;
-  const res = await fetch("https://api.hubapi.com/crm/v3/objects/contacts/search", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      limit: 100,
+
+  // ponytail: HubSpot search caps at 100/page — paginate via `after` cursor.
+  // MAX_PAGES hard-caps the scan (1000 contacts); the 7-day window is normally ~150.
+  const PAGE_LIMIT = 100;
+  const MAX_PAGES = 10;
+  const all: Record<string, unknown>[] = [];
+  let after: string | undefined;
+  for (let page = 0; page < MAX_PAGES; page++) {
+    const body: Record<string, unknown> = {
+      limit: PAGE_LIMIT,
       filterGroups: [
         { filters: [{ propertyName: "createdate", operator: "GTE", value: String(then) }] },
       ],
       properties: ["firstname", "lastname", "email", "website", "createdate"],
       sort: [{ propertyName: "createdate", direction: "DESCENDING" }],
-    }),
-    signal: AbortSignal.timeout(20_000),
-  });
-  if (!res.ok) {
-    throw new Error(`HubSpot error ${res.status}`);
+    };
+    if (after) body.after = after;
+    const res = await fetch("https://api.hubapi.com/crm/v3/objects/contacts/search", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(20_000),
+    });
+    if (!res.ok) {
+      throw new Error(`HubSpot error ${res.status}`);
+    }
+    const data = await res.json();
+    all.push(...(data.results ?? []));
+    after = data.paging?.next?.after;
+    if (!after) break;
   }
-  const data = await res.json();
+
   const seen = new Set<string>();
   const leads: HubSpotLead[] = [];
-  for (const r of data.results ?? []) {
-    const p = r.properties ?? {};
+  for (const r of all) {
+    const p = (r.properties ?? {}) as Record<string, unknown>;
     const email = String(p.email ?? "").trim().toLowerCase();
     const website = p.website ? String(p.website).trim() : null;
     if (isSpam(email, website)) continue;
@@ -88,7 +138,7 @@ export async function fetchRecentLeads(days = 3): Promise<HubSpotLead[]> {
       name: `${p.firstname ?? ""} ${p.lastname ?? ""}`.trim(),
       email,
       website,
-      createdAt: r.createdAt ?? "",
+      createdAt: String(r.createdAt ?? ""),
     });
   }
   return leads;
@@ -113,7 +163,7 @@ async function ensureCacheTable(): Promise<void> {
  * Recent leads with a Postgres cache — same data for the whole team,
  * one HubSpot fetch per hour instead of one per picker click.
  */
-export async function getRecentLeads(days = 3): Promise<HubSpotLead[]> {
+export async function getRecentLeads(days = 7): Promise<HubSpotLead[]> {
   try {
     await ensureCacheTable();
     // Fresh enough? Serve from cache.

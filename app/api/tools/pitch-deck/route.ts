@@ -1,13 +1,9 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { generateDeck } from "@/lib/generator";
-import { getPsiScore } from "@/lib/psi";
-import { getCompetitorKeywords } from "@/lib/ahrefs";
-import { logUsage } from "@/lib/usage";
+import { runTool, resolveRefine, listUserOutputs } from "@/lib/tool-runtime";
 
-export async function POST(request: Request) {
-  const body = await request.json();
-  const brief = {
+function parseBrief(body: Record<string, unknown>) {
+  return {
     clientName: String(body.clientName || ""),
     industry: String(body.industry || ""),
     objective: String(body.objective || ""),
@@ -16,36 +12,49 @@ export async function POST(request: Request) {
     website: String(body.website || ""),
     notes: String(body.notes || ""),
   };
+}
+
+export async function GET() {
+  const outputs = await listUserOutputs("pitch-deck");
+  if (!outputs) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  return NextResponse.json({ outputs });
+}
+
+export async function POST(request: Request) {
+  const body = await request.json();
+  const brief = parseBrief(body);
   if (!brief.clientName || !brief.industry || !brief.objective) {
     return NextResponse.json({ error: "clientName, industry and objective are required" }, { status: 400 });
   }
 
-  const user = (await cookies()).get("fp-auth")?.value || "unknown";
-  const started = Date.now();
+  let refine;
+  try {
+    refine = await resolveRefine(body);
+  } catch (err) {
+    return NextResponse.json({ error: (err as Error).message }, { status: 404 });
+  }
 
-  // Data enrichment — tolerate failures (deck still generates without them)
-  const psi = brief.website
-    ? await getPsiScore(brief.website).catch(() => null)
-    : null;
-  const competitors = brief.website
-    ? await getCompetitorKeywords(brief.website, { limit: 5 }).catch(() => null)
-    : null;
-
-  const result = await generateDeck(brief, { psi, competitors });
-
-  await logUsage({
-    user,
+  const result = await runTool({
     toolSlug: "pitch-deck",
-    action: "generate",
-    durationMs: Date.now() - started,
-    promptTokens: result.promptTokens,
-    completionTokens: result.completionTokens,
-    costUsd: result.costUsd,
+    brief,
+    refine,
+    generate: async (b, data, r) => {
+      const res = await generateDeck(b, data, r);
+      return {
+        output: res.deck,
+        model: res.model,
+        costUsd: res.costUsd,
+        promptTokens: res.promptTokens,
+        completionTokens: res.completionTokens,
+      };
+    },
   });
 
   return NextResponse.json({
-    deck: result.deck,
+    deck: result.output,
+    outputId: result.outputId,
     meta: { model: result.model, costUsd: result.costUsd },
-    data: { psi, competitors },
   });
 }

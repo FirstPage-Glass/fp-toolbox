@@ -23,7 +23,8 @@ Routing map:
 | `/presentation` | Server | Yes | Postgres usage stats |
 | `/login` | Client | No | — |
 | `/api/login`, `/api/logout` | API | No | `AUTH_USERS` env |
-| `/api/tools/<slug>` | API | Yes (cookie) | generator + data |
+| `/api/tools/<slug>` | API | Yes (cookie) | GET = history list, POST = generate/refine |
+| `/api/hubspot/recent-leads` | API | Yes (cookie) | HubSpot contacts, spam-filtered + 1h cache |
 
 - Server components are the default; mark `"use client"` only when state, effects, or browser APIs are required.
 - **Never put API keys in client components** — OpenRouter/Ahrefs keys are server-side only (`lib/`).

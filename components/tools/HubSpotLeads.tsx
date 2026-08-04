@@ -1,0 +1,95 @@
+"use client";
+
+import { useState } from "react";
+
+export interface HubSpotLead {
+  id: string;
+  name: string;
+  email: string;
+  website: string | null;
+  createdAt: string;
+}
+
+/** Right-rail HubSpot lead picker — sits beside the brief form, not inside it. */
+export default function HubSpotLeads({
+  onPick,
+}: {
+  onPick: (lead: HubSpotLead) => void;
+}) {
+  const [leads, setLeads] = useState<HubSpotLead[] | null>(null);
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function loadLeads() {
+    if (leads !== null) {
+      setOpen((o) => !o);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/hubspot/recent-leads");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to load leads");
+      setLeads(data.leads || []);
+      setOpen(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load leads");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="rounded-xl bg-white p-4 shadow-sm border border-slate-200">
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-semibold text-slate-700">Recent leads</span>
+        <button
+          type="button"
+          onClick={loadLeads}
+          disabled={loading}
+          className="rounded-lg border border-fp-300 bg-fp-50 px-3 py-1.5 text-xs font-semibold text-fp-700 hover:bg-fp-100 disabled:opacity-50"
+        >
+          {loading ? "Loading…" : open ? "Hide" : "📇 Import from HubSpot"}
+        </button>
+      </div>
+      <p className="mt-1 text-xs text-slate-400">
+        Last 7 days, spam filtered. Pick a lead to fill the brief.
+      </p>
+
+      {error && (
+        <div className="mt-2 rounded-lg border border-red-200 bg-red-50 p-2 text-xs text-red-700">
+          {error}
+        </div>
+      )}
+
+      {open && leads && (
+        <div className="mt-3 max-h-64 overflow-y-auto rounded-lg border border-slate-200 bg-slate-50 p-2">
+          {leads.length === 0 ? (
+            <p className="px-2 py-3 text-sm text-slate-500">No recent leads (last 7 days, spam filtered).</p>
+          ) : (
+            leads.map((l) => (
+              <button
+                key={l.id}
+                type="button"
+                onClick={() => onPick(l)}
+                className="flex w-full items-center justify-between gap-2 rounded-md px-3 py-2 text-left hover:bg-fp-100"
+              >
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-medium text-slate-800">
+                    {l.name || "(no name)"}
+                  </span>
+                  <span className="block truncate text-xs text-slate-500">{l.email}</span>
+                </span>
+                <span className="shrink-0 max-w-[9rem] truncate font-mono text-xs text-slate-400">
+                  {l.website ? l.website.replace(/^https?:\/\//, "") : "—"}
+                </span>
+              </button>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
