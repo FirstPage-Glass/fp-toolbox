@@ -2,3 +2,7 @@ allowBuilds:
   sharp: false
   unrs-resolver: false
   esbuild: true
+minimumReleaseAgeExclude:
+  - '@typescript-eslint/tsconfig-utils@8.66.0'
+  - '@typescript-eslint/types@8.66.0'
+  - '@typescript-eslint/utils@8.66.0'

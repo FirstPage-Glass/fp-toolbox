@@ -83,7 +83,7 @@ When the user requests a durable behavior change, record it here or in the relev
 - `app/AGENTS.md` — App Router surface: pages, API routes, routing/auth rules. Owns everything under `app/`.
 - `lib/AGENTS.md` — Data layer: NocoDB client, unified-tools adapter, static data. Owns everything under `lib/`.
 - `components/AGENTS.md` — Reusable toolbox UI components. Owns everything under `components/`.
-- Root-owned: `middleware.ts`, config files (`next.config.ts`, `tsconfig.json`, `postcss.config.mjs`, `eslint.config.mjs`), `public/`, `README.md`, `.env` / `.env.local` (secrets, not committed), `.opencode/`.
+- Root-owned: `db/init.sql` (schema bootstrap), `docker-compose.yml` (local Postgres), `Dockerfile` (production image), `proxy.ts`, config files (`next.config.ts`, `tsconfig.json`, `postcss.config.mjs`, `eslint.config.mjs`), `public/`, `README.md`, `.env` / `.env.local` (secrets, not committed), `.opencode/`.
 
 ---
 
@@ -101,7 +101,7 @@ It serves two primary audiences:
 - **External stakeholders / executives** (the "boss view") — sees high-level ROI metrics, business impact, and architecture overview
 - **Internal team** (the "system view") — sees full system inventory, live tool directory, tech stack breakdown, and individual project detail pages
 
-The app is a Next.js server-rendered application that fetches live data from NocoDB at build time (ISR) and runtime. It requires a Next.js server to run (not a static export) because it uses middleware, API routes, and cookie-based authentication.
+The app is a Next.js server-rendered application that fetches live data from NocoDB at build time (ISR) and runtime. It requires a Next.js server to run (not a static export) because it uses a proxy (formerly middleware), API routes, and cookie-based authentication.
 
 ---
 
@@ -109,13 +109,13 @@ The app is a Next.js server-rendered application that fetches live data from Noc
 
 | Layer | Technology | Version |
 |-------|-----------|---------|
-| Framework | Next.js | 16.2.4 |
-| UI Library | React | 19.2.4 |
-| Language | TypeScript | ^5 |
+| Framework | Next.js | 16.2.12 |
+| UI Library | React | 19.2.8 |
+| Language | TypeScript | 6.0.3 |
 | Styling | Tailwind CSS | ^4 (v4 with `@import "tailwindcss"`) |
 | Build Tool | PostCSS with `@tailwindcss/postcss` | ^4 |
 | Package Manager | pnpm | (workspace declared in `pnpm-workspace.yaml`) |
-| Linter | ESLint | ^9 with `eslint-config-next` |
+| Linter | ESLint | ^9 with `eslint-config-next` (stay on 9 — `eslint-plugin-react` doesn't support ESLint 10 yet) |
 
 ---
 
@@ -149,10 +149,13 @@ The app is a Next.js server-rendered application that fetches live data from Noc
 │   ├── nocodb.ts                 # NocoDB API client — primary live data source
 │   └── unified-tools.ts          # Adapter layer: normalizes NocoDB records into UnifiedTool objects
 │
-├── middleware.ts                 # Route-level auth guard (cookie check + redirects)
+├── db/                           # Database bootstrap
+│   └── init.sql                  # Schema for usage_events, tool_outputs, hubspot_leads_cache
+├── proxy.ts                     # Route-level auth guard (cookie check + redirects); formerly middleware.ts (renamed in Next.js 16)
 ├── next.config.ts                # distDir: 'dist', images.unoptimized: true
 ├── postcss.config.mjs            # @tailwindcss/postcss plugin
 ├── eslint.config.mjs             # Next.js core-web-vitals + typescript rules
+├── docker-compose.yml            # Local dev Postgres 18 (postgres:18-alpine)
 └── .env.local                    # Secrets (NocoDB tokens, auth credentials)
 ```
 
@@ -167,6 +170,9 @@ The app is a Next.js server-rendered application that fetches live data from Noc
 ```bash
 # Install dependencies
 pnpm install
+
+# Start local Postgres (postgres:18-alpine, schema auto-creates on first start)
+docker compose up -d
 
 # Start development server
 pnpm dev
@@ -218,7 +224,7 @@ The app uses **per-user cookie authentication**:
 1. User submits credentials on `/login` → `POST /api/login`
 2. Server validates against `AUTH_USERS` env (comma-separated `name:password` pairs)
 3. On success, sets `fp-auth=<username>` cookie (1-week expiry, `sameSite: strict`)
-4. `middleware.ts` checks the cookie on every request
+4. `proxy.ts` checks the cookie on every request
 5. Unauthenticated users hitting protected routes are redirected to `/toolbox`
 6. Logout clears the cookie via `POST /api/logout`
 7. The cookie value is the username — used for usage attribution in `usage_events`
@@ -290,13 +296,13 @@ If you add tests:
 
 ## CI/CD & Deployment
 
-**There is no CI/CD configuration.** No `.github/workflows/`, `Dockerfile`, or other automation exists.
+**No CI pipeline yet** — no `.github/workflows/`. Deployment is via the `Dockerfile` (Coolify / any container host) with a separate managed Postgres, or `docker compose` for local dev (see Build & Development Commands).
 
-### Manual Deployment Process
+### Production Deployment
 
-1. Ensure `.env.local` has the correct NocoDB and auth credentials
-2. Run `pnpm build`
-3. Deploy the `dist/` folder to a Next.js-compatible host (Vercel, Node.js server, Docker)
+1. Build the image from `Dockerfile` (multi-stage: deps → build → standalone runner)
+2. Provision a Postgres service and set `DATABASE_URL`; the three tables auto-create on first use via `CREATE TABLE IF NOT EXISTS` in `lib/` (or seed with `db/init.sql`)
+3. Set the remaining env vars below; the container serves on port 3000
 
 ### Environment Variables for Production
 
@@ -316,7 +322,7 @@ Make sure these are set in your hosting environment:
 2. **NocoDB API token exposure**: The token is used in server-side fetches. Do NOT pass it to client components.
 3. **Cookie is not httpOnly in client-side NavBar**: The auth cookie is read by client-side JavaScript in `NavBar.tsx` to show/hide navigation. The `httpOnly` flag is set to `false` in the login route to allow this.
 4. **No HTTPS enforcement**: The auth cookie sets `secure: true` only in production (`NODE_ENV === 'production'`). Ensure production deployments use HTTPS.
-5. **Server deployment required**: This app requires a Next.js server. Do not deploy to pure static hosts (GitHub Pages, S3 static hosting) — middleware, API routes, and auth will not work. Use Vercel, a Node.js server, or Docker.
+5. **Server deployment required**: This app requires a Next.js server. Do not deploy to pure static hosts (GitHub Pages, S3 static hosting) — the proxy, API routes, and auth will not work. Use Vercel, a Node.js server, or Docker.
 
 ---
 
@@ -334,6 +340,8 @@ Content (case studies, brand guide) lives in `content/` as markdown — edit tho
 ## Key Dependencies & Compatibility
 
 - **Next.js 16** requires React 19. Do not downgrade React to 18.
+- **Next.js 16 build requires TypeScript 6** (`next build` fails with TS 7: "TypeScript 7.x does not provide the compiler API required by Next.js"). Stay on TS 6 until Next.js officially supports TS 7.
+- **ESLint must stay on 9**, not 10. `eslint-config-next` pulls `eslint-plugin-react`, whose peer range tops out at ESLint `^9.7`. ESLint 10 crashes the linter (`context.getFilename is not a function`).
 - **Tailwind CSS v4** uses a new configuration style (`@import "tailwindcss"`, `@theme inline`) — do not use the old `tailwind.config.js` format.
 - The project uses **pnpm**. Using npm or yarn may produce lockfile conflicts.
 
@@ -343,7 +351,7 @@ Content (case studies, brand guide) lives in `content/` as markdown — edit tho
 
 1. **Build fails with image optimization error**: Make sure `images.unoptimized: true` stays in `next.config.ts`.
 2. **NocoDB fetch returns empty array**: Check that `NOCODB_API_TOKEN` and base/table IDs are correct. The client silently returns `[]` on error.
-3. **Auth redirect loops**: If middleware redirects infinitely, check that `/toolbox` and `/login` are listed as public paths in `middleware.ts`.
+3. **Auth redirect loops**: If the proxy redirects infinitely, check that `/toolbox` and `/login` are listed as public paths in `proxy.ts`.
 4. **Hydration mismatch in NavBar**: `NavBar` renders a minimal placeholder on the server (`mounted === false`) to prevent hydration mismatches because it reads `document.cookie`.
 5. **Dynamic project pages 404 at runtime**: The `generateStaticParams()` in `projects/[slug]/page.tsx` fetches slugs from NocoDB at build time, with `revalidate: 300` (5-minute ISR). New slugs added to NocoDB will be picked up automatically within 5 minutes in production. In dev mode, restart the server to see new slugs.
 

@@ -30,7 +30,11 @@ export default function OutputHistory({
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
+    // Defer setLoading(true) to a microtask so it isn't a synchronous setState
+    // inside the effect body (which triggers cascading renders).
+    Promise.resolve().then(() => {
+      if (!cancelled) setLoading(true);
+    });
     fetch(`/api/tools/${toolSlug}`)
       .then((r) => r.json())
       .then((data) => {
