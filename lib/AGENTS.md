@@ -15,6 +15,7 @@ All data access and tool logic: tool registry, LLM + data-source clients, Postgr
 - `lib/usage.ts` — `logUsage()` + `getUsageStats()` for the `usage_events` table.
 - `lib/content.ts` — loads brand guide + case studies from `content/` as markdown.
 - `lib/auth.ts` — `AUTH_USERS` env parsing + credential validation.
+- `lib/hubspot.ts` — HubSpot recent-leads client (`HUBSPOT_SERVICE_KEY`), spam filter + Postgres cache (1h TTL) via `getRecentLeads()`.
 - `lib/nocodb.ts`, `lib/unified-tools.ts`, `lib/data.ts` — **legacy, retired**. No live page reads them; kept for reference only.
 
 ## Local Contracts
