@@ -1,3 +1,92 @@
+# DOX framework
+
+- DOX is highly performant AGENTS.md hierarchy installed here
+- Agent must follow DOX instructions across any edits
+
+## Core Contract
+
+- AGENTS.md files are binding work contracts for their subtrees
+- Work products, source materials, instructions, records, assets, and durable docs must stay understandable from the nearest applicable AGENTS.md plus every parent AGENTS.md above it
+
+## Read Before Editing
+
+1. Read the root AGENTS.md
+2. Identify every file or folder you expect to touch
+3. Walk from the repository root to each target path
+4. Read every AGENTS.md found along each route
+5. If a parent AGENTS.md lists a child AGENTS.md whose scope contains the path, read that child and continue from there
+6. Use the nearest AGENTS.md as the local contract and parent docs for repo-wide rules
+7. If docs conflict, the closer doc controls local work details, but no child doc may weaken DOX
+
+Do not rely on memory. Re-read the applicable DOX chain in the current session before editing.
+
+## Update After Editing
+
+Every meaningful change requires a DOX pass before the task is done.
+
+Update the closest owning AGENTS.md when a change affects:
+
+- purpose, scope, ownership, or responsibilities
+- durable structure, contracts, workflows, or operating rules
+- required inputs, outputs, permissions, constraints, side effects, or artifacts
+- user preferences about behavior, communication, process, organization, or quality
+- AGENTS.md creation, deletion, move, rename, or index contents
+
+Update parent docs when parent-level structure, ownership, workflow, or child index changes. Update child docs when parent changes alter local rules. Remove stale or contradictory text immediately. Small edits that do not change behavior or contracts may leave docs unchanged, but the DOX pass still must happen.
+
+## Hierarchy
+
+- Root AGENTS.md is the DOX rail: project-wide instructions, global preferences, durable workflow rules, and the top-level Child DOX Index
+- Child AGENTS.md files own domain-specific instructions and their own Child DOX Index
+- Each parent explains what its direct children cover and what stays owned by the parent
+- The closer a doc is to the work, the more specific and practical it must be
+
+## Child Doc Shape
+
+- Create a child AGENTS.md when a folder becomes a durable boundary with its own purpose, rules, responsibilities, workflow, materials, or quality standards
+- Work Guidance must reflect the current standards of the project or user instructions; if there are no specific standards or instructions yet, leave it empty
+- Verification must reflect an existing check; if no verification framework exists yet, leave it empty and update it when one exists
+
+Default section order:
+- Purpose
+- Ownership
+- Local Contracts
+- Work Guidance
+- Verification
+- Child DOX Index
+
+## Style
+
+- Keep docs concise, current, and operational
+- Document stable contracts, not diary entries
+- Put broad rules in parent docs and concrete details in child docs
+- Prefer direct bullets with explicit names
+- Do not duplicate rules across many files unless each scope needs a local version
+- Delete stale notes instead of explaining history
+- Trim obvious statements, repeated rules, misplaced detail, and warnings for risks that no longer exist
+
+## Closeout
+
+1. Re-check changed paths against the DOX chain
+2. Update nearest owning docs and any affected parents or children
+3. Refresh every affected Child DOX Index
+4. Remove stale or contradictory text
+5. Run existing verification when relevant
+6. Report any docs intentionally left unchanged and why
+
+## User Preferences
+
+When the user requests a durable behavior change, record it here or in the relevant child AGENTS.md
+
+## Child DOX Index
+
+- `app/AGENTS.md` — App Router surface: pages, API routes, routing/auth rules. Owns everything under `app/`.
+- `lib/AGENTS.md` — Data layer: NocoDB client, unified-tools adapter, static data. Owns everything under `lib/`.
+- `components/AGENTS.md` — Reusable toolbox UI components. Owns everything under `components/`.
+- Root-owned: `middleware.ts`, config files (`next.config.ts`, `tsconfig.json`, `postcss.config.mjs`, `eslint.config.mjs`), `public/`, `README.md`, `.env` / `.env.local` (secrets, not committed), `.opencode/`.
+
+---
+
 # AGENTS.md — FirstPage HK AI & Automation Portfolio Dashboard
 
 This file contains project-specific context for AI coding agents. Read this before making any changes.
@@ -105,29 +194,13 @@ The `dist/` folder contains a Next.js server build (not a static export). Deploy
 
 ## Data Architecture
 
-### Two Data Sources
+### Data Sources (current)
 
-1. **NocoDB (primary, live)** — `lib/nocodb.ts`
-   - Fetches tool/system records from a NocoDB instance at build time and runtime
-   - Data is cached with `next: { revalidate: 300 }` (5-minute ISR-like revalidation)
-   - Homepage (`page.tsx`), Systems, Toolbox, Architecture, and project detail pages all consume this
-   - Schema fields: `name`, `description`, `category`, `status`, `tech_stack`, `slug`, `live_link`, `gh_link`, `tagline`, `before`, `after`, `flow`, `impact`, `hours_saved_per_month`, `cost_saved_per_month`, `volume_per_month`, `uptime`, `since`, `ai_models`, `serve`, `cover_image`, `owner`, `priority`, `type`, etc.
-
-2. **Static TypeScript (legacy / reference)** — `lib/data.ts`
-   - Contains hardcoded `Project` objects with similar schema
-   - Still used by the old `ai-projects` / `automation-projects` pages (kept for backwards compatibility)
-   - **CRITICAL**: `lib/data.ts` is NOT the source of truth. All live pages (Overview, Systems, Toolbox, Architecture, Detail pages) read from NocoDB. When adding or updating systems, always update NocoDB first. Only update `lib/data.ts` if you explicitly need static fallback data.
-
-### NocoDB Environment Variables
-
-| Variable | Purpose |
-|----------|---------|
-| `NOCODB_URL` | NocoDB instance URL (default: `https://nocodb.firstpage.com.hk`) |
-| `NOCODB_API_TOKEN` | API token for authentication |
-| `NOCODB_TOOLS_BASE_ID` | Base ID for the tools database |
-| `NOCODB_TOOLS_TABLE_ID` | Table ID for the tools table |
-
-All variables fall back to `NEXT_PUBLIC_*` variants if the direct ones are not set.
+1. **Code = source of truth** — tool registry (`lib/registry.ts`) is a static index of `app/tools/<slug>/tool.ts` manifests. Adding a tool = one folder + one import line. No drift possible.
+2. **Postgres** — runtime data: `usage_events` table (user, tool, tokens, cost) via `lib/usage.ts` / `lib/db.ts`. `DATABASE_URL` env. Dev: podman `postgres:18-alpine`.
+3. **External APIs** — OpenRouter (`lib/llm.ts`, `OPENROUTER_API`), PageSpeed Insights (`lib/psi.ts`, free), Ahrefs (`lib/ahrefs.ts`, `AHREFS_API_KEY`).
+4. **Content** — brand guide + case studies as markdown in `content/` (`lib/content.ts`), fed into the deck/proposal generation.
+5. **NocoDB (legacy, retired)** — `lib/nocodb.ts` and `lib/data.ts` remain for reference only; no live page reads them. NocoDB is no longer the source of truth.
 
 ---
 
@@ -135,28 +208,28 @@ All variables fall back to `NEXT_PUBLIC_*` variants if the direct ones are not s
 
 ### How It Works
 
-The app uses **simple cookie-based authentication** with two views:
+The app uses **per-user cookie authentication**:
 
-- **Toolbox View** (`/toolbox`, `/login`, `/api/*`) — always public, no login required
-- **System View** (`/`, `/systems`, `/architecture`, `/projects/*`) — requires login
+- **Public**: `/toolbox`, `/login`, `/api/*` — no login required
+- **Protected**: `/`, `/presentation`, `/tools/*` — requires login
 
 ### Auth Flow
 
 1. User submits credentials on `/login` → `POST /api/login`
-2. Server validates against `AUTH_USER` / `AUTH_PASS` env vars
-3. On success, sets `fp-auth=authenticated` cookie (1-week expiry, `sameSite: strict`)
+2. Server validates against `AUTH_USERS` env (comma-separated `name:password` pairs)
+3. On success, sets `fp-auth=<username>` cookie (1-week expiry, `sameSite: strict`)
 4. `middleware.ts` checks the cookie on every request
 5. Unauthenticated users hitting protected routes are redirected to `/toolbox`
 6. Logout clears the cookie via `POST /api/logout`
+7. The cookie value is the username — used for usage attribution in `usage_events`
 
 ### Auth Environment Variables
 
-| Variable | Default |
+| Variable | Example |
 |----------|---------|
-| `AUTH_USER` | `firstpage` |
-| `AUTH_PASS` | `TYRRs61MwW7vWR1M2i6EFJB9HCL7t5Eu` |
+| `AUTH_USERS` | `glass:pass,wing:pass2` |
 
-**Security note**: This is a simple hardcoded credential scheme suitable for internal stakeholder demos. It is NOT a robust authentication system. Do not expose sensitive internal tools behind this auth alone.
+**Security note**: Simple credential scheme for an internal team. Not robust auth — do not expose sensitive tools behind it alone.
 
 ---
 
@@ -164,16 +237,16 @@ The app uses **simple cookie-based authentication** with two views:
 
 | Route | Type | Auth Required | Data Source |
 |-------|------|---------------|-------------|
-| `/` | Server | Yes | NocoDB |
-| `/toolbox` | Client | No | NocoDB (client-side fetch) |
-| `/systems` | Client | Yes | NocoDB (client-side fetch) |
-| `/architecture` | Server | Yes | NocoDB |
-| `/projects/[slug]` | Server | Yes | NocoDB |
+| `/` | Server | Yes | Postgres usage stats |
+| `/toolbox` | Server | No | `lib/registry.ts` (code) |
+| `/tools/pitch-deck` | Client | Yes | OpenRouter + PSI + Ahrefs |
+| `/tools/proposal` | Client | Yes | OpenRouter + PSI + Ahrefs |
+| `/presentation` | Server | Yes | Postgres usage stats |
 | `/login` | Client | No | — |
-| `/ai-projects` | Server | Yes | `lib/data.ts` (static) |
-| `/automation-projects` | Server | Yes | `lib/data.ts` (static) |
-| `/api/login` | API | No | — |
+| `/api/login` | API | No | `AUTH_USERS` env |
 | `/api/logout` | API | No | — |
+| `/api/tools/pitch-deck` | API | Yes (cookie) | generator + data |
+| `/api/tools/proposal` | API | Yes (cookie) | generator + data |
 
 ---
 
@@ -247,21 +320,14 @@ Make sure these are set in your hosting environment:
 
 ---
 
-## Adding a New System
+## Adding a New Tool
 
-### Preferred method (NocoDB)
+1. Create `app/tools/<slug>/tool.ts` with a `ToolManifest` (slug, name, description, category, owner, status, icon)
+2. Add the manifest to the static index in `lib/registry.ts` (one import + array entry)
+3. Add `app/tools/<slug>/page.tsx` (the UI) and `app/api/tools/<slug>/route.ts` (server work — call `logUsage()` on every run)
+4. Rebuild: `pnpm build` — the tool appears in `/toolbox` automatically
 
-1. Add the new record to the NocoDB `Tools` table with all fields populated
-2. Ensure `slug` is URL-friendly and unique
-3. No code changes needed — detail page auto-generates from slug
-4. Rebuild: `pnpm build`
-
-### Legacy method (static data)
-
-1. Edit `lib/data.ts`
-2. Add a new `Project` object to the `projects` array
-3. Update `teamImpact` if applicable
-4. Rebuild: `pnpm build`
+Content (case studies, brand guide) lives in `content/` as markdown — edit those to change deck/proposal material.
 
 ---
 
@@ -320,3 +386,18 @@ The following ECC skills are referenced from the external ECC installation:
 ### Setup
 
 No additional setup required. The `.opencode/` directory is self-contained (324KB). Skills are loaded from the external ECC installation at `/home/glasschan/everything-claude-code/skills/`.
+
+
+## Agent skills
+
+### Issue tracker
+
+Issues and PRDs live as GitHub issues in this repo. Use the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five canonical labels map by name: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context layout: `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.

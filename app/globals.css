@@ -45,3 +45,18 @@ body {
 .animate-fade-in {
   animation: fadeSlideIn 0.45s ease-out forwards;
 }
+
+/* ponytail: print-to-PDF — each slide page breaks onto its own PDF page */
+@media print {
+  header, footer, nav {
+    display: none !important;
+  }
+  body {
+    background: white !important;
+  }
+  .slide-page {
+    break-after: page;
+    box-shadow: none !important;
+    border: none !important;
+  }
+}

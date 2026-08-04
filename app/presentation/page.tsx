@@ -1,57 +1,42 @@
-import { fetchAllTools, calculateCostSaved } from "@/lib/nocodb";
-import SlideDeck from "./SlideDeck";
+import { getUsageStats } from "@/lib/usage";
+import { tools } from "@/lib/registry";
 
 export default async function PresentationPage() {
-  const tools = await fetchAllTools();
-
-  // Real metrics from NocoDB
-  const totalHours = tools.reduce(
-    (sum, t) => sum + (t.hours_saved_per_month || 0),
-    0
-  );
-  const totalCost = tools.reduce(
-    (sum, t) => sum + calculateCostSaved(t.hours_saved_per_month),
-    0
-  );
-
-  // Teams served (from serve MultiSelect)
-  const teamCoverageMap: Record<string, number> = {};
-  tools.forEach((tool) => {
-    (tool.serve || []).forEach((team) => {
-      teamCoverageMap[team] = (teamCoverageMap[team] || 0) + 1;
-    });
-  });
-  const teamCoverage = Object.entries(teamCoverageMap)
-    .map(([name, count]) => ({ name, count }))
-    .sort((a, b) => b.count - a.count);
-  const teamCount = teamCoverage.length;
-
-  // Status breakdown
-  const statusOrder = ["Active", "Building", "Prototype", "Refactoring", "Planned"];
-  const statusCounts: Record<string, number> = {};
-  statusOrder.forEach((s) => (statusCounts[s] = 0));
-  tools.forEach((t) => {
-    if (statusCounts[t.status] !== undefined) statusCounts[t.status]++;
-    else statusCounts[t.status] = (statusCounts[t.status] || 0) + 1;
-  });
-
-  // Top 5 by cost saved
-  const topTools = [...tools]
-    .sort(
-      (a, b) =>
-        calculateCostSaved(b.hours_saved_per_month) - calculateCostSaved(a.hours_saved_per_month)
-    )
-    .slice(0, 5);
+  const stats = await getUsageStats();
+  const activeTools = tools.filter((t) => t.status === "active");
 
   return (
-    <SlideDeck
-      tools={tools}
-      totalHours={totalHours}
-      totalCost={totalCost}
-      teamCount={teamCount}
-      statusCounts={statusCounts}
-      teamCoverage={teamCoverage}
-      topTools={topTools}
-    />
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <h1 className="text-4xl font-extrabold text-slate-900">First Page Toolbox</h1>
+      <p className="mt-2 text-lg text-slate-600">Sales enablement, measured in real usage.</p>
+
+      <div className="mt-10 grid gap-6 sm:grid-cols-3">
+        <div className="rounded-2xl bg-fp-800 p-8 text-white">
+          <div className="text-4xl font-extrabold">{stats.totalRuns}</div>
+          <div className="mt-1 text-sm text-fp-100">tool runs logged</div>
+        </div>
+        <div className="rounded-2xl bg-fp-700 p-8 text-white">
+          <div className="text-4xl font-extrabold">{stats.activeUsers}</div>
+          <div className="mt-1 text-sm text-fp-100">active users</div>
+        </div>
+        <div className="rounded-2xl bg-fp-600 p-8 text-white">
+          <div className="text-4xl font-extrabold">${stats.totalCostUsd.toFixed(2)}</div>
+          <div className="mt-1 text-sm text-fp-100">LLM cost (US$)</div>
+        </div>
+      </div>
+
+      <div className="mt-10">
+        <h2 className="text-xl font-bold text-slate-900">Tools in production</h2>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          {activeTools.map((t) => (
+            <div key={t.slug} className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="text-2xl">{t.icon}</div>
+              <div className="mt-2 font-semibold text-slate-900">{t.name}</div>
+              <div className="text-sm text-slate-600">{t.description}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }

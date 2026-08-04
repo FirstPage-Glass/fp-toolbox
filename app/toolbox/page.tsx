@@ -1,117 +1,61 @@
-"use client";
-
-import { useState, useMemo, useEffect } from "react";
-import {
-  fetchAllUnifiedTools,
-  filterTools,
-  type UnifiedToolCategory,
-  type UnifiedTool,
-} from "@/lib/unified-tools";
-import { ToolSearch } from "@/components/toolbox/ToolSearch";
-import { ToolGrid } from "@/components/toolbox/ToolGrid";
-import { CategoryFilter } from "@/components/toolbox/CategoryFilter";
-
+import Link from "next/link";
+import { tools } from "@/lib/registry";
 
 export default function ToolboxPage() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<UnifiedToolCategory | "All">("All");
-  const [allTools, setAllTools] = useState<UnifiedTool[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  // Fetch live data from NocoDB
-  useEffect(() => {
-    const loadTools = async () => {
-      setIsLoading(true);
-      const tools = await fetchAllUnifiedTools();
-      setAllTools(tools);
-      setIsLoading(false);
-    };
-    loadTools();
-  }, []);
-
-  const liveTools = useMemo(() => allTools.filter((t) => Boolean(t.url)), [allTools]);
-
-  const filteredTools = useMemo(() => {
-    return filterTools(liveTools, {
-      search: searchQuery,
-      category: selectedCategory,
-    });
-  }, [searchQuery, selectedCategory, liveTools]);
-
-  const availableCategories = useMemo(() => {
-    const cats = new Set<string>();
-    liveTools.forEach((t) => { if (t.category) cats.add(t.category); });
-    return Array.from(cats).sort() as UnifiedToolCategory[];
-  }, [liveTools]);
-
-  const handleClearFilters = () => {
-    setSearchQuery("");
-    setSelectedCategory("All");
-  };
+  const active = tools.filter((t) => t.status === "active");
 
   return (
-    <div className="min-h-screen">
-      {/* Hero */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-fp-900 text-white p-8 mb-8">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-fp-500/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 left-0 w-48 h-48 bg-violet-500/10 rounded-full blur-3xl" />
-
-        <div className="relative">
-          <div className="flex items-center gap-3 mb-4">
-            <span className="text-4xl">🧰</span>
-            <div>
-              <h1 className="text-3xl font-bold">FP Toolbox</h1>
-              <p className="text-sm text-slate-300">Built by Glass Chan</p>
-            </div>
-            <span className="ml-auto px-3 py-1 bg-white/10 backdrop-blur text-sm font-medium rounded-full">
-              {filteredTools.length} live tools
-            </span>
-          </div>
-
-          <p className="text-slate-300 max-w-2xl mb-6">
-            Everything here is production-ready and running 24/7. No demos — real systems saving hours every week.
-          </p>
-
-          {!isLoading && (
-            <div className="space-y-4 mb-6">
-              <ToolSearch value={searchQuery} onChange={setSearchQuery} variant="dark" />
-              <CategoryFilter selected={selectedCategory} onChange={setSelectedCategory} variant="dark" availableCategories={availableCategories} />
-            </div>
-          )}
-
-          <div className="flex flex-wrap items-center gap-3">
-            <span className="text-xs text-slate-400">Need something new or found a bug?</span>
-            <a
-              href="mailto:glass.c@firstpage.com.hk"
-              className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 bg-white/10 hover:bg-white/20 backdrop-blur rounded-lg transition-colors"
-            >
-              <span>✉️</span>
-              <span>glass.c@firstpage.com.hk</span>
-            </a>
-            <span className="text-xs text-slate-500">or Slack @glasschan</span>
-          </div>
-        </div>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-slate-900">Toolbox</h1>
+        <p className="mt-2 text-slate-600">
+          Sales weapons built into the platform. Pick a tool — each one generates a client-ready deliverable.
+        </p>
       </div>
 
-      {isLoading ? (
-        <div className="text-center py-16">
-          <div className="inline-block w-8 h-8 border-4 border-fp-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-          <p className="text-slate-500">Loading tools from NocoDB...</p>
-        </div>
-      ) : (
-        <div className="space-y-5">
-            {searchQuery && (
-              <p className="text-sm text-slate-500">
-                Showing {filteredTools.length} results for &ldquo;{searchQuery}&rdquo;
-              </p>
-            )}
+      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        {active.map((tool) => (
+          <Link
+            key={tool.slug}
+            href={tool.externalLink ?? `/tools/${tool.slug}`}
+            target={tool.externalLink ? "_blank" : undefined}
+            className="group rounded-xl bg-white p-6 shadow-sm border border-slate-200 hover:shadow-md hover:border-fp-300 transition-all"
+          >
+            <div className="text-3xl">{tool.icon}</div>
+            <h2 className="mt-3 text-lg font-semibold text-slate-900 group-hover:text-fp-700">
+              {tool.name}
+            </h2>
+            <p className="mt-1 text-sm text-slate-600">{tool.description}</p>
+            <div className="mt-4 flex items-center gap-2">
+              <span className="rounded-full bg-fp-100 px-2.5 py-0.5 text-xs font-medium text-fp-700">
+                {tool.category}
+              </span>
+              <span className="text-xs text-slate-400">{tool.owner}</span>
+            </div>
+          </Link>
+        ))}
+      </div>
 
-            <ToolGrid
-              tools={filteredTools}
-              onClearFilters={handleClearFilters}
-            />
-          </div>
+      {active.length === 0 && (
+        <p className="text-slate-500">No tools registered yet.</p>
       )}
+
+      <div className="mt-12 rounded-xl border border-slate-200 bg-slate-50 p-6">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">External tools</h2>
+        <ul className="mt-3 space-y-2">
+          <li>
+            <a
+              href="https://faq-generator.firstpage.com.hk"
+              target="_blank"
+              rel="noreferrer"
+              className="text-sm text-fp-700 hover:underline"
+            >
+              FAQ Schema Generator →
+            </a>
+            <span className="ml-2 text-xs text-slate-400">standalone, linked</span>
+          </li>
+        </ul>
+      </div>
     </div>
   );
 }

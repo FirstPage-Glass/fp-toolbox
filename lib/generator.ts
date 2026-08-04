@@ -1,0 +1,103 @@
+import { complete } from "./llm";
+import { loadBrandGuide, loadCaseStudies } from "./content";
+
+export interface ClientBrief {
+  clientName: string;
+  industry: string;
+  objective: string;
+  targetMarket: string;
+  budget: string;
+  website: string;
+  notes: string;
+}
+
+export interface DeckSlide {
+  heading: string;
+  bullets: string[];
+  stat?: { value: string; label: string };
+}
+
+export interface Deck {
+  title: string;
+  subtitle: string;
+  slides: DeckSlide[];
+}
+
+export interface ProposalSection {
+  heading: string;
+  paragraphs: string[];
+  bullets: string[];
+}
+
+export interface Proposal {
+  title: string;
+  sections: ProposalSection[];
+}
+
+/** Strip markdown code fences and parse the LLM's JSON output. */
+function parseJson<T>(raw: string): T {
+  const cleaned = raw
+    .trim()
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/\s*```$/, "");
+  return JSON.parse(cleaned) as T;
+}
+
+export interface GenerationData {
+  psi?: { performanceScore: number | null; lcpMs: number | null; cls: number | null } | null;
+  competitors?: { target: string; keywords: { keyword: string; volume: number }[] } | null;
+}
+
+function buildContext(brief: ClientBrief, data: GenerationData): string {
+  const brand = loadBrandGuide();
+  const cases = loadCaseStudies();
+  const parts: string[] = [];
+  if (brand) parts.push(`## Brand Guide\n${brand}`);
+  if (cases.length) {
+    parts.push(
+      `## Case Studies (use these real results, never fabricate)\n${cases
+        .map((c) => `- ${c.client} (${c.industry}): ${c.result}\n${c.body}`)
+        .join("\n")}`
+    );
+  }
+  if (data.psi?.performanceScore != null) {
+    parts.push(
+      `## Client Website Performance (PageSpeed Insights, real data)\n` +
+        `- Performance score: ${data.psi.performanceScore}/100\n` +
+        `- LCP: ${data.psi.lcpMs ? Math.round(data.psi.lcpMs / 1000) + "s" : "n/a"} · CLS: ${data.psi.cls ?? "n/a"}`
+    );
+  }
+  if (data.competitors?.keywords?.length) {
+    parts.push(
+      `## Competitor Organic Keywords (Ahrefs, real data)\n` +
+        data.competitors.keywords
+          .map((k) => `- "${k.keyword}" — volume ${k.volume}`)
+          .join("\n")
+    );
+  }
+  return parts.join("\n\n");
+}
+
+export async function generateDeck(brief: ClientBrief, data: GenerationData) {
+  const context = buildContext(brief, data);
+  const system = `You are the senior pitch deck writer at First Page Digital, a Hong Kong performance marketing agency.
+Produce a pitch deck for the given client brief. Output STRICT JSON only, no prose around it, in this shape:
+{"title": string, "subtitle": string, "slides": [{"heading": string, "bullets": string[], "stat"?: {"value": string, "label": string}}]}
+Guidelines: 8-12 slides. Use the real data provided (case studies, PSI, competitor keywords) — never fabricate numbers. Be specific and direct. Slides should cover: client challenge, why us, data insights, proposed approach, channel mix, case proof, investment, next steps.`;
+  const user = `## Client Brief\n${JSON.stringify(brief, null, 2)}\n\n${context}`;
+  const result = await complete({ system, user });
+  const deck = parseJson<Deck>(result.text);
+  return { ...result, deck };
+}
+
+export async function generateProposal(brief: ClientBrief, data: GenerationData) {
+  const context = buildContext(brief, data);
+  const system = `You are the senior proposal writer at First Page Digital, a Hong Kong performance marketing agency.
+Write a full proposal draft for the given client brief. Output STRICT JSON only, no prose around it, in this shape:
+{"title": string, "sections": [{"heading": string, "paragraphs": string[], "bullets": string[]}]}
+Guidelines: sections should cover Executive Summary, Our Understanding of Your Challenge, Strategic Approach, Channel Plan, Case Proof, Investment, Next Steps. Use the real data provided (case studies, PSI, competitor keywords) — never fabricate numbers. Be specific and direct.`;
+  const user = `## Client Brief\n${JSON.stringify(brief, null, 2)}\n\n${context}`;
+  const result = await complete({ system, user });
+  const proposal = parseJson<Proposal>(result.text);
+  return { ...result, proposal };
+}

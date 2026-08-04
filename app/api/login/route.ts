@@ -1,32 +1,21 @@
 import { NextResponse } from "next/server";
-
-const VALID_USER = process.env.AUTH_USER || "firstpage";
-const VALID_PASS = process.env.AUTH_PASS;
+import { validateCredentials } from "@/lib/auth";
 
 export async function POST(request: Request) {
-  if (!VALID_PASS) {
-    return NextResponse.json(
-      { success: false, message: "Server configuration error" },
-      { status: 500 }
-    );
-  }
-
   const { username, password } = await request.json();
-
-  if (username === VALID_USER && password === VALID_PASS) {
-    const response = NextResponse.json({ success: true });
-    response.cookies.set("fp-auth", "authenticated", {
-      httpOnly: false,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 60 * 60 * 24 * 7,
-      path: "/",
-    });
-    return response;
+  if (typeof username !== "string" || typeof password !== "string") {
+    return NextResponse.json({ success: false, message: "Invalid request" }, { status: 400 });
   }
-
-  return NextResponse.json(
-    { success: false, message: "Invalid credentials" },
-    { status: 401 }
-  );
+  if (!validateCredentials(username, password)) {
+    return NextResponse.json({ success: false, message: "Invalid credentials" }, { status: 401 });
+  }
+  const response = NextResponse.json({ success: true, username });
+  response.cookies.set("fp-auth", username, {
+    httpOnly: false, // NavBar reads it client-side
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    maxAge: 60 * 60 * 24 * 7,
+    path: "/",
+  });
+  return response;
 }

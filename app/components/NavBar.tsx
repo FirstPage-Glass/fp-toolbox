@@ -21,7 +21,7 @@ export default function NavBar() {
     return () => clearTimeout(timer);
   }, []);
 
-  const isLoggedIn = mounted && getAuthCookie() === "authenticated";
+  const isLoggedIn = mounted && Boolean(getAuthCookie());
 
   const linkClass = (href: string) =>
     `text-sm font-medium transition-colors ${
@@ -42,11 +42,8 @@ export default function NavBar() {
           <Link href="/toolbox" className={linkClass("/toolbox")}>
             Toolbox
           </Link>
-          <Link href="/systems" className={linkClass("/systems")}>
-            Our Systems
-          </Link>
-          <Link href="/architecture" className={linkClass("/architecture")}>
-            Stack
+          <Link href="/presentation" className={linkClass("/presentation")}>
+            Presentation
           </Link>
           <button
             onClick={async () => {
