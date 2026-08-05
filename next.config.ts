@@ -8,15 +8,6 @@ const nextConfig: NextConfig = {
   // Pin the file-tracing root to this project — otherwise standalone
   // mirrors the host's absolute path (pnpm-workspace.yaml confuses it).
   outputFileTracingRoot: dirname(fileURLToPath(import.meta.url)),
-  images: {
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'nocodb.firstpage.com.hk',
-      },
-    ],
-    qualities: [75],
-  },
 };
 
 export default nextConfig;

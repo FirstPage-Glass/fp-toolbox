@@ -1,8 +1,6 @@
 export interface AhrefsKeyword {
   keyword: string;
   volume: number;
-  position: number;
-  traffic: number;
 }
 
 export interface CompetitorResult {
@@ -41,8 +39,6 @@ export async function getCompetitorKeywords(
     keywords: rows.map((k: Record<string, unknown>) => ({
       keyword: String(k.keyword ?? ""),
       volume: Number(k.volume ?? 0),
-      position: Number(k.position ?? 0),
-      traffic: Number(k.traffic ?? 0),
     })),
   };
 }

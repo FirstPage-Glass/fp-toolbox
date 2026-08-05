@@ -10,13 +10,8 @@ export interface CompletionResult {
 }
 
 // ponytail: prices per 1M tokens, update from OpenRouter dashboard when the key is live.
-const PRICES: Record<string, { input: number; output: number }> = {
-  "deepseek/deepseek-v4-flash-0731": { input: 0.3, output: 0.6 },
-};
-
-function priceFor(model: string) {
-  return PRICES[model] ?? { input: 0.3, output: 0.6 };
-}
+const INPUT_PRICE = 0.3;
+const OUTPUT_PRICE = 0.6;
 
 export async function complete(opts: {
   system: string;
@@ -28,7 +23,6 @@ export async function complete(opts: {
   if (!apiKey) {
     throw new Error("OPENROUTER_API not configured");
   }
-  const started = Date.now();
   const res = await fetch(OPENROUTER_URL, {
     method: "POST",
     headers: {
@@ -50,8 +44,6 @@ export async function complete(opts: {
   const text = data.choices?.[0]?.message?.content ?? "";
   const promptTokens = data.usage?.prompt_tokens ?? 0;
   const completionTokens = data.usage?.completion_tokens ?? 0;
-  const p = priceFor(model);
-  const costUsd = (promptTokens / 1e6) * p.input + (completionTokens / 1e6) * p.output;
-  void started;
+  const costUsd = (promptTokens / 1e6) * INPUT_PRICE + (completionTokens / 1e6) * OUTPUT_PRICE;
   return { text, promptTokens, completionTokens, costUsd, model };
 }

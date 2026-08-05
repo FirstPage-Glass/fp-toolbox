@@ -31,7 +31,7 @@ export default function OutputHistory({
   useEffect(() => {
     let cancelled = false;
     // Defer setLoading(true) to a microtask so it isn't a synchronous setState
-    // inside the effect body (which triggers cascading renders).
+    // inside the effect body (which triggers cascading renders + the lint rule).
     Promise.resolve().then(() => {
       if (!cancelled) setLoading(true);
     });
