@@ -13,6 +13,7 @@ Reusable toolbox UI components shared by the client-side pages.
 - `components/tools/BriefForm.tsx` — shared client-brief form used by Pitch Deck and Proposal tools.
 - `components/tools/HubSpotLeads.tsx` — right-rail HubSpot lead picker (prefills the brief).
 - `components/tools/OutputHistory.tsx` — saved-output history list (reload a previous generation).
+- `components/dashboard/` — `/` dashboard widgets: `MetricCard.tsx` + `UnconfiguredNotice.tsx` (presentational, server-rendered), `LeadTrendChart.tsx`, `LeadScoreChart.tsx`, `KeywordBarChart.tsx`, `TrafficTrendChart.tsx` (recharts, `"use client"`, pure props — data comes from `lib/dashboard.ts` via the page), `SearchPerformanceTable.tsx` (server, GSC top queries).
 - Page-local components (e.g. `NavBar`) live next to their pages in `app/`, not here.
 
 ## Local Contracts

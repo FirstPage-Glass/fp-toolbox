@@ -16,7 +16,7 @@ Routing map:
 
 | Route | Type | Auth | Data source |
 |-------|------|------|-------------|
-| `/` | Server | Yes | Postgres usage stats |
+| `/` | Server | Yes | `lib/dashboard.ts` (HubSpot + firstpage MCP GA4/GSC/PSI + Ahrefs) + `lib/uptime.ts` (Site status) |
 | `/toolbox` | Server | No | `lib/registry.ts` (code) |
 | `/tools/pitch-deck` | Client | Yes | OpenRouter + PSI + Ahrefs |
 | `/tools/proposal` | Client | Yes | OpenRouter + PSI + Ahrefs |

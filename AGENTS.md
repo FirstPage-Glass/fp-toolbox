@@ -83,7 +83,7 @@ When the user requests a durable behavior change, record it here or in the relev
 - `app/AGENTS.md` — App Router surface: pages, API routes, routing/auth rules. Owns everything under `app/`.
 - `lib/AGENTS.md` — Data layer: NocoDB client, unified-tools adapter, static data. Owns everything under `lib/`.
 - `components/AGENTS.md` — Reusable toolbox UI components. Owns everything under `components/`.
-- Root-owned: `db/init.sql` (schema bootstrap), `docker-compose.yml` (local Postgres), `Dockerfile` (production image), `proxy.ts`, config files (`next.config.ts`, `tsconfig.json`, `postcss.config.mjs`, `eslint.config.mjs`), `public/`, `README.md`, `.env` / `.env.local` (secrets, not committed), `.opencode/`.
+- Root-owned: `db/init.sql` (schema bootstrap), `docker-compose.yml` (local Postgres), `Dockerfile` (production image), `proxy.ts`, `instrumentation.ts` (boots the 5-min uptime checker), config files (`next.config.ts`, `tsconfig.json`, `postcss.config.mjs`, `eslint.config.mjs`), `public/`, `README.md`, `.env` / `.env.local` (secrets, not committed), `reasonix.toml` (agent MCP config — `firstpage` server at `https://mcp.firstpage.com.hk/mcp/` with bearer key; gitignored), `.opencode/`.
 
 ---
 
@@ -111,6 +111,7 @@ The app is a Next.js server-rendered application that fetches live data from Noc
 |-------|-----------|---------|
 | Framework | Next.js | 16.2.12 |
 | UI Library | React | 19.2.8 |
+| Charts | recharts | ^3.10 (dashboard `/` only, client components) |
 | Language | TypeScript | 6.0.3 |
 | Styling | Tailwind CSS | ^4 (v4 with `@import "tailwindcss"`) |
 | Build Tool | PostCSS with `@tailwindcss/postcss` | ^4 |
@@ -124,7 +125,7 @@ The app is a Next.js server-rendered application that fetches live data from Noc
 ```
 .
 ├── app/                          # Next.js App Router (all pages + API routes)
-│   ├── page.tsx                  # Homepage / Executive Overview (live NocoDB metrics)
+│   ├── page.tsx                  # Homepage / Division Dashboard (HubSpot leads, PageSpeed, Ahrefs)
 │   ├── layout.tsx                # Root layout with header, footer, NavBar
 │   ├── globals.css               # Tailwind import + FirstPage brand color theme
 │   ├── login/page.tsx            # Login form (client component)
@@ -150,8 +151,9 @@ The app is a Next.js server-rendered application that fetches live data from Noc
 │   └── unified-tools.ts          # Adapter layer: normalizes NocoDB records into UnifiedTool objects
 │
 ├── db/                           # Database bootstrap
-│   └── init.sql                  # Schema for usage_events, tool_outputs, hubspot_leads_cache
+│   └── init.sql                  # Schema for usage_events, tool_outputs, hubspot_leads_cache, uptime_checks
 ├── proxy.ts                     # Route-level auth guard (cookie check + redirects); formerly middleware.ts (renamed in Next.js 16)
+├── instrumentation.ts           # Server bootstrap: starts the 5-min uptime checker (lib/uptime-scheduler.ts)
 ├── next.config.ts                # distDir: 'dist', images.unoptimized: true
 ├── postcss.config.mjs            # @tailwindcss/postcss plugin
 ├── eslint.config.mjs             # Next.js core-web-vitals + typescript rules
@@ -204,7 +206,8 @@ The `dist/` folder contains a Next.js server build (not a static export). Deploy
 
 1. **Code = source of truth** — tool registry (`lib/registry.ts`) is a static index of `app/tools/<slug>/tool.ts` manifests. Adding a tool = one folder + one import line. No drift possible.
 2. **Postgres** — runtime data: `usage_events` table (user, tool, tokens, cost) via `lib/usage.ts` / `lib/db.ts`. `DATABASE_URL` env. Dev: podman `postgres:18-alpine`.
-3. **External APIs** — OpenRouter (`lib/llm.ts`, `OPENROUTER_API`), PageSpeed Insights (`lib/psi.ts`, free), Ahrefs (`lib/ahrefs.ts`, `AHREFS_API_KEY`).
+3. **External APIs** — OpenRouter (`lib/llm.ts`, `OPENROUTER_API`), PageSpeed Insights (`lib/psi.ts`, free; optional `PSI_API_KEY`), Ahrefs (`lib/ahrefs.ts`, `AHREFS_API_KEY`), HubSpot contacts (`lib/hubspot.ts`, `HUBSPOT_SERVICE_KEY`; 1h Postgres cache). The `/` dashboard aggregates these via `lib/dashboard.ts`.
+4. **FirstPage MCP** — `lib/mcp.ts` is a JSON-RPC client for `https://mcp.firstpage.com.hk/mcp/` (`FP_MCP_API_KEY`, same key the agent MCP config uses). Dashboard consumes PSI audits, GA4 (firstpage.hk = `374723776`), GSC (`https://www.firstpage.hk/`) and the full client portfolio (752 GSC sites / 1058 GA4 properties). Targets: `DASHBOARD_TARGET_URL` / `DASHBOARD_TARGET_DOMAIN` (default `firstpage.hk`), `DASHBOARD_GSC_SITE`, `DASHBOARD_GA4_PROPERTY`.
 4. **Content** — brand guide + case studies as markdown in `content/` (`lib/content.ts`), fed into the deck/proposal generation.
 5. **NocoDB (legacy, retired)** — `lib/nocodb.ts` and `lib/data.ts` remain for reference only; no live page reads them. NocoDB is no longer the source of truth.
 
@@ -243,7 +246,7 @@ The app uses **per-user cookie authentication**:
 
 | Route | Type | Auth Required | Data Source |
 |-------|------|---------------|-------------|
-| `/` | Server | Yes | Postgres usage stats |
+| `/` | Server | Yes | `lib/dashboard.ts` (HubSpot leads + spam, PSI, Ahrefs) |
 | `/toolbox` | Server | No | `lib/registry.ts` (code) |
 | `/tools/pitch-deck` | Client | Yes | OpenRouter + PSI + Ahrefs |
 | `/tools/proposal` | Client | Yes | OpenRouter + PSI + Ahrefs |

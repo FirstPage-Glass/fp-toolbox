@@ -39,3 +39,15 @@ CREATE TABLE IF NOT EXISTS hubspot_leads_cache (
   created_at TEXT NOT NULL DEFAULT '',
   fetched_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- uptime_checks — site-alive probes every 5 min (lib/uptime.ts)
+CREATE TABLE IF NOT EXISTS uptime_checks (
+  id BIGSERIAL PRIMARY KEY,
+  target TEXT NOT NULL,
+  ok BOOLEAN NOT NULL,
+  status_code INTEGER,
+  latency_ms INTEGER,
+  checked_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_uptime_target_time
+  ON uptime_checks (target, checked_at DESC);

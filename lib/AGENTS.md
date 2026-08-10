@@ -13,6 +13,11 @@ All data access and tool logic: tool registry, LLM + data-source clients, Postgr
 - `lib/ahrefs.ts` — Ahrefs API v3 wrapper (`AHREFS_API_KEY`).
 - `lib/db.ts` — Postgres pool (`DATABASE_URL`).
 - `lib/usage.ts` — `logUsage()` + `getUsageStats()` for the `usage_events` table.
+- `lib/dashboard.ts` — aggregation for the `/` dashboard page: HubSpot leads + spam metrics, PSI/GA4/GSC via firstpage MCP, Ahrefs keywords, client portfolio counts. External calls memoized 1h (process-level TTL cache via `lib/cache.ts`, works in dev); every section degrades to `configured:false`/`error` instead of throwing. Targets from `DASHBOARD_TARGET_URL` / `DASHBOARD_TARGET_DOMAIN` / `DASHBOARD_GSC_SITE` / `DASHBOARD_GA4_PROPERTY`.
+- `lib/cache.ts` — shared process-level TTL cache (`cached()`, 1h) used by `dashboard.ts`/`mcp.ts`; dev-safe where `unstable_cache` is not.
+- `lib/mcp.ts` — firstpage MCP JSON-RPC client (`FP_MCP_API_KEY`, server-side only): `mcpCall` + typed helpers `getMcpPsi` / `getMcpGsc` / `getMcpGa4` / `getMcpInventory`. GA4 `property_id` is the bare numeric id; GSC needs YYYY-MM-DD.
+- `lib/uptime.ts` — site-alive checker: `runUptimeCheck()` (HEAD, 15s timeout) + `getUptimeStats()` for the `uptime_checks` table; dashboard Site status panel.
+- `lib/uptime-scheduler.ts` — background loop (probe on boot, then every 5 min) started by root `instrumentation.ts`; single-instance assumption, HMR-safe guard.
 - `lib/content.ts` — loads brand guide + case studies from `content/` as markdown.
 - `lib/auth.ts` — `AUTH_USERS` env parsing + credential validation.
 - `lib/hubspot.ts` — HubSpot recent-leads client (`HUBSPOT_SERVICE_KEY`), spam filter (email domain must match website domain), paginated fetch, Postgres cache (1h TTL) via `getRecentLeads()`.
