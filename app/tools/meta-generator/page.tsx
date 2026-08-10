@@ -4,6 +4,13 @@ import { useState } from "react";
 import { usePrefill } from "@/components/tools/usePrefill";
 import ResultView from "@/components/tools/ResultView";
 import OutputHistory, { type OutputItem } from "@/components/tools/OutputHistory";
+import PageHeader from "@/components/ui/PageHeader";
+import Card from "@/components/ui/Card";
+import Button from "@/components/ui/Button";
+import Textarea from "@/components/ui/Textarea";
+import Select from "@/components/ui/Select";
+import Input from "@/components/ui/Input";
+import ErrorBanner from "@/components/ui/ErrorBanner";
 
 interface MetaItem {
   keyword: string;
@@ -68,43 +75,34 @@ export default function MetaGeneratorPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <h1 className="text-2xl font-bold text-slate-900">Meta Tag Generator</h1>
-      <p className="mt-1 text-sm text-slate-600">
-        One keyword per line — get SEO titles and meta descriptions for the whole list.
-      </p>
+      <PageHeader
+        title="Meta Tag Generator"
+        description="One keyword per line — get SEO titles and meta descriptions for the whole list."
+      />
 
-      <div className="mt-6 rounded-xl border border-slate-200 bg-white p-5">
-        <textarea
+      <Card className="mt-6">
+        <Textarea
           value={keywords}
           onChange={(e) => setKeywords(e.target.value)}
           rows={5}
           placeholder={"seo agency hong kong\nlocal seo services\n…"}
-          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-fp-400 focus:outline-none"
         />
         <div className="mt-3 flex flex-wrap items-center gap-3">
-          <select
-            value={locale}
-            onChange={(e) => setLocale(e.target.value)}
-            className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-fp-400 focus:outline-none"
-          >
+          <Select value={locale} onChange={(e) => setLocale(e.target.value)}>
             {["en-HK", "en-US", "en-GB", "zh-HK", "zh-CN"].map((l) => (
               <option key={l} value={l}>
                 {l}
               </option>
             ))}
-          </select>
-          <button
-            onClick={() => generate()}
-            disabled={loading || !keywords.trim()}
-            className="rounded-lg bg-fp-700 px-5 py-2 text-sm font-semibold text-white hover:bg-fp-800 disabled:opacity-40"
-          >
+          </Select>
+          <Button size="lg" onClick={() => generate()} disabled={loading || !keywords.trim()}>
             {loading ? "Generating…" : "Generate metas"}
-          </button>
+          </Button>
         </div>
-      </div>
+      </Card>
 
       {error && (
-        <div className="mt-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>
+        <ErrorBanner className="mt-6">{error}</ErrorBanner>
       )}
 
       {items && (
@@ -113,19 +111,20 @@ export default function MetaGeneratorPage() {
             {cost != null && <span className="text-xs text-slate-500">Cost: US${cost.toFixed(4)}</span>}
             <div className="flex-1" />
             <div className="flex gap-2">
-              <input
+              <Input
                 value={refineText}
                 onChange={(e) => setRefineText(e.target.value)}
                 placeholder="Refine (e.g. add a call to action)"
-                className="flex-1 min-w-64 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-fp-400 focus:outline-none"
+                className="flex-1 min-w-64"
               />
-              <button
+              <Button
+                variant="brand"
+                size="lg"
                 onClick={refine}
                 disabled={!activeId || !refineText.trim() || refining}
-                className="rounded-lg bg-fp-100 px-4 py-2 text-sm font-semibold text-fp-700 hover:bg-fp-200 disabled:opacity-40"
               >
                 {refining ? "Refining…" : "Refine"}
-              </button>
+              </Button>
             </div>
           </div>
           <ResultView data={{ items }} />

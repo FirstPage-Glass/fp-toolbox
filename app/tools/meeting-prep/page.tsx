@@ -3,6 +3,11 @@
 import { useEffect, useState } from "react";
 import { usePrefill, prefillUrl } from "@/components/tools/usePrefill";
 import OutputHistory, { type OutputItem } from "@/components/tools/OutputHistory";
+import PageHeader from "@/components/ui/PageHeader";
+import Card from "@/components/ui/Card";
+import Button from "@/components/ui/Button";
+import Input from "@/components/ui/Input";
+import ErrorBanner from "@/components/ui/ErrorBanner";
 
 interface MeetingBrief {
   title: string;
@@ -80,20 +85,19 @@ export default function MeetingPrepPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <h1 className="text-2xl font-bold text-slate-900">Meeting Prep Brief</h1>
-      <p className="mt-1 text-sm text-slate-600">
-        Enter a client site — GSC, GA4, PageSpeed and Ahrefs data are pulled automatically and distilled into a one-page meeting brief.
-      </p>
+      <PageHeader
+        title="Meeting Prep Brief"
+        description="Enter a client site — GSC, GA4, PageSpeed and Ahrefs data are pulled automatically and distilled into a one-page meeting brief."
+      />
 
-      <div className="mt-6 grid gap-4 rounded-xl border border-slate-200 bg-white p-5">
+      <Card className="mt-6 grid gap-4">
         <div>
-          <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Client website</label>
-          <input
+          <Input
+            label="Client website"
             list="meeting-sites"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             placeholder="https://client-site.com/"
-            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-fp-400 focus:outline-none"
           />
           <datalist id="meeting-sites">
             {siteSuggestions.map((s) => (
@@ -103,39 +107,31 @@ export default function MeetingPrepPage() {
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Client name</label>
-            <input
+            <Input
+              label="Client name"
               value={clientName}
               onChange={(e) => setClientName(e.target.value)}
               placeholder="Acme Ltd"
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-fp-400 focus:outline-none"
             />
           </div>
           <div>
-            <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Meeting focus (optional)
-            </label>
-            <input
+            <Input
+              label="Meeting focus (optional)"
               value={focus}
               onChange={(e) => setFocus(e.target.value)}
               placeholder="e.g. renew contract, review Q3 performance"
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-fp-400 focus:outline-none"
             />
           </div>
         </div>
         <div>
-          <button
-            onClick={() => generate()}
-            disabled={loading || !url}
-            className="rounded-lg bg-fp-700 px-5 py-2 text-sm font-semibold text-white hover:bg-fp-800 disabled:opacity-40"
-          >
+          <Button size="lg" onClick={() => generate()} disabled={loading || !url}>
             {loading ? "Preparing…" : "Generate brief"}
-          </button>
+          </Button>
         </div>
-      </div>
+      </Card>
 
       {error && (
-        <div className="mt-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>
+        <ErrorBanner className="mt-6">{error}</ErrorBanner>
       )}
 
       {brief && (
@@ -158,16 +154,16 @@ export default function MeetingPrepPage() {
             )}
           </div>
 
-          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <Card>
             <h2 className="text-xl font-bold text-slate-900">{brief.title}</h2>
             <p className="mt-2 text-sm text-slate-700">{brief.overview}</p>
 
             <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {brief.keyFindings.map((f, i) => (
-                <div key={i} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                <Card key={i} tone="slate" noPadding className="p-3">
                   <div className="text-sm font-bold text-fp-700">{f.stat}</div>
                   <div className="mt-1 text-xs text-slate-600">{f.insight}</div>
-                </div>
+                </Card>
               ))}
             </div>
 
@@ -190,22 +186,23 @@ export default function MeetingPrepPage() {
                 </ul>
               </div>
             ))}
-          </div>
+          </Card>
 
           <div className="flex gap-2">
-            <input
+            <Input
               value={refineText}
               onChange={(e) => setRefineText(e.target.value)}
               placeholder="Refine instruction (e.g. make it more aggressive on pricing)"
-              className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-fp-400 focus:outline-none"
+              className="flex-1"
             />
-            <button
+            <Button
+              variant="brand"
+              size="lg"
               onClick={refine}
               disabled={!activeId || !refineText.trim() || refining}
-              className="rounded-lg bg-fp-100 px-4 py-2 text-sm font-semibold text-fp-700 hover:bg-fp-200 disabled:opacity-40"
             >
               {refining ? "Refining…" : "Refine"}
-            </button>
+            </Button>
           </div>
 
           <OutputHistory toolSlug="meeting-prep" refreshKey={historyKey} activeId={activeId} onLoad={loadOutput} />

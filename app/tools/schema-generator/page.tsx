@@ -3,6 +3,12 @@
 import { useState } from "react";
 import { usePrefill } from "@/components/tools/usePrefill";
 import OutputHistory, { type OutputItem } from "@/components/tools/OutputHistory";
+import PageHeader from "@/components/ui/PageHeader";
+import Card from "@/components/ui/Card";
+import Button from "@/components/ui/Button";
+import Input from "@/components/ui/Input";
+import Select from "@/components/ui/Select";
+import ErrorBanner from "@/components/ui/ErrorBanner";
 
 const SCHEMA_TYPES = ["FAQPage", "Article", "LocalBusiness", "Product", "BreadcrumbList"];
 
@@ -81,70 +87,57 @@ export default function SchemaGeneratorPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <h1 className="text-2xl font-bold text-slate-900">Schema Markup Generator</h1>
-      <p className="mt-1 text-sm text-slate-600">
-        JSON-LD structured data for rich results — FAQ, Article, LocalBusiness, Product or Breadcrumbs.
-      </p>
+      <PageHeader
+        title="Schema Markup Generator"
+        description="JSON-LD structured data for rich results — FAQ, Article, LocalBusiness, Product or Breadcrumbs."
+      />
 
-      <div className="mt-6 grid gap-4 rounded-xl border border-slate-200 bg-white p-5 sm:grid-cols-3">
-        <div>
-          <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Page URL</label>
-          <input
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            placeholder="https://client-site.com/faq"
-            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-fp-400 focus:outline-none"
-          />
-        </div>
-        <div>
-          <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Topic (if no URL)</label>
-          <input
-            value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
-            placeholder="local seo services"
-            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-fp-400 focus:outline-none"
-          />
-        </div>
-        <div>
-          <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Schema type</label>
-          <select
-            value={type}
-            onChange={(e) => setType(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-fp-400 focus:outline-none"
-          >
-            {SCHEMA_TYPES.map((t) => (
-              <option key={t} value={t}>
-                {t}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
+      <Card className="mt-6 grid gap-4 sm:grid-cols-3">
+        <Input
+          label="Page URL"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          placeholder="https://client-site.com/faq"
+        />
+        <Input
+          label="Topic (if no URL)"
+          value={keyword}
+          onChange={(e) => setKeyword(e.target.value)}
+          placeholder="local seo services"
+        />
+        <Select
+          label="Schema type"
+          className="mt-1"
+          value={type}
+          onChange={(e) => setType(e.target.value)}
+        >
+          {SCHEMA_TYPES.map((t) => (
+            <option key={t} value={t}>
+              {t}
+            </option>
+          ))}
+        </Select>
+      </Card>
 
       <div className="mt-4">
-        <button
+        <Button
+          size="lg"
           onClick={() => generate()}
           disabled={loading || (!url && !keyword)}
-          className="rounded-lg bg-fp-700 px-5 py-2 text-sm font-semibold text-white hover:bg-fp-800 disabled:opacity-40"
         >
           {loading ? "Generating…" : "Generate schema"}
-        </button>
+        </Button>
       </div>
 
-      {error && (
-        <div className="mt-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>
-      )}
+      {error && <ErrorBanner className="mt-6">{error}</ErrorBanner>}
 
       {result && (
         <div className="mt-6 space-y-4">
           <div className="flex items-center gap-3">
             {cost != null && <span className="text-xs text-slate-500">Cost: US${cost.toFixed(4)}</span>}
-            <button
-              onClick={copyScript}
-              className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50"
-            >
+            <Button variant="secondary" size="md" onClick={copyScript}>
               {copied ? "Copied ✓" : "Copy script tag"}
-            </button>
+            </Button>
           </div>
 
           <pre className="overflow-x-auto rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-700">
@@ -152,19 +145,20 @@ export default function SchemaGeneratorPage() {
           </pre>
 
           <div className="flex gap-2">
-            <input
+            <Input
               value={refineText}
               onChange={(e) => setRefineText(e.target.value)}
               placeholder="Refine (e.g. add openingHours to LocalBusiness)"
-              className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-fp-400 focus:outline-none"
+              className="flex-1"
             />
-            <button
+            <Button
+              variant="brand"
+              size="lg"
               onClick={refine}
               disabled={!activeId || !refineText.trim() || refining}
-              className="rounded-lg bg-fp-100 px-4 py-2 text-sm font-semibold text-fp-700 hover:bg-fp-200 disabled:opacity-40"
             >
               {refining ? "Refining…" : "Refine"}
-            </button>
+            </Button>
           </div>
 
           <OutputHistory toolSlug="schema-generator" refreshKey={historyKey} activeId={activeId} onLoad={loadOutput} />

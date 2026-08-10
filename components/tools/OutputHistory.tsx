@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Card from "@/components/ui/Card";
 
 export interface OutputItem {
   id: number;
@@ -54,7 +55,7 @@ export default function OutputHistory({
   }, [toolSlug, refreshKey]);
 
   return (
-    <div className="rounded-xl bg-white p-4 shadow-sm border border-slate-200">
+    <Card noPadding className="p-4">
       <div className="flex items-center justify-between">
         <span className="text-sm font-semibold text-slate-700">Previous outputs</span>
         {loading && <span className="text-xs text-slate-400">loading…</span>}
@@ -94,6 +95,6 @@ export default function OutputHistory({
           </button>
         ))}
       </div>
-    </div>
+    </Card>
   );
 }

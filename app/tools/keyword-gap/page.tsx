@@ -4,6 +4,12 @@ import { useState } from "react";
 import { useToolApi } from "@/components/tools/useToolApi";
 import ResultView, { type SendToLink } from "@/components/tools/ResultView";
 import { usePrefill, prefillUrl } from "@/components/tools/usePrefill";
+import PageHeader from "@/components/ui/PageHeader";
+import Card from "@/components/ui/Card";
+import Input from "@/components/ui/Input";
+import Select from "@/components/ui/Select";
+import Button from "@/components/ui/Button";
+import ErrorBanner from "@/components/ui/ErrorBanner";
 
 interface GapResult {
   domainA: string;
@@ -42,73 +48,69 @@ export default function KeywordGapPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <h1 className="text-2xl font-bold text-slate-900">Keyword Gap Analyzer</h1>
-      <p className="mt-1 text-sm text-slate-600">
-        Find the keywords domain B ranks for that domain A is missing — your content opportunity list.
-      </p>
+      <PageHeader
+        title="Keyword Gap Analyzer"
+        description="Find the keywords domain B ranks for that domain A is missing — your content opportunity list."
+      />
 
-      <div className="mt-6 grid gap-4 rounded-xl border border-slate-200 bg-white p-5 sm:grid-cols-2 lg:grid-cols-4">
+      <Card className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div>
-          <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Domain A (client)</label>
-          <input
+          <Input
+            label="Domain A (client)"
             value={domainA}
             onChange={(e) => setDomainA(e.target.value)}
             placeholder="client.com.hk"
-            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-fp-400 focus:outline-none"
           />
         </div>
         <div>
-          <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Domain B (competitor)</label>
-          <input
+          <Input
+            label="Domain B (competitor)"
             value={domainB}
             onChange={(e) => setDomainB(e.target.value)}
             placeholder="competitor.com.hk"
-            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-fp-400 focus:outline-none"
           />
         </div>
         <div>
-          <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Country</label>
-          <select
+          <Select
+            label="Country"
             value={country}
             onChange={(e) => setCountry(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-fp-400 focus:outline-none"
+            className="mt-1"
           >
             {["hk", "us", "sg", "au", "uk", "tw", "cn"].map((c) => (
               <option key={c} value={c}>
                 {c.toUpperCase()}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
         <div>
-          <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Per domain</label>
-          <select
+          <Select
+            label="Per domain"
             value={limit}
             onChange={(e) => setLimit(Number(e.target.value))}
-            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-fp-400 focus:outline-none"
+            className="mt-1"
           >
             {[25, 50, 100, 200].map((n) => (
               <option key={n} value={n}>
                 {n}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
-      </div>
+      </Card>
 
       <div className="mt-4">
-        <button
+        <Button
+          size="lg"
           onClick={() => run({ domainA, domainB, country, limit })}
           disabled={loading || !domainA || !domainB}
-          className="rounded-lg bg-fp-700 px-5 py-2 text-sm font-semibold text-white hover:bg-fp-800 disabled:opacity-40"
         >
           {loading ? "Comparing…" : "Find gap"}
-        </button>
+        </Button>
       </div>
 
-      {error && (
-        <div className="mt-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>
-      )}
+      {error && <ErrorBanner className="mt-6">{error}</ErrorBanner>}
       {data && (
         <div className="mt-6">
           <ResultView data={data} sendTo={sendTo} />

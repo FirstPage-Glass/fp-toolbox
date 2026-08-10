@@ -4,6 +4,11 @@ import { useState } from "react";
 import BriefForm, { EMPTY_BRIEF, type BriefFormValues } from "@/components/tools/BriefForm";
 import HubSpotLeads from "@/components/tools/HubSpotLeads";
 import OutputHistory, { type OutputItem } from "@/components/tools/OutputHistory";
+import PageHeader from "@/components/ui/PageHeader";
+import Card from "@/components/ui/Card";
+import Button from "@/components/ui/Button";
+import Input from "@/components/ui/Input";
+import ErrorBanner from "@/components/ui/ErrorBanner";
 
 interface DeckSlide {
   heading: string;
@@ -73,10 +78,10 @@ export default function PitchDeckPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <h1 className="text-2xl font-bold text-slate-900">Pitch Deck Generator</h1>
-      <p className="mt-1 text-sm text-slate-600">
-        Fill in the client brief — the deck is generated with live PageSpeed + competitor data, rendered as HTML, and exported to PDF. Every output is saved to history and refinable.
-      </p>
+      <PageHeader
+        title="Pitch Deck Generator"
+        description="Fill in the client brief — the deck is generated with live PageSpeed + competitor data, rendered as HTML, and exported to PDF. Every output is saved to history and refinable."
+      />
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
         {/* Left: brief form */}
@@ -91,18 +96,13 @@ export default function PitchDeckPage() {
 
       {/* Output: full width below the intake row */}
       <div className="mt-6">
-        {error && (
-          <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>
-        )}
+        {error && <ErrorBanner>{error}</ErrorBanner>}
         {deck && (
           <div>
             <div className="mb-4 flex flex-wrap items-center gap-3">
-              <button
-                onClick={() => window.print()}
-                className="rounded-lg bg-fp-700 px-4 py-2 text-sm font-semibold text-white hover:bg-fp-800"
-              >
+              <Button size="lg" onClick={() => window.print()}>
                 Export PDF
-              </button>
+              </Button>
               {cost != null && (
                 <span className="text-xs text-slate-500">Generation cost: US${cost.toFixed(4)}</span>
               )}
@@ -110,19 +110,20 @@ export default function PitchDeckPage() {
 
             {/* Refine bar */}
             <div className="mb-4 flex gap-2">
-              <input
+              <Input
                 value={refineText}
                 onChange={(e) => setRefineText(e.target.value)}
                 placeholder="Refine instruction (e.g. make the pricing slide more aggressive)"
-                className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-fp-400 focus:outline-none"
+                className="flex-1"
               />
-              <button
+              <Button
+                variant="brand"
+                size="lg"
                 onClick={refine}
                 disabled={!activeId || !refineText.trim() || refining}
-                className="rounded-lg bg-fp-100 px-4 py-2 text-sm font-semibold text-fp-700 hover:bg-fp-200 disabled:opacity-40"
               >
                 {refining ? "Refining…" : "Refine"}
-              </button>
+              </Button>
             </div>
 
             {/* ponytail: print CSS turns each slide into one PDF page */}
@@ -131,10 +132,7 @@ export default function PitchDeckPage() {
                 { heading: deck.title, bullets: [deck.subtitle] },
                 ...deck.slides,
               ].map((slide, i) => (
-                <section
-                  key={i}
-                  className="slide-page rounded-xl border border-slate-200 bg-white p-10 shadow-sm"
-                >
+                <Card key={i} noPadding className="slide-page p-10">
                   <div className="text-xs font-semibold uppercase tracking-wide text-fp-600">
                     {i === 0 ? "First Page Digital" : `Slide ${i}`}
                   </div>
@@ -153,7 +151,7 @@ export default function PitchDeckPage() {
                       </li>
                     ))}
                   </ul>
-                </section>
+                </Card>
               ))}
             </div>
           </div>

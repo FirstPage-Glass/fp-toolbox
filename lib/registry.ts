@@ -34,4 +34,18 @@ export interface ToolManifest {
 }
 
 /** Static registry index — adding a tool = add one import line. Code is the source of truth. */
-export const tools: ToolManifest[] = [pitchDeck, proposal, gscExplorer, ga4Snapshot, psiAuditor, mobileDesktopPsi, cwvBatch, urlInspector, competitorProfiler, aiVisibility, keywordGap, serpLandscape, leadScorer, pipelinePulse, spamReport, toolUsage, meetingPrep, metaGenerator, contentBrief, schemaGenerator, seoRoi, monthlyReport];
+export const tools: ToolManifest[] = [pitchDeck, proposal, gscExplorer, ga4Snapshot, psiAuditor, mobileDesktopPsi, cwvBatch, urlInspector, competitorProfiler, aiVisibility, keywordGap, serpLandscape, leadScorer, pipelinePulse, spamReport, toolUsage, meetingPrep, metaGenerator, contentBrief, schemaGenerator, seoRoi, monthlyReport,
+  // External tools — standalone deployments without an app/tools/<slug>/ page.
+  // `externalLink` makes the toolbox card link out (target=_blank) instead of /tools/<slug>.
+  {
+    slug: "faq-schema-generator",
+    name: "FAQ Schema Generator",
+    description:
+      "Standalone FAQ structured-data generator, hosted externally — the fast path to FAQ JSON-LD.",
+    category: "SEO Technical",
+    owner: "FirstPage Team",
+    status: "active",
+    icon: "❓",
+    externalLink: "https://faq-generator.firstpage.com.hk",
+  },
+];

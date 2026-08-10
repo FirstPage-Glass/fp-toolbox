@@ -3,6 +3,12 @@
 import { useState } from "react";
 import { usePrefill, prefillUrl } from "@/components/tools/usePrefill";
 import OutputHistory, { type OutputItem } from "@/components/tools/OutputHistory";
+import PageHeader from "@/components/ui/PageHeader";
+import Card from "@/components/ui/Card";
+import Button from "@/components/ui/Button";
+import Input from "@/components/ui/Input";
+import Select from "@/components/ui/Select";
+import ErrorBanner from "@/components/ui/ErrorBanner";
 
 interface ContentBriefOutput {
   keyword: string;
@@ -73,62 +79,50 @@ export default function ContentBriefPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <h1 className="text-2xl font-bold text-slate-900">Content Brief Generator</h1>
-      <p className="mt-1 text-sm text-slate-600">
-        Turn a target keyword into a writer-ready brief — intent, audience, outline and FAQ ideas.
-      </p>
+      <PageHeader
+        title="Content Brief Generator"
+        description="Turn a target keyword into a writer-ready brief — intent, audience, outline and FAQ ideas."
+      />
 
-      <div className="mt-6 grid gap-4 rounded-xl border border-slate-200 bg-white p-5">
-        <div>
-          <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Target keyword</label>
-          <input
-            value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
-            placeholder="local seo services hong kong"
-            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-fp-400 focus:outline-none"
-          />
-        </div>
+      <Card className="mt-6 grid gap-4">
+        <Input
+          label="Target keyword"
+          value={keyword}
+          onChange={(e) => setKeyword(e.target.value)}
+          placeholder="local seo services hong kong"
+        />
         <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Existing page (optional)
-            </label>
-            <input
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder="https://client-site.com/page"
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-fp-400 focus:outline-none"
-            />
-          </div>
-          <div>
-            <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Tone</label>
-            <select
-              value={tone}
-              onChange={(e) => setTone(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-fp-400 focus:outline-none"
-            >
-              {["professional", "friendly", "authoritative", "conversational"].map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </select>
-          </div>
+          <Input
+            label="Existing page (optional)"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder="https://client-site.com/page"
+          />
+          <Select
+            label="Tone"
+            className="mt-1"
+            value={tone}
+            onChange={(e) => setTone(e.target.value)}
+          >
+            {["professional", "friendly", "authoritative", "conversational"].map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
+          </Select>
         </div>
         <div>
-          <button
+          <Button
+            size="lg"
             onClick={() => generate()}
             disabled={loading || !keyword.trim()}
-            className="rounded-lg bg-fp-700 px-5 py-2 text-sm font-semibold text-white hover:bg-fp-800 disabled:opacity-40"
           >
             {loading ? "Generating…" : "Generate brief"}
-          </button>
+          </Button>
         </div>
-      </div>
+      </Card>
 
-      {error && (
-        <div className="mt-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>
-      )}
+      {error && <ErrorBanner className="mt-6">{error}</ErrorBanner>}
 
       {brief && (
         <div className="mt-6 space-y-4">
@@ -148,24 +142,24 @@ export default function ContentBriefPage() {
             {cost != null && <span className="text-xs text-slate-500">Cost: US${cost.toFixed(4)}</span>}
           </div>
 
-          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <Card>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+              <Card tone="slate" noPadding className="p-3">
                 <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Title</div>
                 <div className="mt-1 text-sm font-semibold text-slate-900">{brief.title}</div>
-              </div>
-              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+              </Card>
+              <Card tone="slate" noPadding className="p-3">
                 <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Search intent</div>
                 <div className="mt-1 text-sm text-slate-700">{brief.searchIntent}</div>
-              </div>
-              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+              </Card>
+              <Card tone="slate" noPadding className="p-3">
                 <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Audience</div>
                 <div className="mt-1 text-sm text-slate-700">{brief.targetAudience}</div>
-              </div>
-              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+              </Card>
+              <Card tone="slate" noPadding className="p-3">
                 <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Word count</div>
                 <div className="mt-1 text-lg font-bold text-fp-700">{brief.wordCount}</div>
-              </div>
+              </Card>
             </div>
 
             <div className="mt-6">
@@ -200,22 +194,23 @@ export default function ContentBriefPage() {
                 ))}
               </ul>
             </div>
-          </div>
+          </Card>
 
           <div className="flex gap-2">
-            <input
+            <Input
               value={refineText}
               onChange={(e) => setRefineText(e.target.value)}
               placeholder="Refine (e.g. target beginners, add comparison sections)"
-              className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-fp-400 focus:outline-none"
+              className="flex-1"
             />
-            <button
+            <Button
+              variant="brand"
+              size="lg"
               onClick={refine}
               disabled={!activeId || !refineText.trim() || refining}
-              className="rounded-lg bg-fp-100 px-4 py-2 text-sm font-semibold text-fp-700 hover:bg-fp-200 disabled:opacity-40"
             >
               {refining ? "Refining…" : "Refine"}
-            </button>
+            </Button>
           </div>
 
           <OutputHistory toolSlug="content-brief" refreshKey={historyKey} activeId={activeId} onLoad={loadOutput} />

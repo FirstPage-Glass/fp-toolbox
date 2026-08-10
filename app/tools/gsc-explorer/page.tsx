@@ -4,6 +4,12 @@ import { useEffect, useState } from "react";
 import { useToolApi } from "@/components/tools/useToolApi";
 import ResultView, { type SendToLink } from "@/components/tools/ResultView";
 import { usePrefill, prefillUrl } from "@/components/tools/usePrefill";
+import PageHeader from "@/components/ui/PageHeader";
+import Card from "@/components/ui/Card";
+import Button from "@/components/ui/Button";
+import Input from "@/components/ui/Input";
+import Select from "@/components/ui/Select";
+import ErrorBanner from "@/components/ui/ErrorBanner";
 
 interface GscExplorerResult {
   siteUrl: string;
@@ -47,20 +53,19 @@ export default function GscExplorerPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <h1 className="text-2xl font-bold text-slate-900">GSC Query Explorer</h1>
-      <p className="mt-1 text-sm text-slate-600">
-        Pull the organic search queries driving any client site&apos;s traffic from Google Search Console.
-      </p>
+      <PageHeader
+        title="GSC Query Explorer"
+        description="Pull the organic search queries driving any client site&apos;s traffic from Google Search Console."
+      />
 
-      <div className="mt-6 grid gap-4 rounded-xl border border-slate-200 bg-white p-5 sm:grid-cols-2 lg:grid-cols-4">
+      <Card className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div>
-          <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Site</label>
-          <input
+          <Input
+            label="Site"
             list="gsc-sites"
             value={site}
             onChange={(e) => setSite(e.target.value)}
             placeholder="Search or paste a site…"
-            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-fp-400 focus:outline-none"
           />
           <datalist id="gsc-sites">
             {sites.map((s) => (
@@ -71,52 +76,46 @@ export default function GscExplorerPage() {
           </datalist>
         </div>
         <div>
-          <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Days</label>
-          <select
+          <Select
+            label="Days"
+            className="mt-1"
             value={days}
             onChange={(e) => setDays(Number(e.target.value))}
-            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-fp-400 focus:outline-none"
           >
             {[7, 30, 90].map((d) => (
               <option key={d} value={d}>
                 {d} days
               </option>
             ))}
-          </select>
+          </Select>
         </div>
         <div>
-          <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Min clicks</label>
-          <input
+          <Input
+            label="Min clicks"
             type="number"
             min={0}
             value={minClicks}
             onChange={(e) => setMinClicks(Number(e.target.value))}
-            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-fp-400 focus:outline-none"
           />
         </div>
         <div>
-          <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Query contains</label>
-          <input
+          <Input
+            label="Query contains"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="e.g. seo agency"
-            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-fp-400 focus:outline-none"
           />
         </div>
-      </div>
+      </Card>
 
       <div className="mt-4">
-        <button
-          onClick={() => run({ siteUrl: site, days, minClicks, query })}
-          disabled={loading || !site}
-          className="rounded-lg bg-fp-700 px-5 py-2 text-sm font-semibold text-white hover:bg-fp-800 disabled:opacity-40"
-        >
+        <Button size="lg" onClick={() => run({ siteUrl: site, days, minClicks, query })} disabled={loading || !site}>
           {loading ? "Running…" : "Explore"}
-        </button>
+        </Button>
       </div>
 
       {error && (
-        <div className="mt-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>
+        <ErrorBanner className="mt-6">{error}</ErrorBanner>
       )}
       {data && (
         <div className="mt-6 space-y-4">

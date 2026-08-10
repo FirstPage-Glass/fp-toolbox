@@ -3,6 +3,11 @@
 import { useEffect, useState } from "react";
 import { usePrefill, prefillUrl } from "@/components/tools/usePrefill";
 import OutputHistory, { type OutputItem } from "@/components/tools/OutputHistory";
+import PageHeader from "@/components/ui/PageHeader";
+import Card from "@/components/ui/Card";
+import Button from "@/components/ui/Button";
+import Input from "@/components/ui/Input";
+import ErrorBanner from "@/components/ui/ErrorBanner";
 
 interface MonthlyReport {
   title: string;
@@ -77,20 +82,19 @@ export default function MonthlyReportPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <h1 className="text-2xl font-bold text-slate-900">Monthly SEO Report</h1>
-      <p className="mt-1 text-sm text-slate-600">
-        GSC, GA4, PageSpeed and AI visibility data narrated into a client-ready monthly report.
-      </p>
+      <PageHeader
+        title="Monthly SEO Report"
+        description="GSC, GA4, PageSpeed and AI visibility data narrated into a client-ready monthly report."
+      />
 
-      <div className="mt-6 grid gap-4 rounded-xl border border-slate-200 bg-white p-5">
+      <Card className="mt-6 grid gap-4">
         <div>
-          <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Client website</label>
-          <input
+          <Input
+            label="Client website"
             list="monthly-sites"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             placeholder="https://client-site.com/"
-            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-fp-400 focus:outline-none"
           />
           <datalist id="monthly-sites">
             {siteSuggestions.map((s) => (
@@ -100,37 +104,31 @@ export default function MonthlyReportPage() {
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Client name</label>
-            <input
+            <Input
+              label="Client name"
               value={clientName}
               onChange={(e) => setClientName(e.target.value)}
               placeholder="Acme Ltd"
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-fp-400 focus:outline-none"
             />
           </div>
           <div>
-            <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Reporting period</label>
-            <input
+            <Input
+              label="Reporting period"
               value={period}
               onChange={(e) => setPeriod(e.target.value)}
               placeholder="e.g. July 2026"
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-fp-400 focus:outline-none"
             />
           </div>
         </div>
         <div>
-          <button
-            onClick={() => generate()}
-            disabled={loading || !url}
-            className="rounded-lg bg-fp-700 px-5 py-2 text-sm font-semibold text-white hover:bg-fp-800 disabled:opacity-40"
-          >
+          <Button size="lg" onClick={() => generate()} disabled={loading || !url}>
             {loading ? "Generating…" : "Generate report"}
-          </button>
+          </Button>
         </div>
-      </div>
+      </Card>
 
       {error && (
-        <div className="mt-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>
+        <ErrorBanner className="mt-6">{error}</ErrorBanner>
       )}
 
       {report && (
@@ -145,7 +143,7 @@ export default function MonthlyReportPage() {
             {cost != null && <span className="text-xs text-slate-500">Cost: US${cost.toFixed(4)}</span>}
           </div>
 
-          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <Card>
             <h2 className="text-xl font-bold text-slate-900">{report.title}</h2>
             <p className="mt-2 text-sm text-slate-700">{report.summary}</p>
 
@@ -171,22 +169,23 @@ export default function MonthlyReportPage() {
                 </section>
               ))}
             </div>
-          </div>
+          </Card>
 
           <div className="flex gap-2">
-            <input
+            <Input
               value={refineText}
               onChange={(e) => setRefineText(e.target.value)}
               placeholder="Refine (e.g. highlight the biggest win, soften the traffic drop)"
-              className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-fp-400 focus:outline-none"
+              className="flex-1"
             />
-            <button
+            <Button
+              variant="brand"
+              size="lg"
               onClick={refine}
               disabled={!activeId || !refineText.trim() || refining}
-              className="rounded-lg bg-fp-100 px-4 py-2 text-sm font-semibold text-fp-700 hover:bg-fp-200 disabled:opacity-40"
             >
               {refining ? "Refining…" : "Refine"}
-            </button>
+            </Button>
           </div>
 
           <OutputHistory toolSlug="monthly-report" refreshKey={historyKey} activeId={activeId} onLoad={loadOutput} />

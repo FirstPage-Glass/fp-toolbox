@@ -1,5 +1,8 @@
 import { getSpamReport } from "@/lib/hubspot";
 import { cached } from "@/lib/cache";
+import PageHeader from "@/components/ui/PageHeader";
+import StatCard from "@/components/ui/StatCard";
+import Card from "@/components/ui/Card";
 
 export const dynamic = "force-dynamic";
 
@@ -8,32 +11,22 @@ export default async function AdminPage() {
   // every refresh.
   const report = await cached("spam-report-admin:30", () => getSpamReport(30), 10 * 60 * 1000);
 
-  const kpi = (label: string, value: string, sub: string) => (
-    <div className="rounded-xl bg-white p-6 shadow-sm border border-slate-200">
-      <div className="text-sm text-slate-500">{label}</div>
-      <div className="mt-1 text-3xl font-extrabold text-slate-900">{value}</div>
-      <div className="mt-1 text-xs text-slate-400">{sub}</div>
-    </div>
-  );
-
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-900">Lead Quality Report</h1>
-        <p className="mt-2 text-slate-600">
-          Last 30 days of HubSpot contacts — how much of the inbound is real, and where the junk comes from.
-        </p>
-      </div>
+      <PageHeader
+        title="Lead Quality Report"
+        description="Last 30 days of HubSpot contacts — how much of the inbound is real, and where the junk comes from."
+      />
 
       <div className="grid gap-5 sm:grid-cols-4">
-        {kpi("Total contacts", String(report.total), "last 30 days")}
-        {kpi("Real leads", String(report.good), "pass domain-match + reputation filter")}
-        {kpi("Spam", String(report.spam), "blocked by the filter")}
-        {kpi("Spam rate", `${report.spamRatePct}%`, "of all inbound")}
+        <StatCard label="Total contacts" value={String(report.total)} sub="last 30 days" />
+        <StatCard label="Real leads" value={String(report.good)} sub="pass domain-match + reputation filter" />
+        <StatCard label="Spam" value={String(report.spam)} sub="blocked by the filter" />
+        <StatCard label="Spam rate" value={`${report.spamRatePct}%`} sub="of all inbound" />
       </div>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-2">
-        <div className="rounded-xl bg-white p-6 shadow-sm border border-slate-200">
+        <Card>
           <h2 className="text-lg font-semibold text-slate-900">Why contacts are spam</h2>
           {report.categories.length === 0 ? (
             <p className="mt-3 text-sm text-slate-500">No spam in the window — clean!</p>
@@ -58,9 +51,9 @@ export default async function AdminPage() {
               })}
             </div>
           )}
-        </div>
+        </Card>
 
-        <div className="rounded-xl bg-white p-6 shadow-sm border border-slate-200">
+        <Card>
           <h2 className="text-lg font-semibold text-slate-900">Worst source domains</h2>
           <p className="mt-1 text-xs text-slate-400">
             Email domains to consider blocking in HubSpot (settings → suppression).
@@ -85,7 +78,7 @@ export default async function AdminPage() {
               </tbody>
             </table>
           )}
-        </div>
+        </Card>
       </div>
     </div>
   );

@@ -17,7 +17,7 @@ Routing map:
 | Route | Type | Auth | Data source |
 |-------|------|------|-------------|
 | `/` | Server | Yes | `lib/dashboard.ts` (HubSpot leads + deals/pipeline + usage events + firstpage MCP GA4/GSC/PSI + Ahrefs) + `lib/uptime.ts` (Site status) + `lib/ai-plans.ts` (AI-suggested action plans via OpenRouter, memoized 1h). Two sections (Website / Sales) with sticky `SectionNav`; `?days=7|30|90` range picker (default 30) |
-| `/toolbox` | Server | No | `lib/registry.ts` (code) |
+| `/toolbox` | Server shell + client view | No | `lib/registry.ts` (code); client `ToolboxView` (components/toolbox/) handles search + category via `?q=&cat=` |
 | `/tools/<slug>` | Client | Yes | per-tool API route; ~22 tools across SEO Research / SEO Technical / Sales / Content / Operations (see Child DOX below) |
 | `/presentation` | Server | Yes | Postgres usage stats |
 | `/login` | Client | No | — |
@@ -35,10 +35,8 @@ Routing map:
 ## Work Guidance
 
 - Layout max-width: `max-w-7xl mx-auto px-4 sm:px-6 lg:px-8`.
-- Cards: `bg-white rounded-xl shadow-sm border border-slate-200`; hover: `hover:shadow-md hover:border-fp-300 transition-all`.
-- Status badges: `bg-{color}-100 text-{color}-700`. Brand colors: `--color-fp-50` … `--color-fp-950` in `globals.css` (Tailwind v4 `@theme inline` — do not create a `tailwind.config.js`).
-- Emoji icons as lightweight indicators; no icon library dependency.
-- Helper functions for parsing NocoDB string fields (`parseTech`, `getStatusBadge`, `getCategoryColor`) are duplicated across page files — if you modify one, update all copies.
+- Build from `components/ui/` atoms: `Card` (white/slate), `StatCard` (KPI, fp tones for emphasis), `PageHeader` (page titles), `Badge` (static color map), `Button`/`Input` (client forms). Extend `components/ui/` rather than hand-copying card classes.
+- Emoji icons as lightweight indicators; no icon library dependency. Brand colors: `--color-fp-50` … `--color-fp-950` in `globals.css` (Tailwind v4 `@theme inline` — do not create a `tailwind.config.js`).
 - `images.unoptimized: true` must stay in `next.config.ts`; build output goes to `dist/`, not `.next/`.
 
 ## Verification

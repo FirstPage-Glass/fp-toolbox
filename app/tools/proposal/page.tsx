@@ -4,6 +4,11 @@ import { useState } from "react";
 import BriefForm, { EMPTY_BRIEF, type BriefFormValues } from "@/components/tools/BriefForm";
 import HubSpotLeads from "@/components/tools/HubSpotLeads";
 import OutputHistory, { type OutputItem } from "@/components/tools/OutputHistory";
+import PageHeader from "@/components/ui/PageHeader";
+import Card from "@/components/ui/Card";
+import Button from "@/components/ui/Button";
+import Input from "@/components/ui/Input";
+import ErrorBanner from "@/components/ui/ErrorBanner";
 
 interface ProposalSection {
   heading: string;
@@ -72,10 +77,10 @@ export default function ProposalPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <h1 className="text-2xl font-bold text-slate-900">Proposal Generator</h1>
-      <p className="mt-1 text-sm text-slate-600">
-        Same client brief, proposal template — a full draft with case proof and investment framing. Every output is saved to history and refinable.
-      </p>
+      <PageHeader
+        title="Proposal Generator"
+        description="Same client brief, proposal template — a full draft with case proof and investment framing. Every output is saved to history and refinable."
+      />
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
         <BriefForm brief={brief} onChange={setBrief} submitLabel="Generate proposal" onGenerate={() => generate()} />
@@ -88,46 +93,42 @@ export default function ProposalPage() {
 
       {/* Output: full width below the intake row */}
       <div className="mt-6">
-        {error && (
-          <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>
-        )}
+        {error && <ErrorBanner>{error}</ErrorBanner>}
         {proposal && (
           <div>
             <div className="mb-4 flex flex-wrap items-center gap-3">
-              <button
-                onClick={() => window.print()}
-                className="rounded-lg bg-fp-700 px-4 py-2 text-sm font-semibold text-white hover:bg-fp-800"
-              >
+              <Button size="lg" onClick={() => window.print()}>
                 Export PDF
-              </button>
+              </Button>
               {cost != null && (
                 <span className="text-xs text-slate-500">Generation cost: US${cost.toFixed(4)}</span>
               )}
             </div>
 
             <div className="mb-4 flex gap-2">
-              <input
+              <Input
                 value={refineText}
                 onChange={(e) => setRefineText(e.target.value)}
                 placeholder="Refine instruction (e.g. expand the Investment section with a tiered option)"
-                className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-fp-400 focus:outline-none"
+                className="flex-1"
               />
-              <button
+              <Button
+                variant="brand"
+                size="lg"
                 onClick={refine}
                 disabled={!activeId || !refineText.trim() || refining}
-                className="rounded-lg bg-fp-100 px-4 py-2 text-sm font-semibold text-fp-700 hover:bg-fp-200 disabled:opacity-40"
               >
                 {refining ? "Refining…" : "Refine"}
-              </button>
+              </Button>
             </div>
 
             <div className="space-y-6">
-              <div className="rounded-xl border border-slate-200 bg-white p-10 shadow-sm">
+              <Card noPadding className="p-10">
                 <h1 className="text-3xl font-bold text-slate-900">{proposal.title}</h1>
                 <p className="mt-2 text-sm text-fp-700">Prepared by First Page Digital</p>
-              </div>
+              </Card>
               {proposal.sections.map((s, i) => (
-                <section key={i} className="rounded-xl border border-slate-200 bg-white p-10 shadow-sm">
+                <Card key={i} noPadding className="p-10">
                   <h2 className="text-xl font-bold text-slate-900">{s.heading}</h2>
                   {s.paragraphs.map((p, j) => (
                     <p key={j} className="mt-3 text-slate-700">{p}</p>
@@ -142,7 +143,7 @@ export default function ProposalPage() {
                       ))}
                     </ul>
                   )}
-                </section>
+                </Card>
               ))}
             </div>
           </div>

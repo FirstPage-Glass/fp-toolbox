@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
+import Card from "@/components/ui/Card";
+import Button from "@/components/ui/Button";
 
 export interface SendToLink {
   label: string;
@@ -97,14 +99,14 @@ function renderNode(node: unknown): ReactNode {
         {scalars.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {scalars.map(([k, v]) => (
-              <div key={k} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+              <Card key={k} tone="slate" noPadding className="p-3">
                 <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                   {k.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/[_-]/g, " ")}
                 </div>
                 <div className="mt-1 text-lg font-semibold text-slate-900">
                   {formatValue(v)}
                 </div>
-              </div>
+              </Card>
             ))}
           </div>
         )}
@@ -160,18 +162,12 @@ export default function ResultView({ data, sendTo }: ResultViewProps) {
             {l.label} →
           </a>
         ))}
-        <button
-          onClick={copyJson}
-          className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50"
-        >
+        <Button variant="secondary" onClick={copyJson}>
           {copied ? "Copied ✓" : "Copy JSON"}
-        </button>
-        <button
-          onClick={downloadJson}
-          className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50"
-        >
+        </Button>
+        <Button variant="secondary" onClick={downloadJson}>
           Download
-        </button>
+        </Button>
       </div>
       {renderNode(data)}
     </div>

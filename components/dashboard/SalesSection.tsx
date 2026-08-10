@@ -2,6 +2,7 @@ import MetricCard from "./MetricCard";
 import UnconfiguredNotice from "./UnconfiguredNotice";
 import SectionHeader from "./SectionHeader";
 import AiPlanList from "./AiPlanList";
+import Card from "@/components/ui/Card";
 import LeadTrendChart from "./LeadTrendChart";
 import LeadScoreChart from "./LeadScoreChart";
 import type { DashboardData } from "@/lib/dashboard";
@@ -91,7 +92,7 @@ export default function SalesSection({ d, insights, aiPlans }: SalesSectionProps
       </div>
 
       {/* Pipeline — deals created + outcome funnel */}
-      <div className="mt-8 rounded-xl bg-white p-6 shadow-sm border border-slate-200">
+      <Card className="mt-8">
         <h3 className="text-lg font-semibold text-slate-900">Pipeline</h3>
         {!d.hubspot.configured ? (
           <div className="mt-4">
@@ -110,25 +111,25 @@ export default function SalesSection({ d, insights, aiPlans }: SalesSectionProps
         ) : deals ? (
           <>
             <div className="mt-4 grid gap-5 sm:grid-cols-3">
-              <div className="rounded-xl bg-slate-50 p-5 border border-slate-200">
+              <Card tone="slate">
                 <div className="text-sm text-slate-500">Avg deal size</div>
                 <div className="mt-1 text-3xl font-extrabold text-slate-900">
                   {deals.avgAmount ? usd(deals.avgAmount) : "—"}
                 </div>
                 <div className="mt-1 text-xs text-slate-500">new deals in window</div>
-              </div>
-              <div className="rounded-xl bg-slate-50 p-5 border border-slate-200">
+              </Card>
+              <Card tone="slate">
                 <div className="text-sm text-slate-500">Won deals</div>
                 <div className="mt-1 text-3xl font-extrabold text-slate-900">
                   {deals.closedWon.count}
                 </div>
                 <div className="mt-1 text-xs text-slate-500">closed in window</div>
-              </div>
-              <div className="rounded-xl bg-slate-50 p-5 border border-slate-200">
+              </Card>
+              <Card tone="slate">
                 <div className="text-sm text-slate-500">New deals</div>
                 <div className="mt-1 text-3xl font-extrabold text-slate-900">{deals.newCount}</div>
                 <div className="mt-1 text-xs text-slate-500">created in window</div>
-              </div>
+              </Card>
             </div>
             <div className="mt-6">
               <p className="text-sm text-slate-500">New deals — open vs won</p>
@@ -154,10 +155,10 @@ export default function SalesSection({ d, insights, aiPlans }: SalesSectionProps
         ) : (
           <p className="mt-3 text-sm text-slate-500">Loading deals…</p>
         )}
-      </div>
+      </Card>
 
       {/* Leaderboard — per-owner closed-won revenue */}
-      <div className="mt-8 rounded-xl bg-white p-6 shadow-sm border border-slate-200">
+      <Card className="mt-8">
         <h3 className="text-lg font-semibold text-slate-900">Sales leaderboard</h3>
         <p className="mt-1 text-sm text-slate-500">
           Closed-won revenue by owner · {d.rangeDays}-day window
@@ -197,10 +198,10 @@ export default function SalesSection({ d, insights, aiPlans }: SalesSectionProps
         ) : (
           <p className="mt-3 text-sm text-slate-500">Loading leaderboard…</p>
         )}
-      </div>
+      </Card>
 
       {/* HubSpot leads */}
-      <div className="mt-8 rounded-xl bg-white p-6 shadow-sm border border-slate-200">
+      <Card className="mt-8">
         <h3 className="text-lg font-semibold text-slate-900">HubSpot leads</h3>
         {!d.hubspot.configured ? (
           <div className="mt-4">
@@ -238,10 +239,10 @@ export default function SalesSection({ d, insights, aiPlans }: SalesSectionProps
             </div>
           </>
         )}
-      </div>
+      </Card>
 
       {/* Lead quality check — engagement cross-check */}
-      <div className="mt-8 rounded-xl bg-white p-6 shadow-sm border border-slate-200">
+      <Card className="mt-8">
         <h3 className="text-lg font-semibold text-slate-900">Lead quality check</h3>
         <p className="mt-1 text-sm text-slate-500">
           Engagement cross-check · {d.rangeDays}-day window · contacts with a deal created as
@@ -260,25 +261,25 @@ export default function SalesSection({ d, insights, aiPlans }: SalesSectionProps
         ) : eng ? (
           <>
             <div className="mt-4 grid gap-5 sm:grid-cols-3">
-              <div className="rounded-xl bg-slate-50 p-5 border border-slate-200">
+              <Card tone="slate">
                 <div className="text-sm text-slate-500">Engaged leads</div>
                 <div className="mt-1 text-3xl font-extrabold text-slate-900">{eng.engagedCount}</div>
                 <div className="mt-1 text-xs text-slate-500">
                   of {eng.totalContacts} contacts in window · with a deal
                 </div>
-              </div>
-              <div className="rounded-xl bg-slate-50 p-5 border border-slate-200">
+              </Card>
+              <Card tone="slate">
                 <div className="text-sm text-slate-500">Flagged as spam</div>
                 <div className="mt-1 text-3xl font-extrabold text-slate-900">{eng.engagedSpam}</div>
                 <div className="mt-1 text-xs text-slate-500">real leads the filter rejected</div>
-              </div>
-              <div className="rounded-xl bg-slate-50 p-5 border border-slate-200">
+              </Card>
+              <Card tone="slate">
                 <div className="text-sm text-slate-500">Misjudged rate</div>
                 <div className={`mt-1 text-3xl font-extrabold ${misrate !== null && misrate > 5 ? "text-amber-600" : "text-slate-900"}`}>
                   {misrate !== null ? `${misrate}%` : "—"}
                 </div>
                 <div className="mt-1 text-xs text-slate-500">of engaged leads</div>
-              </div>
+              </Card>
             </div>
 
             {eng.engagedSpam === 0 ? (
@@ -338,10 +339,10 @@ export default function SalesSection({ d, insights, aiPlans }: SalesSectionProps
         ) : (
           <p className="mt-3 text-sm text-slate-500">Loading engagement data…</p>
         )}
-      </div>
+      </Card>
 
       {/* Usage / ROI — tool runs + LLM cost */}
-      <div className="mt-8 rounded-xl bg-white p-6 shadow-sm border border-slate-200">
+      <Card className="mt-8">
         <h3 className="text-lg font-semibold text-slate-900">Tool ROI</h3>
         <p className="mt-1 text-sm text-slate-500">
           Usage events · last {d.rangeDays} days · LLM cost (US$)
@@ -377,7 +378,7 @@ export default function SalesSection({ d, insights, aiPlans }: SalesSectionProps
             </table>
           </div>
         )}
-      </div>
+      </Card>
     </section>
   );
 }

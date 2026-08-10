@@ -1,4 +1,5 @@
 import DeltaBadge from "./DeltaBadge";
+import Card from "@/components/ui/Card";
 
 interface MetricCardProps {
   label: string;
@@ -24,7 +25,7 @@ export default function MetricCard({
   deltaSuffix = "%",
 }: MetricCardProps) {
   return (
-    <div className="rounded-xl bg-white p-6 shadow-sm border border-slate-200">
+    <Card>
       <div className="flex items-center justify-between">
         <div className="text-sm text-slate-500">{label}</div>
         {icon ? <span className="text-lg" aria-hidden>{icon}</span> : null}
@@ -34,6 +35,6 @@ export default function MetricCard({
         <DeltaBadge delta={delta} invert={deltaInvert} suffix={deltaSuffix} />
       </div>
       {sub ? <div className="mt-1 text-xs text-slate-500">{sub}</div> : null}
-    </div>
+    </Card>
   );
 }

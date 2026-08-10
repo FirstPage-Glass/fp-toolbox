@@ -81,7 +81,7 @@ When the user requests a durable behavior change, record it here or in the relev
 ## Child DOX Index
 
 - `app/AGENTS.md` — App Router surface: pages, API routes, routing/auth rules. Owns everything under `app/`.
-- `lib/AGENTS.md` — Data layer: NocoDB client, unified-tools adapter, static data. Owns everything under `lib/`.
+- `lib/AGENTS.md` — Data layer: tool registry, external API clients (MCP/Ahrefs/HubSpot), Postgres runtime, caching. Owns everything under `lib/`.
 - `components/AGENTS.md` — Reusable toolbox UI components. Owns everything under `components/`.
 - Root-owned: `db/init.sql` (schema bootstrap), `docker-compose.yml` (local Postgres), `Dockerfile` (production image), `proxy.ts`, `instrumentation.ts` (boots the 5-min uptime checker), config files (`next.config.ts`, `tsconfig.json`, `postcss.config.mjs`, `eslint.config.mjs`), `public/`, `README.md`, `.env` / `.env.local` (secrets, not committed), `reasonix.toml` (agent MCP config — `firstpage` server at `https://mcp.firstpage.com.hk/mcp/` with bearer key; gitignored), `.opencode/`.
 
@@ -101,7 +101,7 @@ It serves two primary audiences:
 - **External stakeholders / executives** (the "boss view") — sees high-level ROI metrics, business impact, and architecture overview
 - **Internal team** (the "system view") — sees full system inventory, live tool directory, tech stack breakdown, and individual project detail pages
 
-The app is a Next.js server-rendered application that fetches live data from NocoDB at build time (ISR) and runtime. It requires a Next.js server to run (not a static export) because it uses a proxy (formerly middleware), API routes, and cookie-based authentication.
+The app is a Next.js server-rendered application that fetches live data from external APIs (firstpage MCP for GA4/GSC/PSI, Ahrefs, HubSpot, Postgres) at request time with caching. It requires a Next.js server to run (not a static export) because it uses a proxy (formerly middleware), API routes, and cookie-based authentication.
 
 ---
 
@@ -125,32 +125,54 @@ The app is a Next.js server-rendered application that fetches live data from Noc
 ```
 .
 ├── app/                          # Next.js App Router (all pages + API routes)
-│   ├── page.tsx                  # Homepage / Division Dashboard (HubSpot leads, PageSpeed, Ahrefs)
+│   ├── page.tsx                  # Homepage / Division Dashboard (PageHeader + dashboard widgets)
 │   ├── layout.tsx                # Root layout with header, footer, NavBar
 │   ├── globals.css               # Tailwind import + FirstPage brand color theme
-│   ├── login/page.tsx            # Login form (client component)
-│   ├── toolbox/page.tsx          # Live tool directory (client component, fetches NocoDB)
-│   ├── systems/page.tsx          # Full system inventory grid (client component, fetches NocoDB)
-│   ├── architecture/page.tsx     # Tech stack aggregation page (server component, fetches NocoDB)
-│   ├── projects/[slug]/page.tsx  # Dynamic project detail pages (server component, fetches NocoDB)
-│   ├── ai-projects/page.tsx      # AI project listing (static data from lib/data.ts)
-│   ├── automation-projects/page.tsx  # Automation project listing (static data)
+│   ├── login/page.tsx            # Login form (client component, Card/Input/Button)
+│   ├── toolbox/page.tsx          # Tool directory (async server component; passes ?q=&cat= as props to ToolboxView)
+│   ├── admin/page.tsx            # Lead Quality Report (PageHeader + StatCard + Card)
+│   ├── presentation/page.tsx     # Usage presentation (PageHeader + StatCard fp tones)
 │   ├── api/login/route.ts        # POST /api/login — cookie-based auth
 │   ├── api/logout/route.ts       # POST /api/logout — clears auth cookie
 │   ├── api/tools/<slug>/route.ts # Per-tool API routes (data tools + LLM tools)
 │   ├── tools/<slug>/             # 22 tool folders: tool.ts manifest + page.tsx
 │   └── components/NavBar.tsx     # Auth-aware navigation (client component)
 │
-├── components/toolbox/           # Reusable toolbox UI components
+├── components/ui/                # Shared design-language atoms (server-safe, no deps)
+│   ├── PageHeader.tsx            # Title + count pill + description + trailing
+│   ├── Card.tsx                  # White/slate container, hover + padding options
+│   ├── Badge.tsx                 # Category/status pill (static color map)
+│   ├── StatCard.tsx              # KPI card (white / fp-* tones, md/lg sizes)
+│   ├── SectionTitle.tsx          # Heading + optional count
+│   ├── EmptyState.tsx            # Dashed empty block
+│   ├── Button.tsx                # primary/secondary/brand, sm/md/lg (client)
+│   ├── Input.tsx                 # Labeled input with focus ring (client)
+│   ├── Select.tsx                # Labeled select (client)
+│   ├── Textarea.tsx              # Labeled textarea (client)
+│   └── ErrorBanner.tsx           # Red error banner, role=alert (server-safe)
+│
+├── components/toolbox/           # Toolbox page components
+│   ├── ToolboxView.tsx           # Client container: search + category filter, ?q=&cat= URL sync
+│   ├── ToolCard.tsx              # Tool card (accent emoji tile; externalLink cards link out)
 │   ├── ToolSearch.tsx            # Search input with icon
-│   ├── ToolCard.tsx              # Individual tool card with cover image, badges, links
-│   ├── ToolGrid.tsx              # Responsive grid layout with empty state
-│   └── CategoryFilter.tsx        # Horizontal category filter buttons
+│   └── CategoryFilter.tsx        # All + category chips
+│
+├── components/tools/             # Tool-page domain components (all client)
+│   ├── BriefForm.tsx             # Shared client-brief form (Pitch Deck / Proposal)
+│   ├── ResultView.tsx            # Generic JSON result renderer (tables/stat cards/copy/download)
+│   ├── OutputHistory.tsx         # Saved-output history rail
+│   ├── HubSpotLeads.tsx          # Right-rail lead picker (prefills the brief)
+│   ├── useToolApi.ts / usePrefill.ts  # POST hook + cross-tool link prefill
+│
+├── components/dashboard/         # `/` dashboard widgets (MetricCard, SectionHeader, charts…)
 │
 ├── lib/                          # Data layer and utilities
-│   ├── data.ts                   # STATIC project data + types + helper functions
-│   ├── nocodb.ts                 # NocoDB API client — primary live data source
-│   └── unified-tools.ts          # Adapter layer: normalizes NocoDB records into UnifiedTool objects
+│   ├── registry.ts               # Static tool registry (code = source of truth; externalLink supported)
+│   ├── dashboard.ts              # Dashboard aggregation (HubSpot/MCP/PSI/Ahrefs/usage)
+│   ├── llm.ts, ahrefs.ts, psi.ts, hubspot.ts, mcp.ts  # External API clients
+│   ├── db.ts, usage.ts, outputs.ts, cache.ts, uptime*.ts  # Postgres runtime + caching
+│   ├── auth.ts                   # AUTH_USERS env parsing + validation
+│   └── data.ts, nocodb.ts, unified-tools.ts  # Legacy, retired — reference only
 │
 ├── db/                           # Database bootstrap
 │   └── init.sql                  # Schema for usage_events, tool_outputs, hubspot_leads_cache, uptime_checks
@@ -160,12 +182,12 @@ The app is a Next.js server-rendered application that fetches live data from Noc
 ├── postcss.config.mjs            # @tailwindcss/postcss plugin
 ├── eslint.config.mjs             # Next.js core-web-vitals + typescript rules
 ├── docker-compose.yml            # Local dev Postgres 18 (postgres:18-alpine)
-└── .env.local                    # Secrets (NocoDB tokens, auth credentials)
+└── .env.local                    # Secrets (API keys, AUTH_USERS, DATABASE_URL)
 ```
 
 ### Important Path Alias
 
-`@/*` maps to `./*` in `tsconfig.json`. Use `@/lib/nocodb`, `@/components/toolbox/ToolCard`, etc.
+`@/*` maps to `./*` in `tsconfig.json`. Use `@/lib/registry`, `@/components/ui/Card`, `@/components/toolbox/ToolCard`, etc.
 
 ---
 
@@ -249,7 +271,7 @@ The app uses **per-user cookie authentication**:
 | Route | Type | Auth Required | Data Source |
 |-------|------|---------------|-------------|
 | `/` | Server | Yes | `lib/dashboard.ts` (HubSpot leads + spam, PSI, Ahrefs) |
-| `/toolbox` | Server | No | `lib/registry.ts` (code) |
+| `/toolbox` | Server shell + client view | No | `lib/registry.ts` (code); `ToolboxView` filters/search via `?q=&cat=` URL params |
 | `/tools/pitch-deck` | Client | Yes | `lib/client-data.ts` (GSC + GA4 + PSI + Ahrefs) → OpenRouter |
 | `/tools/proposal` | Client | Yes | `lib/client-data.ts` (GSC + GA4 + PSI + Ahrefs) → OpenRouter |
 | `/tools/*` (20 more) | Client | Yes | per-tool API routes; see `app/AGENTS.md` for the full list |
@@ -270,20 +292,22 @@ The app uses **per-user cookie authentication**:
 
 ### React Conventions
 - Server components are the default; mark client components with `"use client"` only when needed (state, effects, browser APIs)
-- `NavBar`, `ToolSearch`, `ToolGrid`, `ToolCard`, `CategoryFilter`, `LoginPage`, `ToolboxPage`, and `SystemsPage` are all client components
-- `page.tsx` (home), `architecture/page.tsx`, and `projects/[slug]/page.tsx` are server components that fetch data directly
+- `NavBar`, `ToolboxView`, `ToolSearch`, `CategoryFilter`, `LoginPage` are client components; `ToolCard` is server-safe (used inside the client view)
+- `page.tsx` (home), `presentation/page.tsx`, and `admin/page.tsx` are server components that fetch data directly; `toolbox/page.tsx` is an async server component that reads `?q=&cat=` from `searchParams` and passes them as props to the client `ToolboxView`
 
 ### Styling
 - Tailwind CSS v4 with inline theme configuration in `globals.css`
 - FirstPage brand colors are defined as `--color-fp-50` through `--color-fp-950`
 - Common patterns:
-  - Cards: `bg-white rounded-xl shadow-sm border border-slate-200`
-  - Status badges: color-coded with `bg-{color}-100 text-{color}-700`
-  - Hover effects: `hover:shadow-md hover:border-fp-300 transition-all`
+  - Cards: `Card` from `@/components/ui/Card` (white/slate tones, `hover` option, `noPadding` + `className` for custom padding)
+  - KPI cards: `StatCard` from `@/components/ui/StatCard` (white tone by default, `fp-*` tones + `size="lg"` for presentation)
+  - Page headers: `PageHeader` from `@/components/ui/PageHeader` (title + count pill + description + trailing)
+  - Status badges: `Badge` from `@/components/ui/Badge` (static color map: fp/slate/emerald/blue/amber/rose/violet)
   - Layout max-width: `max-w-7xl mx-auto px-4 sm:px-6 lg:px-8`
 
 ### Component Patterns
-- Helper functions for parsing NocoDB string fields are duplicated across files (e.g., `parseTech`, `getStatusBadge`, `getCategoryColor`). If you modify one, check if others need updating too.
+- **Build UI from `components/ui/`** — the shared design-language atoms (Card/Badge/StatCard/PageHeader/Button/Input…). Extend the shared layer instead of hand-copying card/badge classes into new pages.
+- Tailwind dynamic classes must come from static maps (`Record<…, string>`) — never string-concatenate class names.
 - Emoji icons are used as lightweight visual indicators (no icon library dependency).
 
 ---
@@ -324,7 +348,7 @@ Make sure these are set in your hosting environment:
 ## Security Considerations
 
 1. **Hardcoded fallback credentials**: `app/api/login/route.ts` has a fallback password in source code. Override with `AUTH_PASS` env var in production.
-2. **NocoDB API token exposure**: The token is used in server-side fetches. Do NOT pass it to client components.
+2. **API keys in client components**: OpenRouter/Ahrefs/HubSpot tokens are server-side only (`lib/`). Never pass them to client components or `components/ui/`.
 3. **Cookie is not httpOnly in client-side NavBar**: The auth cookie is read by client-side JavaScript in `NavBar.tsx` to show/hide navigation. The `httpOnly` flag is set to `false` in the login route to allow this.
 4. **No HTTPS enforcement**: The auth cookie sets `secure: true` only in production (`NODE_ENV === 'production'`). Ensure production deployments use HTTPS.
 5. **Server deployment required**: This app requires a Next.js server. Do not deploy to pure static hosts (GitHub Pages, S3 static hosting) — the proxy, API routes, and auth will not work. Use Vercel, a Node.js server, or Docker.
@@ -334,7 +358,7 @@ Make sure these are set in your hosting environment:
 ## Adding a New Tool
 
 1. Create `app/tools/<slug>/tool.ts` with a `ToolManifest` (slug, name, description, category, owner, status, icon)
-2. Add the manifest to the static index in `lib/registry.ts` (one import + array entry)
+2. Add the manifest to the static index in `lib/registry.ts` (one import + array entry). External standalone tools: add an inline manifest with `externalLink` instead (no folder/page needed).
 3. Add `app/tools/<slug>/page.tsx` (the UI) and `app/api/tools/<slug>/route.ts` (server work — call `logUsage()` on every run)
 4. Rebuild: `pnpm build` — the tool appears in `/toolbox` automatically
 
@@ -361,10 +385,10 @@ Content (case studies, brand guide) lives in `content/` as markdown — edit tho
 ## Common Pitfalls
 
 1. **Build fails with image optimization error**: Make sure `images.unoptimized: true` stays in `next.config.ts`.
-2. **NocoDB fetch returns empty array**: Check that `NOCODB_API_TOKEN` and base/table IDs are correct. The client silently returns `[]` on error.
+2. **Toolbox filters don't survive navigation**: `ToolboxView` reads initial `q`/`cat` from the server-rendered `searchParams` prop, writes updates via `router.replace`, and syncs browser back/forward with a `popstate` listener — keep those three paths in sync when touching the filter logic.
 3. **Auth redirect loops**: If the proxy redirects infinitely, check that `/toolbox` and `/login` are listed as public paths in `proxy.ts`.
 4. **Hydration mismatch in NavBar**: `NavBar` renders a minimal placeholder on the server (`mounted === false`) to prevent hydration mismatches because it reads `document.cookie`.
-5. **Dynamic project pages 404 at runtime**: The `generateStaticParams()` in `projects/[slug]/page.tsx` fetches slugs from NocoDB at build time, with `revalidate: 300` (5-minute ISR). New slugs added to NocoDB will be picked up automatically within 5 minutes in production. In dev mode, restart the server to see new slugs.
+5. **Toolbox card opens the wrong target**: `externalLink` tools (e.g. FAQ Schema Generator) intentionally link out in a new tab; everything else links to `/tools/<slug>`. To add another external tool, append an `externalLink` manifest to `lib/registry.ts` — no `app/tools/<slug>/` folder needed.
 
 ---
 

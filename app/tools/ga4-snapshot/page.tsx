@@ -4,6 +4,12 @@ import { useEffect, useState } from "react";
 import { useToolApi } from "@/components/tools/useToolApi";
 import ResultView, { type SendToLink } from "@/components/tools/ResultView";
 import { usePrefill, prefillUrl } from "@/components/tools/usePrefill";
+import PageHeader from "@/components/ui/PageHeader";
+import Card from "@/components/ui/Card";
+import Input from "@/components/ui/Input";
+import Select from "@/components/ui/Select";
+import Button from "@/components/ui/Button";
+import ErrorBanner from "@/components/ui/ErrorBanner";
 
 interface Ga4SnapshotResult {
   propertyId: string;
@@ -42,20 +48,19 @@ export default function Ga4SnapshotPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <h1 className="text-2xl font-bold text-slate-900">GA4 Traffic Snapshot</h1>
-      <p className="mt-1 text-sm text-slate-600">
-        Active users and sessions for any GA4 property in the portfolio, with a daily trend.
-      </p>
+      <PageHeader
+        title="GA4 Traffic Snapshot"
+        description="Active users and sessions for any GA4 property in the portfolio, with a daily trend."
+      />
 
-      <div className="mt-6 grid gap-4 rounded-xl border border-slate-200 bg-white p-5 sm:grid-cols-2">
+      <Card className="mt-6 grid gap-4 sm:grid-cols-2">
         <div>
-          <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Property</label>
-          <input
+          <Input
+            label="Property"
             list="ga4-properties"
             value={propertyId}
             onChange={(e) => setPropertyId(e.target.value)}
             placeholder="Search or paste a property id…"
-            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-fp-400 focus:outline-none"
           />
           <datalist id="ga4-properties">
             {properties.map((p) => (
@@ -66,34 +71,32 @@ export default function Ga4SnapshotPage() {
           </datalist>
         </div>
         <div>
-          <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Days</label>
-          <select
+          <Select
+            label="Days"
             value={days}
             onChange={(e) => setDays(Number(e.target.value))}
-            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-fp-400 focus:outline-none"
+            className="mt-1"
           >
             {[7, 30, 90].map((d) => (
               <option key={d} value={d}>
                 {d} days
               </option>
             ))}
-          </select>
+          </Select>
         </div>
-      </div>
+      </Card>
 
       <div className="mt-4">
-        <button
+        <Button
+          size="lg"
           onClick={() => run({ propertyId, days })}
           disabled={loading || !propertyId}
-          className="rounded-lg bg-fp-700 px-5 py-2 text-sm font-semibold text-white hover:bg-fp-800 disabled:opacity-40"
         >
           {loading ? "Running…" : "Snapshot"}
-        </button>
+        </Button>
       </div>
 
-      {error && (
-        <div className="mt-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>
-      )}
+      {error && <ErrorBanner className="mt-6">{error}</ErrorBanner>}
       {data && (
         <div className="mt-6">
           <ResultView data={data} sendTo={sendTo} />

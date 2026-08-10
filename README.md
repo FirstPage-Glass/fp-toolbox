@@ -47,37 +47,42 @@ pnpm start
 
 ```
 ├── app/
-│   ├── page.tsx                  # Executive Overview (NocoDB-driven)
+│   ├── page.tsx                  # Division Dashboard (MCP/GA4/GSC/PSI, Ahrefs, HubSpot, usage)
 │   ├── layout.tsx                # Root layout with auth-aware NavBar
 │   ├── login/page.tsx            # Login form
-│   ├── toolbox/page.tsx          # Live tool directory (client-side NocoDB fetch)
-│   ├── systems/page.tsx          # Full system inventory (client-side NocoDB fetch)
-│   ├── architecture/page.tsx     # Tech Stack aggregation (server-side NocoDB fetch)
-│   ├── projects/[slug]/page.tsx  # Dynamic detail pages (ISR, NocoDB-driven)
+│   ├── toolbox/page.tsx          # Tool directory (async server page + client ToolboxView)
+│   ├── admin/page.tsx            # Lead Quality Report
+│   ├── presentation/page.tsx     # Usage presentation
 │   ├── api/login/route.ts        # Auth endpoint
 │   ├── api/logout/route.ts       # Logout endpoint
+│   ├── api/tools/<slug>/route.ts # Per-tool API routes
+│   ├── tools/<slug>/             # 22 tool folders (tool.ts manifest + page.tsx)
 │   └── components/NavBar.tsx     # Auth-aware navigation
+├── components/
+│   ├── ui/                       # Shared design-language atoms (Card, Badge, StatCard, PageHeader…)
+│   ├── toolbox/                  # Toolbox page components (ToolboxView, ToolCard, ToolSearch…)
+│   ├── tools/                    # Tool-page domain components (BriefForm, ResultView…)
+│   └── dashboard/                # Dashboard widgets
 ├── lib/
-│   ├── nocodb.ts                 # NocoDB API client — PRIMARY DATA SOURCE
-│   ├── data.ts                   # Legacy static fallback (do not use for new data)
-│   └── unified-tools.ts          # NocoDB → UnifiedTool adapter
-├── middleware.ts                 # Route-level auth guard
+│   ├── registry.ts               # Static tool registry — CODE IS THE SOURCE OF TRUTH
+│   ├── dashboard.ts              # Dashboard aggregation
+│   ├── llm.ts, mcp.ts, ahrefs.ts, psi.ts, hubspot*.ts  # External API clients
+│   ├── db.ts, usage.ts, outputs.ts, cache.ts, uptime*.ts  # Postgres runtime + caching
+│   └── nocodb.ts, data.ts, unified-tools.ts  # Legacy, retired — reference only
+├── proxy.ts                      # Route-level auth guard
 ├── next.config.ts                # distDir: 'dist'
-└── .env.local                    # Secrets (NocoDB tokens, auth credentials)
+└── .env.local                    # Secrets (API keys, AUTH_USERS, DATABASE_URL)
 ```
 
 ## Data Architecture
 
-### NocoDB is the single source of truth
+### Code + Postgres + external APIs
 
-All live pages read from NocoDB. `lib/data.ts` is legacy fallback only — **do not edit it for new systems**.
+- **`lib/registry.ts` is the source of truth for tools** — a static index of `app/tools/<slug>/tool.ts` manifests (plus inline `externalLink` entries for standalone tools). No external DB for tool metadata, so it can never drift.
+- **Postgres** is the runtime store: `usage_events`, `tool_outputs`, `hubspot_leads_cache`, `uptime_checks`, `cache_store` (TTL cache backing).
+- **External APIs** feed the dashboard and tools: firstpage MCP (GA4/GSC/PSI), Ahrefs, HubSpot, OpenRouter. All calls are tolerant (degrade to `configured:false`/error) and memoized (1h default, Postgres-backed TTL cache).
 
-**NocoDB config:**
-- Base: `p9ri10dzcq5d71l`
-- Table: `m84ca9736466jfm` (Tools)
-- Fields: `name`, `description`, `category`, `status`, `tech_stack`, `slug`, `tagline`, `before`, `after`, `flow`, `impact`, `hours_saved_per_month`, `cost_saved_per_month`, `volume_per_month`, `uptime`, `since`, `ai_models`, `serve`, `cover_image`, `type`, `live_link`, `gh_link`, etc.
-
-### Adding a new system
+### Adding a new tool
 
 1. Create a new record in the NocoDB Tools table
 2. Set a unique URL-friendly `slug`

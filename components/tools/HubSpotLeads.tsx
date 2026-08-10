@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Card from "@/components/ui/Card";
 
 export interface HubSpotLead {
   id: string;
@@ -61,7 +62,7 @@ export default function HubSpotLeads({
   }
 
   return (
-    <div className="rounded-xl bg-white p-4 shadow-sm border border-slate-200">
+    <Card noPadding className="p-4">
       <div className="flex items-center justify-between">
         <span className="text-sm font-semibold text-slate-700">Recent leads</span>
         <button
@@ -112,6 +113,6 @@ export default function HubSpotLeads({
           )}
         </div>
       )}
-    </div>
+    </Card>
   );
 }

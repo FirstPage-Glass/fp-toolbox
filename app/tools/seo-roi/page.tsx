@@ -3,6 +3,12 @@
 import { useState } from "react";
 import { usePrefill } from "@/components/tools/usePrefill";
 import OutputHistory, { type OutputItem } from "@/components/tools/OutputHistory";
+import PageHeader from "@/components/ui/PageHeader";
+import Card from "@/components/ui/Card";
+import Button from "@/components/ui/Button";
+import Input from "@/components/ui/Input";
+import Textarea from "@/components/ui/Textarea";
+import ErrorBanner from "@/components/ui/ErrorBanner";
 
 interface SeoRoiResult {
   roi: {
@@ -82,80 +88,58 @@ export default function SeoRoiPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <h1 className="text-2xl font-bold text-slate-900">SEO ROI Estimator</h1>
-      <p className="mt-1 text-sm text-slate-600">
-        Estimate the traffic, leads and revenue a keyword set could produce — every assumption stated out loud.
-      </p>
+      <PageHeader
+        title="SEO ROI Estimator"
+        description="Estimate the traffic, leads and revenue a keyword set could produce — every assumption stated out loud."
+      />
 
-      <div className="mt-6 grid gap-4 rounded-xl border border-slate-200 bg-white p-5 sm:grid-cols-2">
-        <div>
-          <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Keywords (comma / line separated)
-          </label>
-          <textarea
-            value={keywords}
-            onChange={(e) => setKeywords(e.target.value)}
-            rows={3}
-            placeholder={"seo agency hong kong\nlocal seo services"}
-            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-fp-400 focus:outline-none"
-          />
-        </div>
+      <Card className="mt-6 grid gap-4 sm:grid-cols-2">
+        <Textarea
+          label="Keywords (comma / line separated)"
+          value={keywords}
+          onChange={(e) => setKeywords(e.target.value)}
+          rows={3}
+          placeholder={"seo agency hong kong\nlocal seo services"}
+        />
         <div className="space-y-4">
-          <div>
-            <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Domain (optional — pulls top keywords)
-            </label>
-            <input
-              value={domain}
-              onChange={(e) => setDomain(e.target.value)}
-              placeholder="client-site.com.hk"
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-fp-400 focus:outline-none"
+          <Input
+            label="Domain (optional — pulls top keywords)"
+            value={domain}
+            onChange={(e) => setDomain(e.target.value)}
+            placeholder="client-site.com.hk"
+          />
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              label="Avg deal value (USD)"
+              type="number"
+              min={1}
+              value={avgDealValue}
+              onChange={(e) => setAvgDealValue(Number(e.target.value))}
+            />
+            <Input
+              label="Conversion rate %"
+              type="number"
+              min={0.1}
+              max={20}
+              step={0.5}
+              value={conversionRate}
+              onChange={(e) => setConversionRate(Number(e.target.value))}
             />
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Avg deal value (USD)
-              </label>
-              <input
-                type="number"
-                min={1}
-                value={avgDealValue}
-                onChange={(e) => setAvgDealValue(Number(e.target.value))}
-                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-fp-400 focus:outline-none"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Conversion rate %
-              </label>
-              <input
-                type="number"
-                min={0.1}
-                max={20}
-                step={0.5}
-                value={conversionRate}
-                onChange={(e) => setConversionRate(Number(e.target.value))}
-                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-fp-400 focus:outline-none"
-              />
-            </div>
-          </div>
         </div>
-      </div>
+      </Card>
 
       <div className="mt-4">
-        <button
+        <Button
+          size="lg"
           onClick={() => generate()}
           disabled={loading || (!keywords.trim() && !domain)}
-          className="rounded-lg bg-fp-700 px-5 py-2 text-sm font-semibold text-white hover:bg-fp-800 disabled:opacity-40"
         >
           {loading ? "Estimating…" : "Estimate ROI"}
-        </button>
+        </Button>
       </div>
 
-      {error && (
-        <div className="mt-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>
-      )}
+      {error && <ErrorBanner className="mt-6">{error}</ErrorBanner>}
 
       {result && (
         <div className="mt-6 space-y-4">
@@ -163,28 +147,28 @@ export default function SeoRoiPage() {
             {cost != null && <span className="text-xs text-slate-500">Cost: US${cost.toFixed(4)}</span>}
           </div>
 
-          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <Card>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+              <Card tone="slate" noPadding className="p-3">
                 <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Monthly traffic</div>
                 <div className="mt-1 text-xl font-bold text-fp-700">
                   {Math.round(result.estimate.monthlyTraffic).toLocaleString()}
                 </div>
-              </div>
-              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+              </Card>
+              <Card tone="slate" noPadding className="p-3">
                 <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Monthly leads</div>
                 <div className="mt-1 text-xl font-bold text-fp-700">
                   {Math.round(result.estimate.monthlyLeads).toLocaleString()}
                 </div>
-              </div>
-              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+              </Card>
+              <Card tone="slate" noPadding className="p-3">
                 <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Monthly revenue</div>
                 <div className="mt-1 text-xl font-bold text-fp-700">{usd(result.estimate.monthlyRevenue)}</div>
-              </div>
-              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+              </Card>
+              <Card tone="slate" noPadding className="p-3">
                 <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Annual revenue</div>
                 <div className="mt-1 text-xl font-bold text-fp-700">{usd(result.estimate.annualRevenue)}</div>
-              </div>
+              </Card>
             </div>
 
             <p className="mt-4 text-sm text-slate-700">{result.narrative}</p>
@@ -200,22 +184,23 @@ export default function SeoRoiPage() {
                 ))}
               </ul>
             </div>
-          </div>
+          </Card>
 
           <div className="flex gap-2">
-            <input
+            <Input
               value={refineText}
               onChange={(e) => setRefineText(e.target.value)}
               placeholder="Refine (e.g. use a 3% conversion rate for B2B)"
-              className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-fp-400 focus:outline-none"
+              className="flex-1"
             />
-            <button
+            <Button
+              variant="brand"
+              size="lg"
               onClick={refine}
               disabled={!activeId || !refineText.trim() || refining}
-              className="rounded-lg bg-fp-100 px-4 py-2 text-sm font-semibold text-fp-700 hover:bg-fp-200 disabled:opacity-40"
             >
               {refining ? "Refining…" : "Refine"}
-            </button>
+            </Button>
           </div>
 
           <OutputHistory toolSlug="seo-roi" refreshKey={historyKey} activeId={activeId} onLoad={loadOutput} />

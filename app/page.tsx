@@ -3,6 +3,7 @@ import { getDashboardData } from "@/lib/dashboard";
 import { getUptimeStats } from "@/lib/uptime";
 import { buildInsights } from "@/lib/insights";
 import { buildAiPlans } from "@/lib/ai-plans";
+import PageHeader from "@/components/ui/PageHeader";
 import SectionNav from "@/components/dashboard/SectionNav";
 import WebsiteSection from "@/components/dashboard/WebsiteSection";
 import SalesSection from "@/components/dashboard/SalesSection";
@@ -32,13 +33,10 @@ export default async function HomePage({
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-900">FirstPage Division Dashboard</h1>
-        <p className="mt-2 text-slate-600">
-          Live metrics from our HubSpot pipeline, site performance and search presence — no
-          hand-claimed numbers.
-        </p>
-      </div>
+      <PageHeader
+        title="FirstPage Division Dashboard"
+        description="Live metrics from our HubSpot pipeline, site performance and search presence — no hand-claimed numbers."
+      />
 
       <SectionNav />
 

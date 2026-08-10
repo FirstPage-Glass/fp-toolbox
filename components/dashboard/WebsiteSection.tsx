@@ -5,6 +5,7 @@ import AiPlanList from "./AiPlanList";
 import TrafficTrendChart from "./TrafficTrendChart";
 import SearchPerformanceTable from "./SearchPerformanceTable";
 import KeywordBarChart from "./KeywordBarChart";
+import Card from "@/components/ui/Card";
 import type { DashboardData } from "@/lib/dashboard";
 import type { UptimeStats } from "@/lib/uptime";
 import type { Insight } from "@/lib/insights";
@@ -74,7 +75,7 @@ export default function WebsiteSection({ d, uptime, insights, aiPlans }: Website
       <AiPlanList plans={aiPlans} />
 
       {/* Site status — uptime checker */}
-      <div className="mt-6 rounded-xl bg-white p-6 shadow-sm border border-slate-200">
+      <Card className="mt-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <h3 className="text-lg font-semibold text-slate-900">Site status</h3>
@@ -133,7 +134,7 @@ export default function WebsiteSection({ d, uptime, insights, aiPlans }: Website
               ))}
           </div>
         ) : null}
-      </div>
+      </Card>
 
       {/* KPI row */}
       <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
@@ -166,7 +167,7 @@ export default function WebsiteSection({ d, uptime, insights, aiPlans }: Website
       </div>
 
       {/* Site analytics — GA4 (firstpage.hk) */}
-      <div className="mt-8 rounded-xl bg-white p-6 shadow-sm border border-slate-200">
+      <Card className="mt-8">
         <h3 className="text-lg font-semibold text-slate-900">Site analytics</h3>
         <p className="mt-1 text-sm text-slate-500">GA4 — {d.ga4.propertyId} (last {d.rangeDays} days)</p>
         {d.ga4.error ? (
@@ -210,10 +211,10 @@ export default function WebsiteSection({ d, uptime, insights, aiPlans }: Website
         ) : (
           <p className="mt-3 text-sm text-slate-500">Loading GA4…</p>
         )}
-      </div>
+      </Card>
 
       {/* Search performance — GSC (firstpage.com.hk) */}
-      <div className="mt-8 rounded-xl bg-white p-6 shadow-sm border border-slate-200">
+      <Card className="mt-8">
         <h3 className="text-lg font-semibold text-slate-900">Search performance</h3>
         <p className="mt-1 text-sm text-slate-500">
           Google Search Console — {d.gsc.siteUrl} (last {d.rangeDays} days)
@@ -255,10 +256,10 @@ export default function WebsiteSection({ d, uptime, insights, aiPlans }: Website
         ) : (
           <p className="mt-3 text-sm text-slate-500">Loading GSC…</p>
         )}
-      </div>
+      </Card>
 
       {/* Site performance — PSI */}
-      <div className="mt-8 rounded-xl bg-white p-6 shadow-sm border border-slate-200">
+      <Card className="mt-8">
         <h3 className="text-lg font-semibold text-slate-900">Site performance</h3>
         <p className="mt-1 text-sm text-slate-500">
           PageSpeed Insights (mobile) for {d.targets.url}
@@ -267,33 +268,33 @@ export default function WebsiteSection({ d, uptime, insights, aiPlans }: Website
           <p className="mt-3 text-sm text-rose-600">Couldn&apos;t fetch PageSpeed: {d.psi.error}</p>
         ) : d.psi.result ? (
           <div className="mt-4 grid gap-5 sm:grid-cols-3">
-            <div className="rounded-xl bg-slate-50 p-5 border border-slate-200">
+            <Card tone="slate">
               <div className="text-sm text-slate-500">Performance</div>
               <div className={`mt-1 text-3xl font-extrabold ${psiColor(psiScore)}`}>
                 {psiScore !== null ? `${psiScore}/100` : "—"}
               </div>
               <PsiBand score={psiScore} />
-            </div>
-            <div className="rounded-xl bg-slate-50 p-5 border border-slate-200">
+            </Card>
+            <Card tone="slate">
               <div className="text-sm text-slate-500">Largest Contentful Paint</div>
               <div className="mt-1 text-3xl font-extrabold text-slate-900">
                 {d.psi.result.lcpMs !== null ? `${(d.psi.result.lcpMs / 1000).toFixed(1)}s` : "—"}
               </div>
-            </div>
-            <div className="rounded-xl bg-slate-50 p-5 border border-slate-200">
+            </Card>
+            <Card tone="slate">
               <div className="text-sm text-slate-500">Cumulative Layout Shift</div>
               <div className="mt-1 text-3xl font-extrabold text-slate-900">
                 {d.psi.result.cls !== null ? d.psi.result.cls.toFixed(3) : "—"}
               </div>
-            </div>
+            </Card>
           </div>
         ) : (
           <p className="mt-3 text-sm text-slate-500">Checking PageSpeed…</p>
         )}
-      </div>
+      </Card>
 
       {/* SEO / competitors — Ahrefs */}
-      <div className="mt-8 rounded-xl bg-white p-6 shadow-sm border border-slate-200">
+      <Card className="mt-8">
         <h3 className="text-lg font-semibold text-slate-900">Search presence</h3>
         <p className="mt-1 text-sm text-slate-500">
           Ahrefs organic keywords for {d.targets.domain} (Hong Kong)
@@ -345,7 +346,7 @@ export default function WebsiteSection({ d, uptime, insights, aiPlans }: Website
             </div>
           </div>
         ) : null}
-      </div>
+      </Card>
     </section>
   );
 }

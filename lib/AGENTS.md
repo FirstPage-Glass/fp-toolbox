@@ -6,7 +6,7 @@ All data access and tool logic: tool registry, LLM + data-source clients, Postgr
 
 ## Ownership
 
-- `lib/registry.ts` — static tool registry (code = source of truth). Add a tool manifest here.
+- `lib/registry.ts` — static tool registry (code = source of truth). Add a tool manifest here. `externalLink` marks standalone tools without an `app/tools/<slug>/` page (toolbox card links out).
 - `lib/llm.ts` — OpenRouter client (`OPENROUTER_API`), default model `deepseek/deepseek-v4-flash-0731`.
 - `lib/generator.ts` — shared Pitch Deck / Proposal generation pipeline (brief → prompt → LLM → structured output).
 - `lib/psi.ts` — PageSpeed Insights wrapper (free API).
