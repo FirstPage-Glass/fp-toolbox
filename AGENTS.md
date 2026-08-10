@@ -137,6 +137,8 @@ The app is a Next.js server-rendered application that fetches live data from Noc
 │   ├── automation-projects/page.tsx  # Automation project listing (static data)
 │   ├── api/login/route.ts        # POST /api/login — cookie-based auth
 │   ├── api/logout/route.ts       # POST /api/logout — clears auth cookie
+│   ├── api/tools/<slug>/route.ts # Per-tool API routes (data tools + LLM tools)
+│   ├── tools/<slug>/             # 22 tool folders: tool.ts manifest + page.tsx
 │   └── components/NavBar.tsx     # Auth-aware navigation (client component)
 │
 ├── components/toolbox/           # Reusable toolbox UI components
@@ -248,14 +250,14 @@ The app uses **per-user cookie authentication**:
 |-------|------|---------------|-------------|
 | `/` | Server | Yes | `lib/dashboard.ts` (HubSpot leads + spam, PSI, Ahrefs) |
 | `/toolbox` | Server | No | `lib/registry.ts` (code) |
-| `/tools/pitch-deck` | Client | Yes | OpenRouter + PSI + Ahrefs |
-| `/tools/proposal` | Client | Yes | OpenRouter + PSI + Ahrefs |
+| `/tools/pitch-deck` | Client | Yes | `lib/client-data.ts` (GSC + GA4 + PSI + Ahrefs) → OpenRouter |
+| `/tools/proposal` | Client | Yes | `lib/client-data.ts` (GSC + GA4 + PSI + Ahrefs) → OpenRouter |
+| `/tools/*` (20 more) | Client | Yes | per-tool API routes; see `app/AGENTS.md` for the full list |
 | `/presentation` | Server | Yes | Postgres usage stats |
 | `/login` | Client | No | — |
 | `/api/login` | API | No | `AUTH_USERS` env |
 | `/api/logout` | API | No | — |
-| `/api/tools/pitch-deck` | API | Yes (cookie) | generator + data |
-| `/api/tools/proposal` | API | Yes (cookie) | generator + data |
+| `/api/tools/<slug>` | API | Yes (cookie) | data/LLM tool routes (GET = options or history, POST = run/refine) |
 
 ---
 
@@ -335,6 +337,12 @@ Make sure these are set in your hosting environment:
 2. Add the manifest to the static index in `lib/registry.ts` (one import + array entry)
 3. Add `app/tools/<slug>/page.tsx` (the UI) and `app/api/tools/<slug>/route.ts` (server work — call `logUsage()` on every run)
 4. Rebuild: `pnpm build` — the tool appears in `/toolbox` automatically
+
+Two tool patterns (see `lib/AGENTS.md` + `components/AGENTS.md`):
+
+- **Data tools** (read-only views): the route calls `runQuery({ toolSlug, fetch })` — cookie attribution + `logUsage()` (0 tokens); GET returns picker options. Page = form + `useToolApi` + `ResultView`. Examples: `gsc-explorer`, `psi-auditor`, `lead-scorer`.
+- **LLM tools** (generated deliverables): the route gathers its own data (often via `lib/client-data.ts`), then `runLlmTool({ toolSlug, brief, refine, generate })` — logs usage, persists to `tool_outputs`, returns `outputId`. Page has a refine bar + `OutputHistory`. Examples: `meta-generator`, `meeting-prep`, `monthly-report`.
+- **Cross-tool links**: connect tools with `prefillUrl` (`?url= ?domain= ?keyword= ?site= ?property= ?client=`) — e.g. `lead-scorer` → `meeting-prep` → `proposal`, or `keyword-gap` → `content-brief` → `meta-generator`.
 
 Content (case studies, brand guide) lives in `content/` as markdown — edit those to change deck/proposal material.
 

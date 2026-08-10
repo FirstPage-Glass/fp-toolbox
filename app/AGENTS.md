@@ -18,19 +18,19 @@ Routing map:
 |-------|------|------|-------------|
 | `/` | Server | Yes | `lib/dashboard.ts` (HubSpot leads + deals/pipeline + usage events + firstpage MCP GA4/GSC/PSI + Ahrefs) + `lib/uptime.ts` (Site status) + `lib/ai-plans.ts` (AI-suggested action plans via OpenRouter, memoized 1h). Two sections (Website / Sales) with sticky `SectionNav`; `?days=7|30|90` range picker (default 30) |
 | `/toolbox` | Server | No | `lib/registry.ts` (code) |
-| `/tools/pitch-deck` | Client | Yes | OpenRouter + PSI + Ahrefs |
-| `/tools/proposal` | Client | Yes | OpenRouter + PSI + Ahrefs |
+| `/tools/<slug>` | Client | Yes | per-tool API route; ~22 tools across SEO Research / SEO Technical / Sales / Content / Operations (see Child DOX below) |
 | `/presentation` | Server | Yes | Postgres usage stats |
 | `/login` | Client | No | — |
 | `/api/login`, `/api/logout` | API | No | `AUTH_USERS` env |
-| `/api/tools/<slug>` | API | Yes (cookie) | GET = history list, POST = generate/refine |
+| `/api/tools/<slug>` | API | Yes (cookie) | GET = picker options (data tools) or history list (LLM tools); POST = run / refine |
 | `/api/hubspot/recent-leads` | API | Yes (cookie) | HubSpot contacts, spam-filtered + 1h cache |
 
 - Server components are the default; mark `"use client"` only when state, effects, or browser APIs are required.
 - **Never put API keys in client components** — OpenRouter/Ahrefs keys are server-side only (`lib/`).
 - `NavBar` renders a minimal placeholder until mount (`mounted === false`) to avoid hydration mismatch from reading `document.cookie`. Preserve this pattern.
 - Auth flow: `/login` → `POST /api/login` → `fp-auth=<username>` cookie (1-week, `sameSite: strict`, `httpOnly: false` so NavBar can read it) → `proxy.ts` redirects unauthenticated users to `/toolbox`. `/toolbox`, `/login`, `/api/*` stay public.
-- Adding a new tool: create `app/tools/<slug>/` (manifest + page) and register it in `lib/registry.ts`. See root AGENTS.md "Adding a New Tool".
+- Tool pages are thin: form + `useToolApi` + `ResultView` (data tools) or custom render + refine bar + `OutputHistory` (LLM tools). Cross-tool links use `prefillUrl` (`?url= ?domain= ?keyword= ?site= ?property= ?client=`) — see `components/AGENTS.md`.
+- Adding a new tool: create `app/tools/<slug>/` (manifest + page), API route `app/api/tools/<slug>/route.ts`, and register the manifest in `lib/registry.ts`. Data tools call `runQuery`; LLM tools call `runLlmTool`. See root AGENTS.md "Adding a New Tool".
 
 ## Work Guidance
 

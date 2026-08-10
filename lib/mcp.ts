@@ -104,14 +104,17 @@ export interface McpPsiResult {
 }
 
 /** PageSpeed audit via MCP (firstpage's own key — no shared free-tier quota). */
-export async function getMcpPsi(url: string): Promise<McpPsiResult> {
+export async function getMcpPsi(
+  url: string,
+  strategy: "mobile" | "desktop" = "mobile"
+): Promise<McpPsiResult> {
   const raw = await mcpCall<{
     scores?: Record<string, { score?: number }>;
     core_web_vitals?: {
       largest_contentful_paint?: number;
       cumulative_layout_shift?: number;
     };
-  }>("psi_audit", { url, strategy: "mobile" });
+  }>("psi_audit", { url, strategy });
   const perf = raw.scores?.performance?.score;
   return {
     url,
@@ -187,5 +190,65 @@ export async function getMcpInventory(): Promise<McpInventory> {
   return {
     gscSites: Array.isArray(gsc) ? gsc.length : 0,
     ga4Properties: Array.isArray(ga4) ? ga4.length : 0,
+  };
+}
+
+export interface RichResultItem {
+  type: string;
+  items: string[];
+}
+
+export interface McpUrlInspection {
+  url: string;
+  verdict: string | null;
+  coverageState: string | null;
+  robotsTxtState: string | null;
+  indexingState: string | null;
+  pageFetchState: string | null;
+  googleCanonical: string | null;
+  userCanonical: string | null;
+  lastCrawlTime: string | null;
+  sitemaps: string[];
+  referringUrls: string[];
+  mobileUsability: string | null;
+  richResults: RichResultItem[];
+}
+
+/** GSC URL inspection — index status + mobile usability + rich results for one URL. */
+export async function getMcpUrlInspection(
+  siteUrl: string,
+  inspectionUrl: string
+): Promise<McpUrlInspection> {
+  const raw = await mcpCall<{
+    inspectionResult?: {
+      indexStatusResult?: Record<string, unknown>;
+      mobileUsabilityResult?: { verdict?: string };
+      richResultsResult?: {
+        verdict?: string;
+        detectedItems?: { richResultType?: string; items?: { name?: string }[] }[];
+      };
+    };
+  }>("gsc_url_inspection", { site_url: siteUrl, inspection_url: inspectionUrl });
+  const r = raw.inspectionResult ?? {};
+  const idx = (r.indexStatusResult ?? {}) as Record<string, unknown>;
+  const mob = r.mobileUsabilityResult ?? {};
+  const rich = r.richResultsResult ?? {};
+  return {
+    url: inspectionUrl,
+    verdict: idx.verdict ? String(idx.verdict) : null,
+    coverageState: idx.coverageState ? String(idx.coverageState) : null,
+    robotsTxtState: idx.robotsTxtState ? String(idx.robotsTxtState) : null,
+    indexingState: idx.indexingState ? String(idx.indexingState) : null,
+    pageFetchState: idx.pageFetchState ? String(idx.pageFetchState) : null,
+    googleCanonical: idx.googleCanonical ? String(idx.googleCanonical) : null,
+    userCanonical: idx.userCanonical ? String(idx.userCanonical) : null,
+    lastCrawlTime: idx.lastCrawlTime ? String(idx.lastCrawlTime) : null,
+    sitemaps: Array.isArray(idx.sitemap) ? (idx.sitemap as string[]) : [],
+    referringUrls: Array.isArray(idx.referringUrls) ? (idx.referringUrls as string[]) : [],
+    mobileUsability: mob.verdict ?? null,
+    richResults: (Array.isArray(rich.detectedItems) ? rich.detectedItems : []).map((d) => ({
+      type: d.richResultType ?? "unknown",
+      items: (Array.isArray(d.items) ? d.items : []).map((i) => i.name ?? ""),
+    })),
   };
 }

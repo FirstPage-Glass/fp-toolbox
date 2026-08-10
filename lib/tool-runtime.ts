@@ -1,8 +1,7 @@
 import { cookies } from "next/headers";
 import { logUsage } from "./usage";
 import { saveOutput, getOutput, listOutputs } from "./outputs";
-import { getPsiScore } from "./psi";
-import { getCompetitorKeywords } from "./ahrefs";
+import { getClientData } from "./client-data";
 import type { ClientBrief, GenerationData, RefineInput } from "./generator";
 
 export interface ToolGenerateResult {
@@ -31,8 +30,10 @@ export async function resolveRefine(
 }
 
 /**
- * Shared run path for tool API routes: enrich with PSI/Ahrefs (tolerant),
- * generate, log usage, persist output. Returns the saved output id.
+ * Shared run path for tool API routes: enrich with the full client-data
+ * snapshot (GSC + GA4 + PSI + Ahrefs via getClientData — tolerant, matched to
+ * the portfolio, memoized 1h), generate, log usage, persist output.
+ * Returns the saved output id.
  */
 export async function runTool(opts: {
   toolSlug: string;
@@ -43,14 +44,16 @@ export async function runTool(opts: {
   const user = (await cookies()).get("fp-auth")?.value || "unknown";
   const started = Date.now();
 
-  const psi = opts.brief.website
-    ? await getPsiScore(opts.brief.website).catch(() => null)
-    : null;
-  const competitors = opts.brief.website
-    ? await getCompetitorKeywords(opts.brief.website, { limit: 5 }).catch(() => null)
-    : null;
+  const client = opts.brief.website ? await getClientData(opts.brief.website) : null;
+  const data: GenerationData = {
+    psi: client?.psi ?? null,
+    competitors: client?.ahrefs ?? null,
+    gsc: client?.gsc ?? null,
+    ga4: client?.ga4 ?? null,
+    aiVisibility: client?.aiVisibility ?? null,
+  };
 
-  const result = await opts.generate(opts.brief, { psi, competitors }, opts.refine);
+  const result = await opts.generate(opts.brief, data, opts.refine);
 
   await logUsage({
     user,

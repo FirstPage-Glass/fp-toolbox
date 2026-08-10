@@ -13,6 +13,9 @@ Reusable toolbox UI components shared by the client-side pages.
 - `components/tools/BriefForm.tsx` — shared client-brief form used by Pitch Deck and Proposal tools.
 - `components/tools/HubSpotLeads.tsx` — right-rail HubSpot lead picker (prefills the brief).
 - `components/tools/OutputHistory.tsx` — saved-output history list (reload a previous generation).
+- `components/tools/useToolApi.ts` — POST hook for tool API routes (loading/error/data).
+- `components/tools/ResultView.tsx` — generic JSON result renderer (rows → tables, scalars → stat cards, nested → sections; copy/download; optional `sendTo` cross-tool links).
+- `components/tools/usePrefill.ts` — `usePrefill()` reads `?url= ?domain= ?keyword= ?site= ?property= ?client=` once at mount; `prefillUrl()` builds cross-tool links (the toolbox's connection mechanism).
 - `components/dashboard/` — `/` dashboard widgets: `MetricCard.tsx` (KPI + `DeltaBadge`) + `UnconfiguredNotice.tsx` + `DeltaBadge.tsx` + `InsightList.tsx` + `SectionHeader.tsx` (accent bar + range picker + takeaways) + `AiPlanList.tsx` (AI-suggested action plans; renders nothing when null) + `SectionNav.tsx` (sticky scrollspy nav) + `RangePicker.tsx` (7/30/90d links) + `WebsiteSection.tsx` / `SalesSection.tsx` (the two dashboard halves; server, data from `lib/dashboard.ts` + `lib/ai-plans.ts` via the page), `LeadTrendChart.tsx`, `LeadScoreChart.tsx`, `KeywordBarChart.tsx`, `TrafficTrendChart.tsx` (recharts, `"use client"`, pure props), `SearchPerformanceTable.tsx` (server, GSC top queries).
 - Page-local components (e.g. `NavBar`) live next to their pages in `app/`, not here.
 

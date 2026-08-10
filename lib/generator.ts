@@ -1,5 +1,7 @@
 import { complete } from "./llm";
 import { loadBrandGuide, loadCaseStudies } from "./content";
+import type { ClientGscTotals, ClientGscRow, ClientGa4Point } from "./client-data";
+import type { AiVisibilityResult } from "./ahrefs";
 
 export interface ClientBrief {
   clientName: string;
@@ -46,6 +48,9 @@ function parseJson<T>(raw: string): T {
 export interface GenerationData {
   psi?: { performanceScore: number | null; lcpMs: number | null; cls: number | null } | null;
   competitors?: { target: string; keywords: { keyword: string; volume: number }[] } | null;
+  gsc?: { totals: ClientGscTotals | null; topQueries: ClientGscRow[] } | null;
+  ga4?: { totals: { activeUsers: number; sessions: number } | null; trend: ClientGa4Point[] } | null;
+  aiVisibility?: AiVisibilityResult | null;
 }
 
 export interface RefineInput {
@@ -78,6 +83,33 @@ function buildContext(brief: ClientBrief, data: GenerationData): string {
         data.competitors.keywords
           .map((k) => `- "${k.keyword}" — volume ${k.volume}`)
           .join("\n")
+    );
+  }
+  if (data.gsc?.totals) {
+    parts.push(
+      `## Client Organic Search (Google Search Console, real data)\n` +
+        `- ${data.gsc.totals.clicks} clicks · ${data.gsc.totals.impressions} impressions · ` +
+        `CTR ${Math.round((data.gsc.totals.ctr ?? 0) * 100)}% · avg position ${Math.round(data.gsc.totals.position * 10) / 10}`
+    );
+    if (data.gsc.topQueries.length) {
+      parts.push(
+        `- Top queries: ` +
+          data.gsc.topQueries
+            .map((q) => `"${q.query}" (${q.clicks} clicks, pos ${Math.round(q.position)})`)
+            .join("; ")
+      );
+    }
+  }
+  if (data.ga4?.totals) {
+    parts.push(
+      `## Client Traffic (GA4, real data)\n` +
+        `- ${data.ga4.totals.activeUsers} active users · ${data.ga4.totals.sessions} sessions over 30 days`
+    );
+  }
+  if (data.aiVisibility) {
+    parts.push(
+      `## Client AI Visibility (Ahrefs, real data)\n` +
+        `- ${data.aiVisibility.totalCitations} citations across ${data.aiVisibility.platforms.length} AI search platforms`
     );
   }
   return parts.join("\n\n");
