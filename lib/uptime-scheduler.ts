@@ -1,9 +1,9 @@
 import { runUptimeCheck } from "./uptime";
 
 // ponytail: single-instance self-hosted deployment — a plain setInterval in the
-// server process is the cheapest way to get a real every-5-minutes checker.
+// server process is the cheapest way to get a real every-minute checker.
 // (Multi-instance deployments would double-probe; acceptable here.)
-const CHECK_INTERVAL_MS = 5 * 60 * 1000;
+const CHECK_INTERVAL_MS = 60 * 1000;
 
 // Dev HMR can re-run module scope; guard with a process-wide flag.
 const globalKey = "__firstpageUptimeSchedulerStarted";
@@ -22,7 +22,7 @@ export function startUptimeScheduler(): void {
     });
   };
 
-  run(); // probe once at boot, then every 5 minutes
+  run(); // probe once at boot, then every minute
   setInterval(run, CHECK_INTERVAL_MS);
-  console.log(`[uptime] checker started for ${target} (every 5 min)`);
+  console.log(`[uptime] checker started for ${target} (every 1 min)`);
 }

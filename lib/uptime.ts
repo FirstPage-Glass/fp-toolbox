@@ -84,12 +84,14 @@ export async function getUptimeStats(
 ): Promise<UptimeStats> {
   try {
     await ensureUptimeTable();
+    // 1-min checks → up to 1440 rows in 24h; cap above that so the uptimePct
+    // window really covers the full requested range.
     const { rows } = await pool.query(
       `SELECT ok, status_code AS "statusCode", latency_ms AS "latencyMs", checked_at AS "checkedAt"
        FROM uptime_checks
        WHERE target = $1 AND checked_at > now() - make_interval(hours => $2)
        ORDER BY checked_at DESC
-       LIMIT 200`,
+       LIMIT 1500`,
       [target, hours]
     );
     const recent: UptimeCheck[] = rows.map((r) => ({

@@ -80,7 +80,7 @@ export default function WebsiteSection({ d, uptime, insights, aiPlans }: Website
           <div>
             <h3 className="text-lg font-semibold text-slate-900">Site status</h3>
             <p className="mt-1 text-sm text-slate-500">
-              Checked every 5 minutes — {d.targets.url}
+              Checked every minute — {d.targets.url}
             </p>
           </div>
           <div className="flex items-center gap-6">

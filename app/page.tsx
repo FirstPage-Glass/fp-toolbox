@@ -8,7 +8,7 @@ import SectionNav from "@/components/dashboard/SectionNav";
 import WebsiteSection from "@/components/dashboard/WebsiteSection";
 import SalesSection from "@/components/dashboard/SalesSection";
 
-// ponytail: render on every request — the uptime panel must reflect the 5-min
+// ponytail: render on every request — the uptime panel must reflect the 1-min
 // checker live, and external API calls are all memoized for 1h anyway.
 export const dynamic = "force-dynamic";
 
