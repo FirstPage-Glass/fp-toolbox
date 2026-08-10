@@ -135,7 +135,7 @@ The app is a Next.js server-rendered application that fetches live data from ext
 │   ├── api/login/route.ts        # POST /api/login — cookie-based auth
 │   ├── api/logout/route.ts       # POST /api/logout — clears auth cookie
 │   ├── api/tools/<slug>/route.ts # Per-tool API routes (data tools + LLM tools)
-│   ├── tools/<slug>/             # 22 tool folders: tool.ts manifest + page.tsx
+│   ├── tools/<slug>/             # 23 tool folders: tool.ts manifest + page.tsx
 │   └── components/NavBar.tsx     # Auth-aware navigation (client component)
 │
 ├── components/ui/                # Shared design-language atoms (server-safe, no deps)
@@ -175,7 +175,7 @@ The app is a Next.js server-rendered application that fetches live data from ext
 │   └── data.ts, nocodb.ts, unified-tools.ts  # Legacy, retired — reference only
 │
 ├── db/                           # Database bootstrap
-│   └── init.sql                  # Schema for usage_events, tool_outputs, hubspot_leads_cache, uptime_checks
+│   └── init.sql                  # Schema for usage_events, tool_outputs, hubspot_leads_cache, uptime_checks (onsite_audit_actions auto-creates on first use)
 ├── proxy.ts                     # Route-level auth guard (cookie check + redirects); formerly middleware.ts (renamed in Next.js 16)
 ├── instrumentation.ts           # Server bootstrap: starts the 1-min uptime checker (lib/uptime-scheduler.ts)
 ├── next.config.ts                # distDir: 'dist', images.unoptimized: true
@@ -341,6 +341,8 @@ Make sure these are set in your hosting environment:
 - `OPENROUTER_API` — OpenRouter key for deck/proposal generation
 - `AHREFS_API_KEY` — competitor data for the deck pipeline
 - `HUBSPOT_SERVICE_KEY` — HubSpot private app token for recent-leads import
+- `BROWSERLESS_URL` — self-hosted browserless base URL (e.g. `https://browserless.firstpage.com.hk/`); used by the onsite-audit crawler (`/content`), PDF export (`/pdf`), page screenshots (`/screenshot`) and render-diff (`/content`). `/lighthouse` is NOT available on this build.
+- `BROWSERLESS_TOKEN` — browserless auth token (server-side only)
 - A Postgres service must be provisioned (Coolify container; schema auto-creates on first use)
 
 ---
@@ -366,6 +368,7 @@ Two tool patterns (see `lib/AGENTS.md` + `components/AGENTS.md`):
 
 - **Data tools** (read-only views): the route calls `runQuery({ toolSlug, fetch })` — cookie attribution + `logUsage()` (0 tokens); GET returns picker options. Page = form + `useToolApi` + `ResultView`. Examples: `gsc-explorer`, `psi-auditor`, `lead-scorer`.
 - **LLM tools** (generated deliverables): the route gathers its own data (often via `lib/client-data.ts`), then `runLlmTool({ toolSlug, brief, refine, generate })` — logs usage, persists to `tool_outputs`, returns `outputId`. Page has a refine bar + `OutputHistory`. Examples: `meta-generator`, `meeting-prep`, `monthly-report`.
+- **Job-based tools** (long-running): the route creates a background job (in-memory registry, e.g. `lib/onsite-audit/jobs.ts`) and returns `jobId`; the client polls `GET ?jobId=` for progress until "done". POST still calls `logUsage()`. Example: `onsite-audit` (full-site crawl + checklist).
 - **Cross-tool links**: connect tools with `prefillUrl` (`?url= ?domain= ?keyword= ?site= ?property= ?client=`) — e.g. `lead-scorer` → `meeting-prep` → `proposal`, or `keyword-gap` → `content-brief` → `meta-generator`.
 
 Content (case studies, brand guide) lives in `content/` as markdown — edit those to change deck/proposal material.

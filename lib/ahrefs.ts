@@ -14,6 +14,53 @@ export interface AiVisibilityPlatform {
   pages: number;
 }
 
+export interface AhrefsOverview {
+  target: string;
+  backlinks: number;
+  refdomains: number;
+  domainRating: number;
+}
+
+/**
+ * Ahrefs site-overview for a domain: backlink count, referring domains and
+ * domain rating (live data, current date). Uses the v3 `domain-rating` and
+ * `backlinks-stats` endpoints. Server-side only.
+ */
+export async function getAhrefsOverview(target: string): Promise<AhrefsOverview> {
+  const apiKey = process.env.AHREFS_API_KEY;
+  if (!apiKey) {
+    throw new Error("AHREFS_API_KEY not configured");
+  }
+  const date = new Date().toISOString().slice(0, 10);
+  const [drRes, bsRes] = await Promise.all([
+    fetch(
+      `https://api.ahrefs.com/v3/site-explorer/domain-rating?target=${encodeURIComponent(
+        target
+      )}&date=${date}`,
+      { headers: { Authorization: `Bearer ${apiKey}` }, signal: AbortSignal.timeout(30_000) }
+    ),
+    fetch(
+      `https://api.ahrefs.com/v3/site-explorer/backlinks-stats?target=${encodeURIComponent(
+        target
+      )}&date=${date}`,
+      { headers: { Authorization: `Bearer ${apiKey}` }, signal: AbortSignal.timeout(30_000) }
+    ),
+  ]);
+  if (!drRes.ok || !bsRes.ok) {
+    throw new Error(
+      `Ahrefs overview error ${drRes.status}/${bsRes.status}`
+    );
+  }
+  const dr = await drRes.json();
+  const bs = await bsRes.json();
+  return {
+    target,
+    backlinks: Number(bs?.metrics?.live ?? 0),
+    refdomains: Number(bs?.metrics?.live_refdomains ?? 0),
+    domainRating: Number(dr?.domain_rating?.domain_rating ?? 0),
+  };
+}
+
 export interface AiVisibilityResult {
   target: string;
   platforms: AiVisibilityPlatform[];
