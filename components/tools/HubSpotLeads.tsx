@@ -8,6 +8,25 @@ export interface HubSpotLead {
   email: string;
   website: string | null;
   createdAt: string;
+  score?: { score: number; label: "hot" | "warm" | "cold"; reasons: string[] };
+}
+
+const SCORE_STYLE = {
+  hot: "bg-green-100 text-green-700",
+  warm: "bg-amber-100 text-amber-700",
+  cold: "bg-slate-200 text-slate-600",
+} as const;
+
+function ScoreBadge({ score }: { score?: HubSpotLead["score"] }) {
+  if (!score) return null;
+  return (
+    <span
+      title={score.reasons.join(" · ")}
+      className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${SCORE_STYLE[score.label]}`}
+    >
+      {score.score}
+    </span>
+  );
 }
 
 /** Right-rail HubSpot lead picker — sits beside the brief form, not inside it. */
@@ -77,8 +96,11 @@ export default function HubSpotLeads({
                 className="flex w-full items-center justify-between gap-2 rounded-md px-3 py-2 text-left hover:bg-fp-100"
               >
                 <span className="min-w-0">
-                  <span className="block truncate text-sm font-medium text-slate-800">
-                    {l.name || "(no name)"}
+                  <span className="flex items-center gap-1.5">
+                    <span className="block truncate text-sm font-medium text-slate-800">
+                      {l.name || "(no name)"}
+                    </span>
+                    <ScoreBadge score={l.score} />
                   </span>
                   <span className="block truncate text-xs text-slate-500">{l.email}</span>
                 </span>

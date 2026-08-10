@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { getRecentLeads } from "@/lib/hubspot";
+import { getRecentLeads, scoreLead } from "@/lib/hubspot";
 
 export async function GET() {
   // Contact data is personal — require login (unlike the public toolbox)
@@ -10,7 +10,10 @@ export async function GET() {
   }
   try {
     const leads = await getRecentLeads(7);
-    return NextResponse.json({ leads });
+    const scored = await Promise.all(
+      leads.map(async (l) => ({ ...l, score: await scoreLead(l.email, l.website) }))
+    );
+    return NextResponse.json({ leads: scored });
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "HubSpot fetch failed" },

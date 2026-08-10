@@ -35,6 +35,7 @@ yarn-error.log*
 
 # reasonix local config — contains firstpage MCP credentials
 reasonix.toml
+.reasonix/
 
 # vercel
 .vercel

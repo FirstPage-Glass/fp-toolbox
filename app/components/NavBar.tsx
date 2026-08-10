@@ -45,6 +45,9 @@ export default function NavBar() {
           <Link href="/presentation" className={linkClass("/presentation")}>
             Presentation
           </Link>
+          <Link href="/admin" className={linkClass("/admin")}>
+            Lead Quality
+          </Link>
           <button
             onClick={async () => {
               await fetch("/api/logout", { method: "POST" });
