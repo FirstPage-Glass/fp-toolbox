@@ -8,7 +8,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-sans: var(--font-outfit), 'Inter', system-ui, -apple-system, sans-serif;
 
   /* FirstPage Brand Colors */
   --color-fp-50: #eff4fc;

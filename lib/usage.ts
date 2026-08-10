@@ -48,18 +48,27 @@ export interface UsageStats {
   perTool: { tool_slug: string; runs: number; cost_usd: number }[];
 }
 
-export async function getUsageStats(): Promise<UsageStats> {
+/**
+ * Usage stats, optionally windowed to the last N days. No arg = all-time
+ * (presentation page); the dashboard passes a window for its range picker.
+ */
+export async function getUsageStats(days?: number): Promise<UsageStats> {
   try {
     await ensureUsageTable();
+    // days is a caller-provided integer — no injection surface.
+    const windowFilter =
+      days !== undefined
+        ? `WHERE created_at > now() - make_interval(days => ${Math.max(1, Math.floor(days))})`
+        : "";
     const [{ rows: totals }, { rows: perTool }] = await Promise.all([
       pool.query(
         `SELECT COUNT(*)::int AS runs, COUNT(DISTINCT user_name)::int AS users,
                 COALESCE(SUM(cost_usd),0)::float AS cost
-         FROM usage_events`
+         FROM usage_events ${windowFilter}`
       ),
       pool.query(
         `SELECT tool_slug, COUNT(*)::int AS runs, COALESCE(SUM(cost_usd),0)::float AS cost_usd
-         FROM usage_events GROUP BY tool_slug ORDER BY runs DESC`
+         FROM usage_events ${windowFilter} GROUP BY tool_slug ORDER BY runs DESC`
       ),
     ]);
     return {

@@ -16,7 +16,16 @@ interface TrafficTrendChartProps {
   data: Ga4TrendPoint[];
 }
 
-/** Daily GA4 active users + sessions over the last 30 days. */
+/** 7-day trailing average of activeUsers, smoothed for trend visibility. */
+function withMovingAverage(data: Ga4TrendPoint[]): (Ga4TrendPoint & { users7d: number | null })[] {
+  return data.map((p, i, arr) => {
+    if (i < 6) return { ...p, users7d: null };
+    const sum = arr.slice(i - 6, i + 1).reduce((s, x) => s + x.activeUsers, 0);
+    return { ...p, users7d: Math.round(sum / 7) };
+  });
+}
+
+/** Daily GA4 active users + sessions, with a 7-day moving average for users. */
 export default function TrafficTrendChart({ data }: TrafficTrendChartProps) {
   if (data.length === 0) {
     return (
@@ -25,9 +34,10 @@ export default function TrafficTrendChart({ data }: TrafficTrendChartProps) {
       </p>
     );
   }
+  const chartData = withMovingAverage(data);
   return (
     <ResponsiveContainer width="100%" height={240}>
-      <LineChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -8 }}>
+      <LineChart data={chartData} margin={{ top: 8, right: 8, bottom: 0, left: -8 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
         <XAxis
           dataKey="date"
@@ -44,6 +54,15 @@ export default function TrafficTrendChart({ data }: TrafficTrendChartProps) {
           name="Active users"
           stroke="#427fe0"
           strokeWidth={2}
+          dot={false}
+        />
+        <Line
+          type="monotone"
+          dataKey="users7d"
+          name="Users (7d avg)"
+          stroke="#94a3b8"
+          strokeWidth={1.5}
+          strokeDasharray="4 4"
           dot={false}
         />
         <Line

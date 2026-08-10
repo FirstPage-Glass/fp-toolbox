@@ -8,6 +8,22 @@ export interface CompetitorResult {
   keywords: AhrefsKeyword[];
 }
 
+export interface AiVisibilityPlatform {
+  name: string;
+  citations: number;
+  pages: number;
+}
+
+export interface AiVisibilityResult {
+  target: string;
+  platforms: AiVisibilityPlatform[];
+  totalCitations: number;
+  totalPages: number;
+}
+
+/** Platforms covered by one /ai-responses-count call (15 units each). */
+const AI_PLATFORMS = ["chatgpt", "perplexity", "google_ai_overviews", "gemini", "copilot"] as const;
+
 /**
  * Ahrefs API v3 — competitor organic keywords for a domain.
  * Server-side only; key in AHREFS_API_KEY env.
@@ -61,4 +77,44 @@ export async function getCompetitorKeywords(
     lastError = new Error(`Ahrefs error ${res.status}: ${await res.text()}`);
   }
   throw lastError ?? new Error("Ahrefs error: no valid date found");
+}
+
+/**
+ * AI visibility — how often the target is cited in AI-generated search answers
+ * (ChatGPT, Perplexity, Google AI Overviews, Gemini, Copilot). 15 Ahrefs units
+ * per platform per call; the dashboard memoizes this for 6h because the number
+ * moves slowly and units are the scarce resource.
+ */
+export async function getAiVisibility(target: string): Promise<AiVisibilityResult> {
+  const apiKey = process.env.AHREFS_API_KEY;
+  if (!apiKey) {
+    throw new Error("AHREFS_API_KEY not configured");
+  }
+  const url = `https://api.ahrefs.com/v3/site-explorer/ai-responses-count?select=${AI_PLATFORMS.join(
+    ","
+  )}&target=${encodeURIComponent(target)}`;
+  const res = await fetch(url, {
+    headers: { Authorization: `Bearer ${apiKey}` },
+    signal: AbortSignal.timeout(30_000),
+  });
+  if (!res.ok) {
+    throw new Error(`Ahrefs AI visibility error ${res.status}`);
+  }
+  const data = await res.json();
+  const counts = (data.ai_responses_count ?? {}) as Record<
+    string,
+    { citations?: number; pages?: number } | null
+  >;
+  const platforms: AiVisibilityPlatform[] = [];
+  let totalCitations = 0;
+  let totalPages = 0;
+  for (const name of AI_PLATFORMS) {
+    const p = counts[name];
+    const citations = p?.citations ?? 0;
+    const pages = p?.pages ?? 0;
+    platforms.push({ name, citations, pages });
+    totalCitations += citations;
+    totalPages += pages;
+  }
+  return { target, platforms, totalCitations, totalPages };
 }

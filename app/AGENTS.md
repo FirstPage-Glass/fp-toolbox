@@ -16,7 +16,7 @@ Routing map:
 
 | Route | Type | Auth | Data source |
 |-------|------|------|-------------|
-| `/` | Server | Yes | `lib/dashboard.ts` (HubSpot + firstpage MCP GA4/GSC/PSI + Ahrefs) + `lib/uptime.ts` (Site status) |
+| `/` | Server | Yes | `lib/dashboard.ts` (HubSpot leads + deals/pipeline + usage events + firstpage MCP GA4/GSC/PSI + Ahrefs) + `lib/uptime.ts` (Site status) + `lib/ai-plans.ts` (AI-suggested action plans via OpenRouter, memoized 1h). Two sections (Website / Sales) with sticky `SectionNav`; `?days=7|30|90` range picker (default 30) |
 | `/toolbox` | Server | No | `lib/registry.ts` (code) |
 | `/tools/pitch-deck` | Client | Yes | OpenRouter + PSI + Ahrefs |
 | `/tools/proposal` | Client | Yes | OpenRouter + PSI + Ahrefs |

@@ -133,13 +133,14 @@ export interface GscRow {
 export async function getMcpGsc(
   siteUrl: string,
   startDate: string,
-  endDate: string
+  endDate: string,
+  rowLimit = 1000
 ): Promise<GscRow[]> {
   return mcpCall<GscRow[]>("gsc_search_performance", {
     site_url: siteUrl,
     start_date: startDate,
     end_date: endDate,
-    row_limit: 25,
+    row_limit: rowLimit,
   });
 }
 

@@ -1,10 +1,16 @@
 import { cached } from "./cache";
-import { getRecentLeads, getSpamReport } from "./hubspot";
+import { getRecentLeads, getSpamReport, fetchRecentLeads } from "./hubspot";
 import type { HubSpotLead, SpamReport } from "./hubspot";
-import { getCompetitorKeywords } from "./ahrefs";
-import type { CompetitorResult } from "./ahrefs";
+import { getCompetitorKeywords, getAiVisibility } from "./ahrefs";
+import type { CompetitorResult, AiVisibilityResult } from "./ahrefs";
 import { getMcpPsi, getMcpGsc, getMcpGa4, getMcpInventory } from "./mcp";
 import type { McpPsiResult, GscRow, Ga4Report, McpInventory } from "./mcp";
+import { getDealsReport, aggregateDeals } from "./hubspot-deals";
+import type { DealsAggregate } from "./hubspot-deals";
+import { getEngagementReport } from "./hubspot-engagement";
+import type { EngagementReport } from "./hubspot-engagement";
+import { getUsageStats } from "./usage";
+import type { UsageStats } from "./usage";
 
 // ponytail: dashboard targets are env-configurable, defaulting to FirstPage HK.
 const TARGET_URL = process.env.DASHBOARD_TARGET_URL || "https://firstpage.hk";
@@ -53,6 +59,24 @@ export interface Ga4TrendPoint {
   sessions: number;
 }
 
+/**
+ * Percentage deltas vs the previous window of the same length.
+ * Ratio metrics use percentage points (spamRate); position is omitted (not a
+ * sum — can't derive the previous window by subtraction).
+ */
+export interface Deltas {
+  leads: number | null;
+  spamRate: number | null;
+  ga4Users: number | null;
+  ga4Sessions: number | null;
+  gscClicks: number | null;
+  gscImpressions: number | null;
+  closedWonRevenue: number | null;
+  pipelineValue: number | null;
+  usageRuns: number | null;
+  usageCost: number | null;
+}
+
 export interface DashboardData {
   hubspot: {
     configured: boolean;
@@ -70,6 +94,10 @@ export interface DashboardData {
     result: CompetitorResult | null;
     error: string | null;
   };
+  aiVisibility: {
+    result: AiVisibilityResult | null;
+    error: string | null;
+  };
   gsc: {
     siteUrl: string;
     totals: GscTotals | null;
@@ -82,12 +110,29 @@ export interface DashboardData {
     trend: Ga4TrendPoint[];
     error: string | null;
   };
+  deals: {
+    aggregate: DealsAggregate | null;
+    error: string | null;
+  };
+  engagement: {
+    report: EngagementReport | null;
+    error: string | null;
+  };
+  usage: UsageStats;
   clients: {
     configured: boolean;
     inventory: McpInventory | null;
     error: string | null;
   };
   targets: { url: string; domain: string };
+  rangeDays: number;
+  deltas: Deltas;
+}
+
+/** Percent change, null when the previous baseline is zero. */
+function pctChange(cur: number, prev: number): number | null {
+  if (prev === 0) return null;
+  return ((cur - prev) / prev) * 100;
 }
 
 /** Bucket leads into a zero-filled daily timeline (UTC) so the chart is continuous. */
@@ -178,8 +223,11 @@ async function fetchPsiSafely(): Promise<{
  * Aggregate dashboard data for the / page.
  * Every section degrades gracefully: missing keys and API failures surface as
  * `configured: false` / `error` instead of throwing, so the page always renders.
+ * `days` is the dashboard range window; deltas compare against the previous
+ * window of the same length (2d window − d window, valid because every metric
+ * here is a sum).
  */
-export async function getDashboardData(): Promise<DashboardData> {
+export async function getDashboardData(days = 30): Promise<DashboardData> {
   const targets = { url: TARGET_URL, domain: TARGET_DOMAIN };
 
   // HubSpot — good leads via the 1h Postgres cache, spam metrics via memoized report.
@@ -189,12 +237,12 @@ export async function getDashboardData(): Promise<DashboardData> {
   const hubspotConfigured = Boolean(process.env.HUBSPOT_SERVICE_KEY);
   if (hubspotConfigured) {
     try {
-      leads = await getRecentLeads(30);
+      leads = await getRecentLeads(days);
     } catch (err) {
       hubspotError = err instanceof Error ? err.message : String(err);
     }
     try {
-      spam = await cached("spam-report", () => getSpamReport(30));
+      spam = await cached(`spam-report:${days}`, () => getSpamReport(days));
     } catch (err) {
       if (!hubspotError) hubspotError = err instanceof Error ? err.message : String(err);
     }
@@ -217,13 +265,27 @@ export async function getDashboardData(): Promise<DashboardData> {
     }
   }
 
-  // GSC — firstpage.com.hk search performance (top queries, last 30 days).
+  // AI visibility (Ahrefs) — 15 units/platform/call, moves slowly → 6h cache.
+  let aiVisibility: AiVisibilityResult | null = null;
+  let aiVisibilityError: string | null = null;
+  if (ahrefsConfigured) {
+    try {
+      aiVisibility = await cached("ahrefs-ai", () => getAiVisibility(TARGET_DOMAIN), 6 * 60 * 60 * 1000);
+    } catch (err) {
+      aiVisibilityError = err instanceof Error ? err.message : String(err);
+    }
+  }
+
+  // GSC — search performance. Windows are exact `days` calendar days each and
+  // non-overlapping: current = [E−days+1, E], previous = [E−2d+1, E−days],
+  // where E = yesterday. (dataStartDate(n) is E−n, so current starts at
+  // dataStartDate(days−1) and previous ends at dataStartDate(days).)
   let gscRows: GscRow[] = [];
   let gscError: string | null = null;
   try {
     gscRows = await cached(
-      `mcp-gsc:${GSC_SITE}:${dataStartDate()}:${dataEndDate()}`,
-      () => getMcpGsc(GSC_SITE, dataStartDate(), dataEndDate())
+      `mcp-gsc:${GSC_SITE}:${dataStartDate(days - 1)}:${dataEndDate()}`,
+      () => getMcpGsc(GSC_SITE, dataStartDate(days - 1), dataEndDate())
     );
   } catch (err) {
     gscError = err instanceof Error ? err.message : String(err);
@@ -238,20 +300,82 @@ export async function getDashboardData(): Promise<DashboardData> {
       position: r.position ?? 0,
     }))
     .slice(0, 8);
+  let gscPrevTotals: GscTotals | null = null;
+  try {
+    const gscPrevRows = await cached(
+      `mcp-gsc:${GSC_SITE}:${dataStartDate(2 * days - 1)}:${dataStartDate(days)}`,
+      () => getMcpGsc(GSC_SITE, dataStartDate(2 * days - 1), dataStartDate(days))
+    );
+    gscPrevTotals = gscPrevRows.length ? sumGsc(gscPrevRows) : null;
+  } catch {
+    // previous-window GSC is best-effort — deltas just go null
+  }
 
-  // GA4 — firstpage.hk traffic (daily trend, last 30 days, relative dates).
+  // GA4 — traffic trend. The previous window is fetched as its OWN explicit
+  // window (not 2d−d subtraction): activeUsers is a unique-user count, and
+  // unique counts don't add across windows, so 2d−d would understate the prior
+  // window and inflate the delta.
   let ga4: { totals: { activeUsers: number; sessions: number } | null; trend: Ga4TrendPoint[] } = {
     totals: null,
     trend: [],
   };
   let ga4Error: string | null = null;
   try {
-    const report = await cached(`mcp-ga4:${GA4_PROPERTY}`, () =>
-      getMcpGa4(GA4_PROPERTY, ["activeUsers", "sessions"], ["date"], "30daysAgo", "today")
+    const report = await cached(`mcp-ga4:${GA4_PROPERTY}:${days}`, () =>
+      getMcpGa4(GA4_PROPERTY, ["activeUsers", "sessions"], ["date"], `${days}daysAgo`, "today")
     );
     ga4 = parseGa4(report);
   } catch (err) {
     ga4Error = err instanceof Error ? err.message : String(err);
+  }
+  let ga4Prev: { totals: { activeUsers: number; sessions: number } | null; trend: Ga4TrendPoint[] } = {
+    totals: null,
+    trend: [],
+  };
+  try {
+    const reportPrev = await cached(`mcp-ga4:${GA4_PROPERTY}:prev:${days}`, () =>
+      getMcpGa4(GA4_PROPERTY, ["activeUsers", "sessions"], ["date"], `${2 * days}daysAgo`, `${days}daysAgo`)
+    );
+    ga4Prev = parseGa4(reportPrev);
+  } catch {
+    // best-effort — deltas just go null
+  }
+
+  // Deals — pipeline + closed-won (current + double window for deltas).
+  let deals: DealsAggregate | null = null;
+  let dealsError: string | null = null;
+  const dealsConfigured = Boolean(process.env.HUBSPOT_SERVICE_KEY);
+  if (dealsConfigured) {
+    try {
+      const report = await cached(`deals-report:${days}`, () => getDealsReport(days));
+      deals = aggregateDeals(report);
+    } catch (err) {
+      dealsError = err instanceof Error ? err.message : String(err);
+    }
+  }
+  let dealsPrev: DealsAggregate | null = null;
+  if (dealsConfigured) {
+    try {
+      const report2x = await cached(`deals-report:${2 * days}`, () => getDealsReport(2 * days));
+      dealsPrev = aggregateDeals(report2x);
+    } catch {
+      // best-effort
+    }
+  }
+
+  // Usage events — windowed Postgres stats (current + double window for deltas).
+  const usage = await getUsageStats(days);
+  const usage2x = await getUsageStats(2 * days);
+
+  // Engagement cross-check — heavy (notes + associations), memoized 1h.
+  let engagement: EngagementReport | null = null;
+  let engagementError: string | null = null;
+  if (hubspotConfigured) {
+    try {
+      engagement = await cached(`engagement:${days}`, () => getEngagementReport(days));
+    } catch (err) {
+      engagementError = err instanceof Error ? err.message : String(err);
+    }
   }
 
   // Client portfolio size — count of every accessible GSC site + GA4 property.
@@ -266,19 +390,77 @@ export async function getDashboardData(): Promise<DashboardData> {
     }
   }
 
+  // ---- previous-window baselines (sum metrics: 2d − d) ----------------------
+  let leadsPrevCount = 0;
+  let spamPrev: { total: number; spam: number } | null = null;
+  if (hubspotConfigured) {
+    try {
+      // Explicit previous window [now−2d, now−d) — leads are deduped by email,
+      // so "double window minus window" would understate the prior window.
+      leadsPrevCount = (await cached(`leads-prev:${days}`, () => fetchRecentLeads(2 * days, days))).length;
+    } catch {
+      // best-effort
+    }
+    if (spam) {
+      try {
+        const s2x = await cached(`spam-report:${2 * days}`, () => getSpamReport(2 * days));
+        spamPrev = {
+          total: Math.max(0, s2x.total - spam.total),
+          spam: Math.max(0, s2x.spam - spam.spam),
+        };
+      } catch {
+        // best-effort
+      }
+    }
+  }
+
+  const ga4Totals = ga4.totals;
+  const ga4PrevTotals = ga4Prev.totals;
+
+  const prevClosedWon = dealsPrev
+    ? { count: dealsPrev.closedWon.count - (deals?.closedWon.count ?? 0), revenue: dealsPrev.closedWon.revenue - (deals?.closedWon.revenue ?? 0) }
+    : null;
+  const prevPipeline = dealsPrev
+    ? dealsPrev.pipelineValue - (deals?.pipelineValue ?? 0)
+    : null;
+
+  const deltas: Deltas = {
+    leads: pctChange(leads.length, leadsPrevCount),
+    spamRate:
+      spam && spamPrev && spam.total > 0 && spamPrev.total > 0
+        ? // exact rates on both sides — spamRatePct is rounded to an integer,
+          // mixing it with the exact previous rate could flip the ±2pp threshold
+          (spam.spam / spam.total) * 100 - (spamPrev.spam / spamPrev.total) * 100
+        : null,
+    ga4Users: ga4Totals && ga4PrevTotals ? pctChange(ga4Totals.activeUsers, ga4PrevTotals.activeUsers) : null,
+    ga4Sessions: ga4Totals && ga4PrevTotals ? pctChange(ga4Totals.sessions, ga4PrevTotals.sessions) : null,
+    gscClicks: gscTotals && gscPrevTotals ? pctChange(gscTotals.clicks, gscPrevTotals.clicks) : null,
+    gscImpressions: gscTotals && gscPrevTotals ? pctChange(gscTotals.impressions, gscPrevTotals.impressions) : null,
+    closedWonRevenue: deals && prevClosedWon ? pctChange(deals.closedWon.revenue, prevClosedWon.revenue) : null,
+    pipelineValue: deals ? pctChange(deals.pipelineValue, prevPipeline ?? 0) : null,
+    usageRuns: pctChange(usage.totalRuns, usage2x.totalRuns - usage.totalRuns),
+    usageCost: pctChange(usage.totalCostUsd, usage2x.totalCostUsd - usage.totalCostUsd),
+  };
+
   return {
     hubspot: {
       configured: hubspotConfigured,
       leads,
-      trend: buildTrend(leads),
+      trend: buildTrend(leads, days),
       spam,
       error: hubspotError,
     },
     psi: { result: psi, error: psiError },
     ahrefs: { configured: ahrefsConfigured, result: ahrefsResult, error: ahrefsError },
+    aiVisibility: { result: aiVisibility, error: aiVisibilityError },
     gsc: { siteUrl: GSC_SITE, totals: gscTotals, queries: gscQueries, error: gscError },
     ga4: { propertyId: GA4_PROPERTY, totals: ga4.totals, trend: ga4.trend, error: ga4Error },
+    deals: { aggregate: deals, error: dealsError },
+    engagement: { report: engagement, error: engagementError },
+    usage,
     clients: { configured: mcpConfigured, inventory, error: clientsError },
     targets,
+    rangeDays: days,
+    deltas,
   };
 }

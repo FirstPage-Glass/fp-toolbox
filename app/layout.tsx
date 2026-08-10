@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
-import { Poppins } from "next/font/google";
+import { Outfit } from "next/font/google";
 import "./globals.css";
 import Link from "next/link";
 import NavBar from "./components/NavBar";
 import Image from "next/image";
 
-const poppins = Poppins({
+const outfit = Outfit({
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700", "800"],
-  variable: "--font-poppins",
+  variable: "--font-outfit",
 });
 
 export const metadata: Metadata = {
@@ -33,7 +33,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={poppins.className}>
+      <body className={outfit.className}>
         <div className="min-h-screen bg-slate-50">
           {/* Header */}
           <header className="bg-white border-b border-slate-200 sticky top-0 z-50">

@@ -13,13 +13,13 @@ Reusable toolbox UI components shared by the client-side pages.
 - `components/tools/BriefForm.tsx` — shared client-brief form used by Pitch Deck and Proposal tools.
 - `components/tools/HubSpotLeads.tsx` — right-rail HubSpot lead picker (prefills the brief).
 - `components/tools/OutputHistory.tsx` — saved-output history list (reload a previous generation).
-- `components/dashboard/` — `/` dashboard widgets: `MetricCard.tsx` + `UnconfiguredNotice.tsx` (presentational, server-rendered), `LeadTrendChart.tsx`, `LeadScoreChart.tsx`, `KeywordBarChart.tsx`, `TrafficTrendChart.tsx` (recharts, `"use client"`, pure props — data comes from `lib/dashboard.ts` via the page), `SearchPerformanceTable.tsx` (server, GSC top queries).
+- `components/dashboard/` — `/` dashboard widgets: `MetricCard.tsx` (KPI + `DeltaBadge`) + `UnconfiguredNotice.tsx` + `DeltaBadge.tsx` + `InsightList.tsx` + `SectionHeader.tsx` (accent bar + range picker + takeaways) + `AiPlanList.tsx` (AI-suggested action plans; renders nothing when null) + `SectionNav.tsx` (sticky scrollspy nav) + `RangePicker.tsx` (7/30/90d links) + `WebsiteSection.tsx` / `SalesSection.tsx` (the two dashboard halves; server, data from `lib/dashboard.ts` + `lib/ai-plans.ts` via the page), `LeadTrendChart.tsx`, `LeadScoreChart.tsx`, `KeywordBarChart.tsx`, `TrafficTrendChart.tsx` (recharts, `"use client"`, pure props), `SearchPerformanceTable.tsx` (server, GSC top queries).
 - Page-local components (e.g. `NavBar`) live next to their pages in `app/`, not here.
 
 ## Local Contracts
 
 - Import via the `@/*` alias (`@/components/toolbox/ToolCard`).
-- All current components are client components (`"use client"`); keep server components the default elsewhere per `app/AGENTS.md`.
+- Mixed rendering: `components/dashboard/` widgets are server components (recharts charts are the `"use client"` exception); `components/toolbox/` and `components/tools/` are client components. Keep server components the default per `app/AGENTS.md`.
 - No icon library — emoji icons are the convention.
 
 ## Work Guidance
