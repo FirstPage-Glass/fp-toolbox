@@ -21,6 +21,8 @@ import schemaGenerator from "@/app/tools/schema-generator/tool";
 import seoRoi from "@/app/tools/seo-roi/tool";
 import monthlyReport from "@/app/tools/monthly-report/tool";
 import onsiteAudit from "@/app/tools/onsite-audit/tool";
+import pageScreenshot from "@/app/tools/page-screenshot/tool";
+import renderDiff from "@/app/tools/render-diff/tool";
 
 export interface ToolManifest {
   slug: string;
@@ -35,7 +37,7 @@ export interface ToolManifest {
 }
 
 /** Static registry index — adding a tool = add one import line. Code is the source of truth. */
-export const tools: ToolManifest[] = [pitchDeck, proposal, gscExplorer, ga4Snapshot, psiAuditor, mobileDesktopPsi, cwvBatch, urlInspector, competitorProfiler, aiVisibility, keywordGap, serpLandscape, leadScorer, pipelinePulse, spamReport, toolUsage, meetingPrep, metaGenerator, contentBrief, schemaGenerator, seoRoi, monthlyReport, onsiteAudit,
+export const tools: ToolManifest[] = [pitchDeck, proposal, gscExplorer, ga4Snapshot, psiAuditor, mobileDesktopPsi, cwvBatch, urlInspector, competitorProfiler, aiVisibility, keywordGap, serpLandscape, leadScorer, pipelinePulse, spamReport, toolUsage, meetingPrep, metaGenerator, contentBrief, schemaGenerator, seoRoi, monthlyReport, onsiteAudit, pageScreenshot, renderDiff,
   // External tools — standalone deployments without an app/tools/<slug>/ page.
   // `externalLink` makes the toolbox card link out (target=_blank) instead of /tools/<slug>.
   {

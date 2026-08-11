@@ -12,14 +12,31 @@ export async function POST(request: Request) {
     const { data } = await runQuery({
       toolSlug: "psi-auditor",
       fetch: async () => {
-        const result = await getMcpPsi(url);
+        // Lighthouse-style categories via firstpage MCP (own key, no rate limits —
+        // Google's public PSI REST API v5 was decommissioned, 404).
+        const result = await getMcpPsi(url, "mobile");
         const grade = (score: number | null): string => {
           if (score === null) return "n/a";
           if (score >= 90) return "Good";
           if (score >= 50) return "Needs improvement";
           return "Poor";
         };
-        return { ...result, grade: grade(result.performanceScore) };
+        return {
+          url: result.url,
+          performance: result.performanceScore,
+          accessibility: result.accessibilityScore,
+          bestPractices: result.bestPracticesScore,
+          seo: result.seoScore,
+          lcpMs: result.lcpMs,
+          cls: result.cls,
+          tbtMs: result.tbtMs,
+          grades: {
+            performance: grade(result.performanceScore),
+            accessibility: grade(result.accessibilityScore),
+            bestPractices: grade(result.bestPracticesScore),
+            seo: grade(result.seoScore),
+          },
+        };
       },
     });
     return NextResponse.json(data);
