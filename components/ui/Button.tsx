@@ -4,15 +4,16 @@ type ButtonVariant = "primary" | "secondary" | "brand";
 type ButtonSize = "sm" | "md" | "lg";
 
 const VARIANT: Record<ButtonVariant, string> = {
-  primary: "bg-fp-500 hover:bg-fp-600 text-white",
-  secondary: "border border-slate-300 text-slate-600 hover:bg-slate-50",
+  primary:
+    "bg-grad-cta text-white shadow-[0_6px_16px_oklch(0.62_0.19_22_/_0.35)] hover:brightness-105",
+  secondary: "bg-white border border-border text-navy hover:border-blue hover:text-fp-600",
   brand: "bg-fp-100 text-fp-700 hover:bg-fp-200",
 };
 
 const SIZE: Record<ButtonSize, string> = {
-  sm: "px-2.5 py-1 text-xs",
-  md: "px-3 py-1.5 text-sm",
-  lg: "px-4 py-2.5 text-sm",
+  sm: "px-3 py-1.5 text-xs",
+  md: "px-5 py-2.5 text-[14px]",
+  lg: "px-6 py-3 text-[15px]",
 };
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -31,7 +32,7 @@ export default function Button({
   return (
     <button
       type={type}
-      className={`rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${VARIANT[variant]} ${SIZE[size]} ${className}`}
+      className={`inline-flex items-center justify-center gap-2 rounded-[10px] font-bold tracking-[0.02em] min-h-[44px] transition-all active:translate-y-px disabled:opacity-50 disabled:cursor-not-allowed ${VARIANT[variant]} ${SIZE[size]} ${className}`}
       {...rest}
     />
   );

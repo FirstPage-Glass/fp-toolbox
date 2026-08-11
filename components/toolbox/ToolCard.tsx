@@ -1,45 +1,49 @@
 import Link from "next/link";
 import Card from "@/components/ui/Card";
-import Badge from "@/components/ui/Badge";
+import { ToolIcon, categoryBgClass, categoryBarClass, categoryColorClass } from "@/lib/tool-icons";
 import type { ToolManifest } from "@/lib/registry";
-
-/** Category → emoji-container accent. Static map — no dynamic Tailwind classes. */
-const ACCENT: Record<string, string> = {
-  Sales: "bg-emerald-100",
-  "SEO Research": "bg-blue-100",
-  "SEO Technical": "bg-violet-100",
-  Content: "bg-amber-100",
-  Operations: "bg-rose-100",
-};
-const DEFAULT_ACCENT = "bg-slate-100";
 
 interface ToolCardProps {
   tool: ToolManifest;
 }
 
-/** Tool card: accent emoji tile + name + description + category/owner meta. External tools link out. */
+/** Tool card: category-tinted SVG tile + name + description + category/owner meta. External tools link out. */
 export default function ToolCard({ tool }: ToolCardProps) {
   const isExternal = Boolean(tool.externalLink);
-  const accent = ACCENT[tool.category] ?? DEFAULT_ACCENT;
 
   const card = (
-    <Card hover className="flex h-full flex-col">
+    <Card hover className="relative flex h-full flex-col overflow-hidden">
+      <span
+        className={`absolute left-0 top-0 bottom-0 w-1 opacity-0 group-hover:opacity-100 transition-opacity ${categoryBarClass(tool.category)}`}
+        aria-hidden
+      />
       <div className="flex items-start justify-between">
         <div
-          className={`flex h-12 w-12 items-center justify-center rounded-xl text-2xl ${accent}`}
-          aria-hidden
+          className={`flex h-11 w-11 items-center justify-center rounded-[11px] ${categoryBgClass(tool.category)} ${categoryColorClass(tool.category)}`}
         >
-          {tool.icon ?? "🧰"}
+          <ToolIcon name={tool.name} />
         </div>
-        {isExternal ? <Badge color="slate">External</Badge> : null}
+        {isExternal ? (
+          <span className="text-[10.5px] font-extrabold uppercase tracking-[0.06em] bg-navy text-white px-2 py-0.5 rounded-[6px]">
+            External
+          </span>
+        ) : null}
       </div>
-      <h2 className="mt-4 text-lg font-semibold text-slate-900 group-hover:text-fp-700">
+      <h2 className="mt-3 text-[16.5px] font-extrabold text-navy group-hover:text-fp-700 transition-colors">
         {tool.name}
       </h2>
-      <p className="mt-1 flex-1 text-sm text-slate-600">{tool.description}</p>
-      <div className="mt-4 flex items-center gap-2">
-        <Badge color="fp">{tool.category}</Badge>
-        <span className="text-xs text-slate-400">{tool.owner}</span>
+      <p className="mt-1 flex-1 text-[13.5px] text-muted leading-relaxed">
+        {tool.description}
+      </p>
+      <div className="mt-3.5 flex items-center gap-2">
+        <span
+          className={`text-[11px] font-extrabold uppercase tracking-[0.07em] px-2.5 py-1 rounded-full ${categoryBgClass(tool.category)} ${categoryColorClass(tool.category)}`}
+        >
+          {tool.category}
+        </span>
+        <span className="ml-auto text-[11.5px] font-semibold text-muted">
+          {tool.owner}
+        </span>
       </div>
     </Card>
   );

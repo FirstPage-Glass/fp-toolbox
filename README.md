@@ -52,7 +52,7 @@ pnpm start
 │   ├── login/page.tsx            # Login form
 │   ├── toolbox/page.tsx          # Tool directory (async server page + client ToolboxView)
 │   ├── admin/page.tsx            # Lead Quality Report
-│   ├── presentation/page.tsx     # Usage presentation
+│   ├── usage/page.tsx            # Toolbox usage stats (hero banner + bignums + per-tool run grid)
 │   ├── api/login/route.ts        # Auth endpoint
 │   ├── api/logout/route.ts       # Logout endpoint
 │   ├── api/tools/<slug>/route.ts # Per-tool API routes

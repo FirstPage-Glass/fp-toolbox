@@ -1,16 +1,44 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
+  /* FirstPage visual identity — extracted from firstpage.hk (see docs/design-ref/brand-spec.md) */
+  --background: oklch(0.99 0 0); /* #ffffff */
+  --foreground: oklch(0.24 0.09 266); /* #00225d deep navy */
+  --surface: oklch(0.965 0 0); /* #f1f1f1 */
+  --muted: oklch(0.5 0 0); /* #787878 */
+  --border: oklch(0.91 0 0); /* #e5e5e5 */
+  --accent: oklch(0.69 0.20 24); /* #ff5254 coral */
+  --accent-deep: oklch(0.62 0.19 22); /* #da3e3f */
+  --blue: oklch(0.62 0.16 250); /* #427fe0 */
+  --blue-deep: oklch(0.44 0.12 256); /* #396bb1 */
+  --navy: oklch(0.24 0.09 266); /* #00225d */
+  --green: oklch(0.55 0.14 152);
+  --amber: oklch(0.72 0.15 75);
+  --rose: oklch(0.62 0.20 22);
+  --grad-cta: linear-gradient(224deg, oklch(0.62 0.19 22) 0%, oklch(0.69 0.20 24) 100%);
+  --grad-banner: linear-gradient(225deg, oklch(0.60 0.17 250) 0%, oklch(0.44 0.12 256) 100%);
+  --shadow-sm: 0 1px 2px oklch(0.2 0.05 266 / 0.06), 0 1px 3px oklch(0.2 0.05 266 / 0.08);
+  --shadow-md: 0 4px 12px oklch(0.2 0.05 266 / 0.1), 0 2px 4px oklch(0.2 0.05 266 / 0.06);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-outfit), 'Inter', system-ui, -apple-system, sans-serif;
+  --color-surface: var(--surface);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-coral: var(--accent);
+  --color-coral-deep: var(--accent-deep);
+  --color-blue: var(--blue);
+  --color-blue-deep: var(--blue-deep);
+  --color-navy: var(--navy);
+  --color-green: var(--green);
+  --color-amber: var(--amber);
+  --color-rose: var(--rose);
+  --font-sans: var(--font-open-sans), "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-mono: "SFMono-Regular", ui-monospace, Menlo, monospace;
 
-  /* FirstPage Brand Colors */
+  /* FirstPage Brand Blues (fp-500 = #427fe0) */
   --color-fp-50: #eff4fc;
   --color-fp-100: #d9e6f7;
   --color-fp-200: #b8d0f2;
@@ -22,12 +50,46 @@
   --color-fp-800: #264986;
   --color-fp-900: #243f6f;
   --color-fp-950: #182846;
+
+  /* Tool category colors */
+  --color-cat-sales: oklch(0.69 0.2 24);
+  --color-cat-research: oklch(0.62 0.16 250);
+  --color-cat-technical: oklch(0.44 0.12 256);
+  --color-cat-content: oklch(0.72 0.15 75);
+  --color-cat-ops: oklch(0.55 0.14 152);
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans);
+/* Brand gradients as background-image utilities — Tailwind's bg-[var(...)] would
+   emit background-color, which can't hold a linear-gradient value. */
+@utility bg-grad-banner {
+  background-image: var(--grad-banner);
+}
+
+@utility bg-grad-cta {
+  background-image: var(--grad-cta);
+}
+
+@layer base {
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    color: var(--navy);
+    letter-spacing: -0.01em;
+    line-height: 1.15;
+  }
+
+  a {
+    color: var(--blue);
+    text-decoration: none;
+  }
 }
 
 /* Presentation slide animation */
@@ -48,7 +110,9 @@ body {
 
 /* ponytail: print-to-PDF — each slide page breaks onto its own PDF page */
 @media print {
-  header, footer, nav {
+  header,
+  footer,
+  nav {
     display: none !important;
   }
   body {

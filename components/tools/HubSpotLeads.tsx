@@ -15,7 +15,7 @@ export interface HubSpotLead {
 const SCORE_STYLE = {
   hot: "bg-green-100 text-green-700",
   warm: "bg-amber-100 text-amber-700",
-  cold: "bg-slate-200 text-slate-600",
+  cold: "bg-surface text-navy",
 } as const;
 
 function ScoreBadge({ score }: { score?: HubSpotLead["score"] }) {
@@ -64,7 +64,7 @@ export default function HubSpotLeads({
   return (
     <Card noPadding className="p-4">
       <div className="flex items-center justify-between">
-        <span className="text-sm font-semibold text-slate-700">Recent leads</span>
+        <span className="text-sm font-semibold text-navy">Recent leads</span>
         <button
           type="button"
           onClick={loadLeads}
@@ -74,7 +74,7 @@ export default function HubSpotLeads({
           {loading ? "Loading…" : open ? "Hide" : "📇 Import from HubSpot"}
         </button>
       </div>
-      <p className="mt-1 text-xs text-slate-400">
+      <p className="mt-1 text-xs text-muted">
         Last 7 days, spam filtered. Pick a lead to fill the brief.
       </p>
 
@@ -85,9 +85,9 @@ export default function HubSpotLeads({
       )}
 
       {open && leads && (
-        <div className="mt-3 max-h-64 overflow-y-auto rounded-lg border border-slate-200 bg-slate-50 p-2">
+        <div className="mt-3 max-h-64 overflow-y-auto rounded-lg border border-border bg-surface p-2">
           {leads.length === 0 ? (
-            <p className="px-2 py-3 text-sm text-slate-500">No recent leads (last 7 days, spam filtered).</p>
+            <p className="px-2 py-3 text-sm text-muted">No recent leads (last 7 days, spam filtered).</p>
           ) : (
             leads.map((l) => (
               <button
@@ -98,14 +98,14 @@ export default function HubSpotLeads({
               >
                 <span className="min-w-0">
                   <span className="flex items-center gap-1.5">
-                    <span className="block truncate text-sm font-medium text-slate-800">
+                    <span className="block truncate text-sm font-medium text-navy">
                       {l.name || "(no name)"}
                     </span>
                     <ScoreBadge score={l.score} />
                   </span>
-                  <span className="block truncate text-xs text-slate-500">{l.email}</span>
+                  <span className="block truncate text-xs text-muted">{l.email}</span>
                 </span>
-                <span className="shrink-0 max-w-[9rem] truncate font-mono text-xs text-slate-400">
+                <span className="shrink-0 max-w-[9rem] truncate font-mono text-xs text-muted">
                   {l.website ? l.website.replace(/^https?:\/\//, "") : "—"}
                 </span>
               </button>

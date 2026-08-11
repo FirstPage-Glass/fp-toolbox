@@ -83,7 +83,7 @@ When the user requests a durable behavior change, record it here or in the relev
 - `app/AGENTS.md` — App Router surface: pages, API routes, routing/auth rules. Owns everything under `app/`.
 - `lib/AGENTS.md` — Data layer: tool registry, external API clients (MCP/Ahrefs/HubSpot), Postgres runtime, caching. Owns everything under `lib/`.
 - `components/AGENTS.md` — Reusable toolbox UI components. Owns everything under `components/`.
-- Root-owned: `db/init.sql` (schema bootstrap), `docker-compose.yml` (local Postgres), `Dockerfile` (production image), `proxy.ts`, `instrumentation.ts` (boots the 1-min uptime checker), config files (`next.config.ts`, `tsconfig.json`, `postcss.config.mjs`, `eslint.config.mjs`), `public/`, `README.md`, `.env` / `.env.local` (secrets, not committed), `reasonix.toml` (agent MCP config — `firstpage` server at `https://mcp.firstpage.com.hk/mcp/` with bearer key; gitignored), `.opencode/`.
+- Root-owned: `db/init.sql` (schema bootstrap), `docker-compose.yml` (local Postgres), `Dockerfile` (production image), `proxy.ts`, `instrumentation.ts` (boots the 5-min uptime checker), config files (`next.config.ts`, `tsconfig.json`, `postcss.config.mjs`, `eslint.config.mjs`), `public/`, `README.md`, `.env` / `.env.local` (secrets, not committed), `reasonix.toml` (agent MCP config — `firstpage` server at `https://mcp.firstpage.com.hk/mcp/` with bearer key; gitignored), `.opencode/`.
 
 ---
 
@@ -131,11 +131,11 @@ The app is a Next.js server-rendered application that fetches live data from ext
 │   ├── login/page.tsx            # Login form (client component, Card/Input/Button)
 │   ├── toolbox/page.tsx          # Tool directory (async server component; passes ?q=&cat= as props to ToolboxView)
 │   ├── admin/page.tsx            # Lead Quality Report (PageHeader + StatCard + Card)
-│   ├── presentation/page.tsx     # Usage presentation (PageHeader + StatCard fp tones)
+│   ├── usage/page.tsx            # Toolbox usage stats (hero banner + bignums + per-tool run grid)
 │   ├── api/login/route.ts        # POST /api/login — cookie-based auth
 │   ├── api/logout/route.ts       # POST /api/logout — clears auth cookie
 │   ├── api/tools/<slug>/route.ts # Per-tool API routes (data tools + LLM tools)
-│   ├── tools/<slug>/             # 23 tool folders: tool.ts manifest + page.tsx
+│   ├── tools/<slug>/             # 25 tool folders: tool.ts manifest + page.tsx
 │   └── components/NavBar.tsx     # Auth-aware navigation (client component)
 │
 ├── components/ui/                # Shared design-language atoms (server-safe, no deps)
@@ -153,7 +153,7 @@ The app is a Next.js server-rendered application that fetches live data from ext
 │
 ├── components/toolbox/           # Toolbox page components
 │   ├── ToolboxView.tsx           # Client container: search + category filter, ?q=&cat= URL sync
-│   ├── ToolCard.tsx              # Tool card (accent emoji tile; externalLink cards link out)
+│   ├── ToolCard.tsx              # Tool card (SVG icon tile in category colors; externalLink cards link out)
 │   ├── ToolSearch.tsx            # Search input with icon
 │   └── CategoryFilter.tsx        # All + category chips
 │
@@ -168,8 +168,9 @@ The app is a Next.js server-rendered application that fetches live data from ext
 │
 ├── lib/                          # Data layer and utilities
 │   ├── registry.ts               # Static tool registry (code = source of truth; externalLink supported)
+│   ├── tool-icons.tsx            # Tool SVG icon map + category color helpers + ToolPageHeader banner
 │   ├── dashboard.ts              # Dashboard aggregation (HubSpot/MCP/PSI/Ahrefs/usage)
-│   ├── llm.ts, ahrefs.ts, psi.ts, hubspot.ts, mcp.ts  # External API clients
+│   ├── llm.ts, ahrefs.ts, mcp.ts, pdf.ts, screenshot.ts, render-diff.ts  # External API clients + browserless helpers
 │   ├── db.ts, usage.ts, outputs.ts, cache.ts, uptime*.ts  # Postgres runtime + caching
 │   ├── auth.ts                   # AUTH_USERS env parsing + validation
 │   └── data.ts, nocodb.ts, unified-tools.ts  # Legacy, retired — reference only
@@ -177,7 +178,7 @@ The app is a Next.js server-rendered application that fetches live data from ext
 ├── db/                           # Database bootstrap
 │   └── init.sql                  # Schema for usage_events, tool_outputs, hubspot_leads_cache, uptime_checks (onsite_audit_actions auto-creates on first use)
 ├── proxy.ts                     # Route-level auth guard (cookie check + redirects); formerly middleware.ts (renamed in Next.js 16)
-├── instrumentation.ts           # Server bootstrap: starts the 1-min uptime checker (lib/uptime-scheduler.ts)
+├── instrumentation.ts           # Server bootstrap: starts the 5-min uptime checker (lib/uptime-scheduler.ts)
 ├── next.config.ts                # distDir: 'dist', images.unoptimized: true
 ├── postcss.config.mjs            # @tailwindcss/postcss plugin
 ├── eslint.config.mjs             # Next.js core-web-vitals + typescript rules
@@ -230,7 +231,7 @@ The `dist/` folder contains a Next.js server build (not a static export). Deploy
 
 1. **Code = source of truth** — tool registry (`lib/registry.ts`) is a static index of `app/tools/<slug>/tool.ts` manifests. Adding a tool = one folder + one import line. No drift possible.
 2. **Postgres** — runtime data: `usage_events` table (user, tool, tokens, cost) via `lib/usage.ts` / `lib/db.ts`. `DATABASE_URL` env. Dev: podman `postgres:18-alpine`.
-3. **External APIs** — OpenRouter (`lib/llm.ts`, `OPENROUTER_API`), PageSpeed Insights (`lib/psi.ts`, free; optional `PSI_API_KEY`), Ahrefs (`lib/ahrefs.ts`, `AHREFS_API_KEY`), HubSpot contacts (`lib/hubspot.ts`, `HUBSPOT_SERVICE_KEY`; 1h Postgres cache). The `/` dashboard aggregates these via `lib/dashboard.ts`.
+3. **External APIs** — OpenRouter (`lib/llm.ts`, `OPENROUTER_API`), Ahrefs (`lib/ahrefs.ts`, `AHREFS_API_KEY`), HubSpot contacts (`lib/hubspot.ts`, `HUBSPOT_SERVICE_KEY`; 1h Postgres cache), firstpage MCP (`lib/mcp.ts`, `FP_MCP_API_KEY`) — **all PageSpeed/Lighthouse data comes from MCP `psi_audit` (4 categories + CWV); Google's public PSI REST API is decommissioned (404), do not reintroduce it**. Browserless (`lib/pdf.ts` / `lib/screenshot.ts` / `lib/render-diff.ts`, `BROWSERLESS_URL`/`BROWSERLESS_TOKEN`) powers PDF export, page screenshots and JS-render diffs. The `/` dashboard aggregates these via `lib/dashboard.ts`.
 4. **FirstPage MCP** — `lib/mcp.ts` is a JSON-RPC client for `https://mcp.firstpage.com.hk/mcp/` (`FP_MCP_API_KEY`, same key the agent MCP config uses). Dashboard consumes PSI audits, GA4 (firstpage.hk = `374723776`), GSC (`https://www.firstpage.hk/`) and the full client portfolio (752 GSC sites / 1058 GA4 properties). Targets: `DASHBOARD_TARGET_URL` / `DASHBOARD_TARGET_DOMAIN` (default `firstpage.hk`), `DASHBOARD_GSC_SITE`, `DASHBOARD_GA4_PROPERTY`.
 4. **Content** — brand guide + case studies as markdown in `content/` (`lib/content.ts`), fed into the deck/proposal generation.
 5. **NocoDB (legacy, retired)** — `lib/nocodb.ts` and `lib/data.ts` remain for reference only; no live page reads them. NocoDB is no longer the source of truth.
@@ -244,7 +245,7 @@ The `dist/` folder contains a Next.js server build (not a static export). Deploy
 The app uses **per-user cookie authentication**:
 
 - **Public**: `/toolbox`, `/login`, `/api/*` — no login required
-- **Protected**: `/`, `/presentation`, `/tools/*` — requires login
+- **Protected**: `/`, `/tools/*` — requires login
 
 ### Auth Flow
 
@@ -270,12 +271,12 @@ The app uses **per-user cookie authentication**:
 
 | Route | Type | Auth Required | Data Source |
 |-------|------|---------------|-------------|
-| `/` | Server | Yes | `lib/dashboard.ts` (HubSpot leads + spam, PSI, Ahrefs) |
+| `/` | Server | Yes | `lib/dashboard.ts` (HubSpot leads + spam, PSI, Ahrefs) + `lib/hubspot.ts` `getSpamReport(30)` (Lead Quality zone) |
 | `/toolbox` | Server shell + client view | No | `lib/registry.ts` (code); `ToolboxView` filters/search via `?q=&cat=` URL params |
 | `/tools/pitch-deck` | Client | Yes | `lib/client-data.ts` (GSC + GA4 + PSI + Ahrefs) → OpenRouter |
 | `/tools/proposal` | Client | Yes | `lib/client-data.ts` (GSC + GA4 + PSI + Ahrefs) → OpenRouter |
-| `/tools/*` (20 more) | Client | Yes | per-tool API routes; see `app/AGENTS.md` for the full list |
-| `/presentation` | Server | Yes | Postgres usage stats |
+| `/tools/*` (23 more) | Client | Yes | per-tool API routes; see `app/AGENTS.md` for the full list |
+| `/usage` | Server | Yes | `lib/usage.ts` — tool runs, active users, LLM cost, per-tool run counts (hero banner + bignums + tools grid) |
 | `/login` | Client | No | — |
 | `/api/login` | API | No | `AUTH_USERS` env |
 | `/api/logout` | API | No | — |
@@ -293,22 +294,23 @@ The app uses **per-user cookie authentication**:
 ### React Conventions
 - Server components are the default; mark client components with `"use client"` only when needed (state, effects, browser APIs)
 - `NavBar`, `ToolboxView`, `ToolSearch`, `CategoryFilter`, `LoginPage` are client components; `ToolCard` is server-safe (used inside the client view)
-- `page.tsx` (home), `presentation/page.tsx`, and `admin/page.tsx` are server components that fetch data directly; `toolbox/page.tsx` is an async server component that reads `?q=&cat=` from `searchParams` and passes them as props to the client `ToolboxView`
+- `page.tsx` (home), `usage/page.tsx`, and `admin/page.tsx` are server components that fetch data directly; `toolbox/page.tsx` is an async server component that reads `?q=&cat=` from `searchParams` and passes them as props to the client `ToolboxView`
 
 ### Styling
-- Tailwind CSS v4 with inline theme configuration in `globals.css`
-- FirstPage brand colors are defined as `--color-fp-50` through `--color-fp-950`
+- Tailwind CSS v4 with inline theme configuration in `globals.css`. Visual identity follows `docs/design-ref/brand-spec.md` (extracted from firstpage.hk).
+- Design tokens (`globals.css` `@theme inline`): `bg`/`surface` (white / `#f1f1f1`), `navy` (`#00225d`) display ink, `muted`, `border`, `coral` (`#ff5254`) action color with coral `--grad-cta` and blue `--grad-banner` gradients, brand `blue` (`#427fe0`), category colors (`cat-sales/research/technical/content/ops`), plus the `fp-*` blue scale. Render the gradients with the `bg-grad-banner` / `bg-grad-cta` utilities — `bg-[var(--grad-banner)]` emits `background-color` and will NOT display a gradient.
+- Font: **Open Sans** via `next/font/google` (`--font-open-sans`) — the design-ref mockups' proxima-nova fallback. Mono: `ui-monospace`.
+- Page headers are **full-width blue-gradient banners** (`PageHeader`, or `ToolPageHeader` for tool pages) with white titles + count pill + trailing slot.
 - Common patterns:
   - Cards: `Card` from `@/components/ui/Card` (white/slate tones, `hover` option, `noPadding` + `className` for custom padding)
-  - KPI cards: `StatCard` from `@/components/ui/StatCard` (white tone by default, `fp-*` tones + `size="lg"` for presentation)
-  - Page headers: `PageHeader` from `@/components/ui/PageHeader` (title + count pill + description + trailing)
+  - KPI cards: `StatCard` from `@/components/ui/StatCard` (white tone by default, `fp-*` tones + `size="lg"` for hero panels)
   - Status badges: `Badge` from `@/components/ui/Badge` (static color map: fp/slate/emerald/blue/amber/rose/violet)
   - Layout max-width: `max-w-7xl mx-auto px-4 sm:px-6 lg:px-8`
 
 ### Component Patterns
 - **Build UI from `components/ui/`** — the shared design-language atoms (Card/Badge/StatCard/PageHeader/Button/Input…). Extend the shared layer instead of hand-copying card/badge classes into new pages.
 - Tailwind dynamic classes must come from static maps (`Record<…, string>`) — never string-concatenate class names.
-- Emoji icons are used as lightweight visual indicators (no icon library dependency).
+- Tool icons are **stroke SVGs** from `lib/tool-icons.tsx` (static map keyed by tool name) rendered via `ToolIcon`; category colors via `categoryColorClass`/`categoryBgClass`/`categoryBarClass`. No icon library dependency.
 
 ---
 

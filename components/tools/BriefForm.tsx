@@ -54,7 +54,7 @@ export default function BriefForm({
   return (
     <form onSubmit={handleSubmit}>
       <Card className="space-y-4">
-        <span className="text-sm font-semibold text-slate-700">Client brief</span>
+        <span className="text-sm font-semibold text-navy">Client brief</span>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <Input label="Client name *" value={brief.clientName} onChange={set("clientName")} required />
@@ -87,12 +87,12 @@ export default function BriefForm({
           />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-slate-700">Notes</label>
+          <label className="mb-1 block text-sm font-medium text-navy">Notes</label>
           <textarea
             rows={3}
             value={brief.notes}
             onChange={set("notes")}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-fp-400 focus:outline-none"
+            className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-fp-400 focus:outline-none"
           />
         </div>
         <Button type="submit" disabled={busy} size="lg">

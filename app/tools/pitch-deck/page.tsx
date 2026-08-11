@@ -4,11 +4,14 @@ import { useState } from "react";
 import BriefForm, { EMPTY_BRIEF, type BriefFormValues } from "@/components/tools/BriefForm";
 import HubSpotLeads from "@/components/tools/HubSpotLeads";
 import OutputHistory, { type OutputItem } from "@/components/tools/OutputHistory";
-import PageHeader from "@/components/ui/PageHeader";
+import tool from "./tool";
+import { ToolPageHeader } from "@/lib/tool-icons";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import ErrorBanner from "@/components/ui/ErrorBanner";
+import { downloadPdf } from "@/components/tools/downloadPdf";
+import { deckToHtml } from "@/components/tools/pdfRenderers";
 
 interface DeckSlide {
   heading: string;
@@ -31,6 +34,7 @@ export default function PitchDeckPage() {
   const [historyKey, setHistoryKey] = useState(0);
   const [refineText, setRefineText] = useState("");
   const [refining, setRefining] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   async function generate(extra: { refineOutputId?: number; refineInstruction?: string } = {}) {
     setError(null);
@@ -77,12 +81,9 @@ export default function PitchDeckPage() {
   }
 
   return (
+    <>
+      <ToolPageHeader tool={tool} />
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <PageHeader
-        title="Pitch Deck Generator"
-        description="Fill in the client brief — the deck is generated with live PageSpeed + competitor data, rendered as HTML, and exported to PDF. Every output is saved to history and refinable."
-      />
-
       <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
         {/* Left: brief form */}
         <BriefForm brief={brief} onChange={setBrief} submitLabel="Generate deck" onGenerate={() => generate()} />
@@ -100,8 +101,21 @@ export default function PitchDeckPage() {
         {deck && (
           <div>
             <div className="mb-4 flex flex-wrap items-center gap-3">
-              <Button size="lg" onClick={() => window.print()}>
-                Export PDF
+              <Button
+                size="lg"
+                disabled={exporting}
+                onClick={async () => {
+                  setExporting(true);
+                  try {
+                    await downloadPdf({ html: deckToHtml(deck), filename: "pitch-deck.pdf", landscape: true });
+                  } catch (err) {
+                    setError(err instanceof Error ? err.message : String(err));
+                  } finally {
+                    setExporting(false);
+                  }
+                }}
+              >
+                {exporting ? "Exporting…" : "Export PDF"}
               </Button>
               {cost != null && (
                 <span className="text-xs text-slate-500">Generation cost: US${cost.toFixed(4)}</span>
@@ -157,6 +171,7 @@ export default function PitchDeckPage() {
           </div>
         )}
       </div>
-    </div>
+      </div>
+    </>
   );
 }

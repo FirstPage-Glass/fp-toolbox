@@ -4,7 +4,8 @@ import { useState } from "react";
 import { useToolApi } from "@/components/tools/useToolApi";
 import ResultView, { type SendToLink } from "@/components/tools/ResultView";
 import { usePrefill, prefillUrl } from "@/components/tools/usePrefill";
-import PageHeader from "@/components/ui/PageHeader";
+import tool from "./tool";
+import { ToolPageHeader } from "@/lib/tool-icons";
 import Card from "@/components/ui/Card";
 import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
@@ -47,12 +48,9 @@ export default function KeywordGapPage() {
     : [];
 
   return (
+    <>
+      <ToolPageHeader tool={tool} />
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <PageHeader
-        title="Keyword Gap Analyzer"
-        description="Find the keywords domain B ranks for that domain A is missing — your content opportunity list."
-      />
-
       <Card className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div>
           <Input
@@ -116,6 +114,7 @@ export default function KeywordGapPage() {
           <ResultView data={data} sendTo={sendTo} />
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }

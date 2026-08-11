@@ -36,27 +36,27 @@ function DataTable({ rows }: { rows: Record<string, unknown>[] }) {
     for (const r of rows) for (const k of Object.keys(r)) set.add(k);
     return [...set];
   }, [rows]);
-  if (cols.length === 0) return <p className="text-sm text-slate-500">No rows.</p>;
+  if (cols.length === 0) return <p className="text-sm text-muted">No rows.</p>;
   return (
-    <div className="overflow-x-auto rounded-lg border border-slate-200">
-      <table className="min-w-full divide-y divide-slate-200 text-sm">
-        <thead className="bg-slate-50">
+    <div className="overflow-x-auto rounded-[10px] border border-border">
+      <table className="min-w-full text-[13.5px]">
+        <thead className="bg-surface/60">
           <tr>
             {cols.map((c) => (
               <th
                 key={c}
-                className="px-3 py-2 text-left font-semibold text-slate-600 capitalize"
+                className="px-3 py-2.5 text-left text-[11px] font-extrabold uppercase tracking-[0.08em] text-muted"
               >
                 {c.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/[_-]/g, " ")}
               </th>
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-100">
+        <tbody className="divide-y divide-border">
           {rows.map((r, i) => (
-            <tr key={i} className="hover:bg-slate-50">
+            <tr key={i} className="hover:bg-surface/50">
               {cols.map((c) => (
-                <td key={c} className="px-3 py-2 text-slate-700">
+                <td key={c} className="px-3 py-2.5 text-navy">
                   {formatValue(r[c])}
                 </td>
               ))}
@@ -71,13 +71,13 @@ function DataTable({ rows }: { rows: Record<string, unknown>[] }) {
 /** Recursive generic renderer: records → stat grid + sections, arrays → tables/lists. */
 function renderNode(node: unknown): ReactNode {
   if (Array.isArray(node)) {
-    if (node.length === 0) return <p className="text-sm text-slate-500">No data.</p>;
+    if (node.length === 0) return <p className="text-sm text-muted">No data.</p>;
     if (node.every(isRecord)) return <DataTable rows={node} />;
     if (node.every((v) => !isRecord(v) && !Array.isArray(v))) {
       return (
         <ul className="space-y-1">
           {node.map((v, i) => (
-            <li key={i} className="text-sm text-slate-700">
+            <li key={i} className="text-sm text-navy">
               {formatValue(v)}
             </li>
           ))}
@@ -85,7 +85,7 @@ function renderNode(node: unknown): ReactNode {
       );
     }
     return (
-      <pre className="overflow-x-auto rounded-lg bg-slate-50 p-3 text-xs text-slate-700">
+      <pre className="overflow-x-auto rounded-[10px] bg-navy p-4 text-xs text-[oklch(0.92_0.02_250)] leading-relaxed">
         {JSON.stringify(node, null, 2)}
       </pre>
     );
@@ -100,10 +100,10 @@ function renderNode(node: unknown): ReactNode {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {scalars.map(([k, v]) => (
               <Card key={k} tone="slate" noPadding className="p-3">
-                <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <div className="text-[11px] font-extrabold uppercase tracking-[0.07em] text-muted">
                   {k.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/[_-]/g, " ")}
                 </div>
-                <div className="mt-1 text-lg font-semibold text-slate-900">
+                <div className="mt-1 text-lg font-extrabold text-navy">
                   {formatValue(v)}
                 </div>
               </Card>
@@ -112,7 +112,7 @@ function renderNode(node: unknown): ReactNode {
         )}
         {complex.map(([k, v]) => (
           <div key={k}>
-            <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
+            <h3 className="mb-2 text-sm font-extrabold uppercase tracking-[0.07em] text-muted">
               {k.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/[_-]/g, " ")}
             </h3>
             {renderNode(v)}
@@ -121,7 +121,7 @@ function renderNode(node: unknown): ReactNode {
       </div>
     );
   }
-  return <p className="text-sm text-slate-700">{formatValue(node)}</p>;
+  return <p className="text-sm text-navy">{formatValue(node)}</p>;
 }
 
 /**
@@ -157,7 +157,7 @@ export default function ResultView({ data, sendTo }: ResultViewProps) {
           <a
             key={l.href}
             href={l.href}
-            className="rounded-lg bg-fp-100 px-3 py-1.5 text-sm font-semibold text-fp-700 hover:bg-fp-200"
+            className="rounded-full bg-fp-500/10 border border-fp-500/25 px-3.5 py-1.5 text-[12.5px] font-bold text-fp-600 hover:bg-fp-500/20"
           >
             {l.label} →
           </a>

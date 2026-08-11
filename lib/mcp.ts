@@ -98,9 +98,15 @@ export async function mcpCall<T = unknown>(
 
 export interface McpPsiResult {
   url: string;
-  performanceScore: number | null; // 0-100
+  strategy: string;
+  performanceScore: number | null;
+  accessibilityScore: number | null;
+  bestPracticesScore: number | null;
+  seoScore: number | null;
   lcpMs: number | null;
   cls: number | null;
+  tbtMs: number | null;
+  fcpMs: number | null;
 }
 
 /** PageSpeed audit via MCP (firstpage's own key — no shared free-tier quota). */
@@ -109,18 +115,29 @@ export async function getMcpPsi(
   strategy: "mobile" | "desktop" = "mobile"
 ): Promise<McpPsiResult> {
   const raw = await mcpCall<{
-    scores?: Record<string, { score?: number }>;
+    scores?: Record<string, { score?: number; title?: string }>;
     core_web_vitals?: {
+      first_contentful_paint?: number;
       largest_contentful_paint?: number;
+      total_blocking_time?: number;
       cumulative_layout_shift?: number;
     };
   }>("psi_audit", { url, strategy });
-  const perf = raw.scores?.performance?.score;
+  const score = (name: string): number | null => {
+    const s = raw.scores?.[name]?.score;
+    return s != null ? Math.round(s * 100) : null;
+  };
   return {
     url,
-    performanceScore: perf != null ? Math.round(perf * 100) : null,
+    strategy,
+    performanceScore: score("performance"),
+    accessibilityScore: score("accessibility"),
+    bestPracticesScore: score("best-practices"),
+    seoScore: score("seo"),
     lcpMs: raw.core_web_vitals?.largest_contentful_paint ?? null,
     cls: raw.core_web_vitals?.cumulative_layout_shift ?? null,
+    tbtMs: raw.core_web_vitals?.total_blocking_time ?? null,
+    fcpMs: raw.core_web_vitals?.first_contentful_paint ?? null,
   };
 }
 
@@ -137,13 +154,15 @@ export async function getMcpGsc(
   siteUrl: string,
   startDate: string,
   endDate: string,
-  rowLimit = 1000
+  rowLimit = 1000,
+  groupBy?: string[]
 ): Promise<GscRow[]> {
   return mcpCall<GscRow[]>("gsc_search_performance", {
     site_url: siteUrl,
     start_date: startDate,
     end_date: endDate,
     row_limit: rowLimit,
+    ...(groupBy ? { group_by: groupBy } : {}),
   });
 }
 

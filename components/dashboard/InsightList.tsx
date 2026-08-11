@@ -6,9 +6,9 @@ interface InsightListProps {
 }
 
 const TONE_STYLES: Record<Insight["tone"], { text: string; dot: string }> = {
-  good: { text: "text-emerald-700", dot: "bg-emerald-500" },
-  bad: { text: "text-rose-700", dot: "bg-rose-500" },
-  neutral: { text: "text-slate-600", dot: "bg-slate-400" },
+  good: { text: "text-[oklch(0.42_0.13_152)]", dot: "bg-[oklch(0.55_0.14_152)]" },
+  bad: { text: "text-[oklch(0.62_0.20_22)]", dot: "bg-[oklch(0.62_0.20_22)]" },
+  neutral: { text: "text-muted", dot: "bg-muted" },
 };
 
 /** Rule-driven headline takeaways for a section. Pure presentational. */
@@ -17,7 +17,7 @@ export default function InsightList({
   empty = "No standout signals this window.",
 }: InsightListProps) {
   if (insights.length === 0) {
-    return <p className="text-sm text-slate-500">{empty}</p>;
+    return <p className="text-sm text-muted">{empty}</p>;
   }
   return (
     <ul className="space-y-1.5">

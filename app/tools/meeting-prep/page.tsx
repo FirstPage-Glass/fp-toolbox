@@ -3,7 +3,10 @@
 import { useEffect, useState } from "react";
 import { usePrefill, prefillUrl } from "@/components/tools/usePrefill";
 import OutputHistory, { type OutputItem } from "@/components/tools/OutputHistory";
-import PageHeader from "@/components/ui/PageHeader";
+import { downloadPdf } from "@/components/tools/downloadPdf";
+import { meetingBriefToHtml } from "@/components/tools/pdfRenderers";
+import tool from "./tool";
+import { ToolPageHeader } from "@/lib/tool-icons";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
@@ -32,6 +35,7 @@ export default function MeetingPrepPage() {
   const [historyKey, setHistoryKey] = useState(0);
   const [refineText, setRefineText] = useState("");
   const [refining, setRefining] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     fetch("/api/tools/meeting-prep")
@@ -84,12 +88,9 @@ export default function MeetingPrepPage() {
   }
 
   return (
+    <>
+      <ToolPageHeader tool={tool} />
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <PageHeader
-        title="Meeting Prep Brief"
-        description="Enter a client site — GSC, GA4, PageSpeed and Ahrefs data are pulled automatically and distilled into a one-page meeting brief."
-      />
-
       <Card className="mt-6 grid gap-4">
         <div>
           <Input
@@ -149,6 +150,32 @@ export default function MeetingPrepPage() {
             >
               Pitch Deck →
             </a>
+            <a
+              href={prefillUrl("/tools/onsite-audit", { url })}
+              className="rounded-lg bg-fp-100 px-3 py-1.5 text-sm font-semibold text-fp-700 hover:bg-fp-200"
+            >
+              Onsite Audit →
+            </a>
+            <button
+              onClick={async () => {
+                setExporting(true);
+                try {
+                  await downloadPdf({
+                    html: meetingBriefToHtml(brief),
+                    filename: "meeting-prep-brief.pdf",
+                    landscape: false,
+                  });
+                } catch (err) {
+                  setError(err instanceof Error ? err.message : String(err));
+                } finally {
+                  setExporting(false);
+                }
+              }}
+              disabled={exporting}
+              className="rounded-lg bg-fp-700 px-3 py-1.5 text-sm font-semibold text-white hover:bg-fp-800 disabled:opacity-40"
+            >
+              {exporting ? "Exporting…" : "Download PDF"}
+            </button>
             {cost != null && (
               <span className="text-xs text-slate-500">Generation cost: US${cost.toFixed(4)}</span>
             )}
@@ -208,6 +235,7 @@ export default function MeetingPrepPage() {
           <OutputHistory toolSlug="meeting-prep" refreshKey={historyKey} activeId={activeId} onLoad={loadOutput} />
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }

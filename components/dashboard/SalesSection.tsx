@@ -2,9 +2,15 @@ import MetricCard from "./MetricCard";
 import UnconfiguredNotice from "./UnconfiguredNotice";
 import SectionHeader from "./SectionHeader";
 import AiPlanList from "./AiPlanList";
+import CardHead from "./CardHead";
+import StatMini from "./StatMini";
+import TwoCol from "./TwoCol";
+import Legend from "./Legend";
+import HBarRow from "./HBarRow";
 import Card from "@/components/ui/Card";
 import LeadTrendChart from "./LeadTrendChart";
 import LeadScoreChart from "./LeadScoreChart";
+import { tools } from "@/lib/registry";
 import type { DashboardData } from "@/lib/dashboard";
 import type { Insight } from "@/lib/insights";
 import type { AiPlan } from "@/lib/ai-plans";
@@ -12,13 +18,15 @@ import type { AiPlan } from "@/lib/ai-plans";
 const usd = (n: number): string =>
   `$${n.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
 
+const toolName = new Map(tools.map((t) => [t.slug, t.name]));
+
 interface SalesSectionProps {
   d: DashboardData;
   insights: Insight[];
   aiPlans?: AiPlan[] | null;
 }
 
-/** Sales performance half of the dashboard: pipeline, leaderboard, leads, ROI. */
+/** Sales performance half of the dashboard — design-ref sales zone. */
 export default function SalesSection({ d, insights, aiPlans }: SalesSectionProps) {
   const totalLeads = d.hubspot.spam?.good ?? d.hubspot.leads.length;
   const spamRate = d.hubspot.spam?.spamRatePct ?? null;
@@ -37,11 +45,12 @@ export default function SalesSection({ d, insights, aiPlans }: SalesSectionProps
 
   const funnel = deals
     ? [
-        { name: "Open", value: deals.funnel.open, color: "bg-fp-400" },
-        { name: "Won", value: deals.funnel.won, color: "bg-emerald-400" },
+        { name: "Open", count: deals.funnel.open, amount: deals.pipelineValue, color: "#427fe0" },
+        { name: "Won", count: deals.funnel.won, amount: deals.closedWon.revenue, color: "oklch(0.55 0.14 152)" },
+        { name: "Lost", count: deals.funnel.lost, amount: null, color: "oklch(0.62 0.2 22 / 0.7)" },
       ]
     : [];
-  const funnelTotal = deals ? deals.funnel.open + deals.funnel.won : 0;
+  const funnelMax = deals ? Math.max(deals.funnel.open, deals.funnel.won, deals.funnel.lost) : 0;
   const maxRevenue = deals?.perOwner[0]?.wonRevenue ?? 0;
 
   return (
@@ -50,50 +59,51 @@ export default function SalesSection({ d, insights, aiPlans }: SalesSectionProps
         id="sales"
         accent="sales"
         title="Sales Performance"
-        description={`Pipeline, lead quality and tool ROI — last ${d.rangeDays} days`}
-        days={d.rangeDays}
+        tag="HubSpot"
         insights={insights}
       />
 
       <AiPlanList plans={aiPlans} />
 
       {/* KPI row */}
-      <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <MetricCard
-          label="Leads"
-          value={totalLeads}
+          label="New leads"
+          value={totalLeads.toLocaleString()}
           sub={d.hubspot.configured ? "non-spam, from HubSpot" : "HubSpot not configured"}
-          icon="📥"
           delta={d.deltas.leads}
+          deltaHint="vs prev 30d"
+          spark={d.hubspot.trend.map((t) => t.leads)}
         />
         <MetricCard
           label="Spam rate"
-          value={spamRate !== null ? `${spamRate.toFixed(1)}%` : "—"}
+          value={spamRate !== null ? spamRate.toFixed(1) : "—"}
+          suffix="%"
           sub={spamRate !== null ? "of contacts in window" : "needs HUBSPOT_SERVICE_KEY"}
-          icon="🛡️"
           delta={d.deltas.spamRate}
           deltaInvert
           deltaSuffix="pp"
+          deltaHint="improvement"
         />
         <MetricCard
           label="Closed-won"
           value={deals ? usd(deals.closedWon.revenue) : "—"}
           sub={deals ? `${deals.closedWon.count} deals` : "HubSpot deals not loaded"}
-          icon="💰"
           delta={d.deltas.closedWonRevenue}
+          deltaHint={deals ? `${deals.closedWon.count} deals` : undefined}
         />
         <MetricCard
           label="Pipeline (new)"
           value={deals ? usd(deals.pipelineValue) : "—"}
           sub={deals ? `${deals.newCount} deals created` : "needs deals.read scope"}
-          icon="📈"
           delta={d.deltas.pipelineValue}
+          deltaHint={deals ? `${deals.newCount} deals` : undefined}
         />
       </div>
 
       {/* Pipeline — deals created + outcome funnel */}
       <Card className="mt-8">
-        <h3 className="text-lg font-semibold text-slate-900">Pipeline</h3>
+        <CardHead title="Pipeline" src="HubSpot deals" />
         {!d.hubspot.configured ? (
           <div className="mt-4">
             <UnconfiguredNotice envVar="HUBSPOT_SERVICE_KEY">
@@ -101,7 +111,7 @@ export default function SalesSection({ d, insights, aiPlans }: SalesSectionProps
             </UnconfiguredNotice>
           </div>
         ) : d.deals.error ? (
-          <div className="mt-4 rounded-xl border-2 border-dashed border-rose-200 bg-rose-50 p-6 text-center">
+          <div className="rounded-xl border-2 border-dashed border-rose-200 bg-rose-50 p-6 text-center">
             <div className="text-2xl" aria-hidden>🔒</div>
             <p className="mt-2 text-sm font-medium text-rose-700">
               Couldn&apos;t load deals — likely missing <code className="rounded bg-rose-100 px-1 py-0.5 font-mono">deals.read</code> scope.
@@ -109,100 +119,85 @@ export default function SalesSection({ d, insights, aiPlans }: SalesSectionProps
             <p className="mt-1 text-xs text-rose-500">{d.deals.error}</p>
           </div>
         ) : deals ? (
-          <>
-            <div className="mt-4 grid gap-5 sm:grid-cols-3">
-              <Card tone="slate">
-                <div className="text-sm text-slate-500">Avg deal size</div>
-                <div className="mt-1 text-3xl font-extrabold text-slate-900">
-                  {deals.avgAmount ? usd(deals.avgAmount) : "—"}
-                </div>
-                <div className="mt-1 text-xs text-slate-500">new deals in window</div>
-              </Card>
-              <Card tone="slate">
-                <div className="text-sm text-slate-500">Won deals</div>
-                <div className="mt-1 text-3xl font-extrabold text-slate-900">
-                  {deals.closedWon.count}
-                </div>
-                <div className="mt-1 text-xs text-slate-500">closed in window</div>
-              </Card>
-              <Card tone="slate">
-                <div className="text-sm text-slate-500">New deals</div>
-                <div className="mt-1 text-3xl font-extrabold text-slate-900">{deals.newCount}</div>
-                <div className="mt-1 text-xs text-slate-500">created in window</div>
-              </Card>
-            </div>
-            <div className="mt-6">
-              <p className="text-sm text-slate-500">New deals — open vs won</p>
-              <div className="mt-2 space-y-2">
+          <TwoCol
+            left={
+              <>
+                <StatMini label="Avg deal size" value={deals.avgAmount ? usd(deals.avgAmount) : "—"} />
+                <StatMini label="Won deals" value={deals.closedWon.count} />
+                <StatMini label="New deals created" value={deals.newCount} />
+                <StatMini label="Open pipeline value" value={usd(deals.pipelineValue)} />
+              </>
+            }
+            right={
+              <div className="flex flex-col gap-2 mt-2">
                 {funnel.map((f) => (
                   <div key={f.name} className="flex items-center gap-3">
-                    <span className="w-10 text-sm text-slate-600">{f.name}</span>
-                    <div className="h-5 flex-1 overflow-hidden rounded bg-slate-100">
-                      {funnelTotal > 0 ? (
-                        <div
-                          className={`h-full rounded ${f.color}`}
-                          style={{ width: `${(f.value / funnelTotal) * 100}%` }}
-                          title={`${f.value} deals`}
-                        />
-                      ) : null}
+                    <span className="w-[70px] text-[12.5px] font-bold text-muted">{f.name}</span>
+                    <div className="flex-1 h-[22px] rounded-md bg-surface overflow-hidden">
+                      <div
+                        className="h-full rounded-md"
+                        style={{ width: `${funnelMax > 0 ? (f.count / funnelMax) * 100 : 0}%`, background: f.color }}
+                      />
                     </div>
-                    <span className="w-8 text-right text-sm tabular-nums text-slate-700">{f.value}</span>
+                    <span className="w-[150px] text-right text-[13px] font-mono tabular-nums">
+                      {f.count} deals{f.amount !== null ? ` · ${usd(f.amount)}` : ""}
+                    </span>
                   </div>
                 ))}
               </div>
-            </div>
-          </>
+            }
+          />
         ) : (
-          <p className="mt-3 text-sm text-slate-500">Loading deals…</p>
+          <p className="text-sm text-muted">Loading deals…</p>
         )}
       </Card>
 
-      {/* Leaderboard — per-owner closed-won revenue */}
+      {/* Sales leaderboard */}
       <Card className="mt-8">
-        <h3 className="text-lg font-semibold text-slate-900">Sales leaderboard</h3>
-        <p className="mt-1 text-sm text-slate-500">
-          Closed-won revenue by owner · {d.rangeDays}-day window
-        </p>
+        <CardHead title="Sales leaderboard" src="closed-won · 30d" />
         {d.deals.error ? (
-          <p className="mt-3 text-sm text-rose-600">Deals unavailable: {d.deals.error}</p>
+          <p className="text-sm text-rose-600">Deals unavailable: {d.deals.error}</p>
         ) : deals && deals.perOwner.length > 0 ? (
-          <div className="mt-4 space-y-3">
+          <div>
             {deals.perOwner.map((row, idx) => (
-              <div key={row.ownerId} className="flex items-center gap-3">
-                <span className="w-6 text-right text-sm tabular-nums text-slate-400">
+              <div key={row.ownerId} className="flex items-center gap-3 py-2.5 border-b border-border last:border-0">
+                <span
+                  className={`h-[26px] w-[26px] rounded-lg grid place-items-center font-extrabold text-[12.5px] shrink-0 ${
+                    idx === 0
+                      ? "bg-[oklch(0.72_0.15_75_/_0.25)] text-[oklch(0.5_0.13_75)]"
+                      : "bg-surface text-navy"
+                  }`}
+                >
                   {idx + 1}
                 </span>
-                <span className="w-32 truncate text-sm font-medium text-slate-800">
+                <span className="w-[150px] shrink-0 font-bold text-[13.5px] text-navy truncate">
                   {row.ownerName}
+                  <small className="block font-medium text-[11.5px] text-muted">
+                    {row.wonCount} won
+                  </small>
                 </span>
-                <div className="h-5 flex-1 overflow-hidden rounded bg-slate-100">
+                <div className="flex-1 h-3 rounded-md bg-surface overflow-hidden">
                   <div
-                    className="h-full rounded bg-emerald-400"
+                    className="h-full rounded-md bg-[#427fe0]"
                     style={{ width: `${maxRevenue > 0 ? (row.wonRevenue / maxRevenue) * 100 : 0}%` }}
                   />
                 </div>
-                <span className="w-24 text-right text-sm font-semibold tabular-nums text-slate-900">
-                  {usd(row.wonRevenue)}
-                </span>
-                <span className="hidden w-20 text-right text-xs tabular-nums text-slate-500 sm:block">
-                  {row.wonCount} won
-                </span>
-                <span className="hidden w-24 text-right text-xs tabular-nums text-slate-500 md:block">
-                  {usd(row.openPipeline)} open
+                <span className="w-[130px] shrink-0 text-right font-mono font-bold text-[13.5px] text-navy tabular-nums">
+                  {usd(row.wonRevenue)} · {row.wonCount} won
                 </span>
               </div>
             ))}
           </div>
         ) : deals ? (
-          <p className="mt-3 text-sm text-slate-500">No closed-won deals in this window.</p>
+          <p className="text-sm text-muted">No closed-won deals in this window.</p>
         ) : (
-          <p className="mt-3 text-sm text-slate-500">Loading leaderboard…</p>
+          <p className="text-sm text-muted">Loading leaderboard…</p>
         )}
       </Card>
 
       {/* HubSpot leads */}
       <Card className="mt-8">
-        <h3 className="text-lg font-semibold text-slate-900">HubSpot leads</h3>
+        <CardHead title="HubSpot leads" src={`HubSpot contacts · ${d.rangeDays}d`} />
         {!d.hubspot.configured ? (
           <div className="mt-4">
             <UnconfiguredNotice envVar="HUBSPOT_SERVICE_KEY">
@@ -212,42 +207,40 @@ export default function SalesSection({ d, insights, aiPlans }: SalesSectionProps
         ) : (
           <>
             {d.hubspot.error ? (
-              <p className="mt-3 text-sm text-rose-600">Couldn&apos;t load leads: {d.hubspot.error}</p>
+              <p className="text-sm text-rose-600">Couldn&apos;t load leads: {d.hubspot.error}</p>
             ) : null}
-            <div className="mt-4 grid gap-6 lg:grid-cols-3">
-              <div className="lg:col-span-2">
-                <p className="text-sm text-slate-500">Daily lead volume (last {d.rangeDays} days)</p>
-                <LeadTrendChart data={d.hubspot.trend} />
-              </div>
-              <div>
-                <p className="text-sm text-slate-500">Contact quality</p>
-                <LeadScoreChart data={donutData} />
-                {spamSources.length > 0 ? (
+            <TwoCol
+              left={
+                <>
+                  <LeadTrendChart data={d.hubspot.trend} />
+                  <Legend items={[{ color: "oklch(0.55 0.14 152)", label: "Daily new leads" }]} />
+                </>
+              }
+              right={
+                <>
+                  <LeadScoreChart data={donutData} />
+                  <Legend
+                    center
+                    items={[
+                      { color: "oklch(0.55 0.14 152)", label: "Good leads" },
+                      { color: "oklch(0.62 0.2 22 / 0.75)", label: "Spam" },
+                    ]}
+                  />
                   <div className="mt-2">
-                    <p className="text-sm font-medium text-slate-700">Top spam sources</p>
-                    <ul className="mt-1 space-y-1 text-sm text-slate-600">
-                      {spamSources.map((s) => (
-                        <li key={s.domain} className="flex justify-between">
-                          <span className="truncate">{s.domain}</span>
-                          <span className="ml-3 tabular-nums text-slate-500">{s.count}</span>
-                        </li>
-                      ))}
-                    </ul>
+                    <StatMini label="Top spam source" value={spamSources[0]?.domain ?? "—"} />
+                    <StatMini label="Spam contacts" value={d.hubspot.spam ? d.hubspot.spam.spam.toLocaleString() : "—"} />
+                    <StatMini label="Good leads" value={d.hubspot.spam ? d.hubspot.spam.good.toLocaleString() : "—"} />
                   </div>
-                ) : null}
-              </div>
-            </div>
+                </>
+              }
+            />
           </>
         )}
       </Card>
 
       {/* Lead quality check — engagement cross-check */}
       <Card className="mt-8">
-        <h3 className="text-lg font-semibold text-slate-900">Lead quality check</h3>
-        <p className="mt-1 text-sm text-slate-500">
-          Engagement cross-check · {d.rangeDays}-day window · contacts with a deal created as
-          ground truth for a real lead
-        </p>
+        <CardHead title="Lead quality check" src="heuristic review · 30d" />
         {!d.hubspot.configured ? (
           <div className="mt-4">
             <UnconfiguredNotice envVar="HUBSPOT_SERVICE_KEY">
@@ -255,126 +248,128 @@ export default function SalesSection({ d, insights, aiPlans }: SalesSectionProps
             </UnconfiguredNotice>
           </div>
         ) : d.engagement.error ? (
-          <p className="mt-3 text-sm text-rose-600">
+          <p className="text-sm text-rose-600">
             Couldn&apos;t load engagement data: {d.engagement.error}
           </p>
         ) : eng ? (
-          <>
-            <div className="mt-4 grid gap-5 sm:grid-cols-3">
-              <Card tone="slate">
-                <div className="text-sm text-slate-500">Engaged leads</div>
-                <div className="mt-1 text-3xl font-extrabold text-slate-900">{eng.engagedCount}</div>
-                <div className="mt-1 text-xs text-slate-500">
-                  of {eng.totalContacts} contacts in window · with a deal
-                </div>
-              </Card>
-              <Card tone="slate">
-                <div className="text-sm text-slate-500">Flagged as spam</div>
-                <div className="mt-1 text-3xl font-extrabold text-slate-900">{eng.engagedSpam}</div>
-                <div className="mt-1 text-xs text-slate-500">real leads the filter rejected</div>
-              </Card>
-              <Card tone="slate">
-                <div className="text-sm text-slate-500">Misjudged rate</div>
-                <div className={`mt-1 text-3xl font-extrabold ${misrate !== null && misrate > 5 ? "text-amber-600" : "text-slate-900"}`}>
-                  {misrate !== null ? `${misrate}%` : "—"}
-                </div>
-                <div className="mt-1 text-xs text-slate-500">of engaged leads</div>
-              </Card>
-            </div>
-
-            {eng.engagedSpam === 0 ? (
-              <p className="mt-4 text-sm font-medium text-emerald-700">
-                ✓ Filter aligned — no engaged lead was flagged as spam.
-              </p>
-            ) : (
+          <TwoCol
+            left={
               <>
-                <div className="mt-5">
-                  <p className="text-sm font-medium text-slate-700">Why real leads get flagged</p>
-                  <div className="mt-2 space-y-2">
-                    {eng.topReasons.slice(0, 4).map((r) => {
-                      const pct = Math.round((r.count / eng.engagedSpam) * 100);
-                      return (
-                        <div key={r.label} className="flex items-center gap-3">
-                          <span className="w-44 truncate text-sm text-slate-600" title={r.label}>{r.label}</span>
-                          <div className="h-4 flex-1 overflow-hidden rounded bg-slate-100">
-                            <div className="h-full rounded bg-amber-400" style={{ width: `${pct}%` }} />
-                          </div>
-                          <span className="w-8 text-right text-sm tabular-nums text-slate-700">{r.count}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {eng.misclassified.length > 0 ? (
-                  <div className="mt-5">
-                    <p className="text-sm font-medium text-slate-700">Misjudged leads</p>
-                    <ul className="mt-2 space-y-1 text-sm">
-                      {eng.misclassified.slice(0, 8).map((m) => (
-                        <li key={m.email} className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                          <span className="font-mono text-xs text-slate-800">{m.email}</span>
-                          {m.website ? (
-                            <span className="text-xs text-slate-500">{m.website}</span>
-                          ) : (
-                            <span className="text-xs italic text-slate-400">no website</span>
-                          )}
-                          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-600">
-                            {m.reason}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ) : null}
-
-                <p className="mt-4 text-xs text-slate-500">
-                  Spam without follow-up — top domains:{" "}
-                  {eng.pureSpamTopDomains.length
-                    ? eng.pureSpamTopDomains.map((d) => `${d.label} (${d.count})`).join(" · ")
-                    : "—"}
-                </p>
+                <StatMini label="Engaged leads" value={eng.engagedCount} />
+                <StatMini label="Flagged as spam" value={eng.engagedSpam} />
+                <StatMini label="Misjudged rate" value={misrate !== null ? `${misrate}%` : "—"} />
+                {eng.engagedSpam === 0 ? (
+                  <p className="mt-3 text-sm font-bold text-[oklch(0.42_0.13_152)]">
+                    ✓ Filter aligned — no engaged lead was flagged as spam.
+                  </p>
+                ) : (
+                  <>
+                    <h4 className="text-[13.5px] font-extrabold text-navy mt-3.5 mb-1.5">
+                      Why real leads get flagged
+                    </h4>
+                    {eng.topReasons.slice(0, 4).map((r) => (
+                      <HBarRow
+                        key={r.label}
+                        name={r.label}
+                        pct={Math.round((r.count / eng.engagedSpam) * 100)}
+                        value={r.count}
+                        color="oklch(0.72 0.15 75)"
+                        nameWidth="w-[190px]"
+                      />
+                    ))}
+                  </>
+                )}
               </>
-            )}
-          </>
+            }
+            right={
+              <>
+                <h4 className="text-[13.5px] font-extrabold text-navy mb-1.5">
+                  Misjudged leads, follow up today
+                </h4>
+                {eng.misclassified.length === 0 ? (
+                  <p className="text-sm text-muted">None this window.</p>
+                ) : (
+                  <table className="w-full text-[13.5px]">
+                    <thead>
+                      <tr className="text-left text-muted border-b-[1.5px] border-border">
+                        <th className="py-2 pr-4 text-[11px] font-extrabold uppercase tracking-[0.07em]">Contact</th>
+                        <th className="py-2 text-[11px] font-extrabold uppercase tracking-[0.07em]">Signal</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {eng.misclassified.slice(0, 5).map((m) => (
+                        <tr key={m.email} className="border-b border-border last:border-0">
+                          <td className="py-2 pr-4 font-mono text-xs text-navy">{m.email}</td>
+                          <td className="py-2 text-[12.5px] text-muted">{m.reason}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+                <h4 className="text-[13.5px] font-extrabold text-navy mt-5 mb-1.5">
+                  Spam without follow-up · top domains
+                </h4>
+                {eng.pureSpamTopDomains.length === 0 ? (
+                  <p className="text-sm text-muted">—</p>
+                ) : (
+                  <table className="w-full text-[13.5px]">
+                    <thead>
+                      <tr className="text-left text-muted border-b-[1.5px] border-border">
+                        <th className="py-2 pr-4 text-[11px] font-extrabold uppercase tracking-[0.07em]">Domain</th>
+                        <th className="py-2 text-right text-[11px] font-extrabold uppercase tracking-[0.07em]">Contacts</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {eng.pureSpamTopDomains.slice(0, 5).map((row) => (
+                        <tr key={row.label} className="border-b border-border last:border-0">
+                          <td className="py-2 pr-4 font-mono text-xs text-navy">{row.label}</td>
+                          <td className="py-2 text-right tabular-nums">{row.count}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </>
+            }
+          />
         ) : (
-          <p className="mt-3 text-sm text-slate-500">Loading engagement data…</p>
+          <p className="text-sm text-muted">Loading engagement data…</p>
         )}
       </Card>
 
-      {/* Usage / ROI — tool runs + LLM cost */}
+      {/* Tool ROI */}
       <Card className="mt-8">
-        <h3 className="text-lg font-semibold text-slate-900">Tool ROI</h3>
-        <p className="mt-1 text-sm text-slate-500">
-          Usage events · last {d.rangeDays} days · LLM cost (US$)
-        </p>
+        <CardHead title="Tool ROI" src={`${d.rangeDays}d · usage_events`} />
         {d.usage.perTool.length === 0 ? (
-          <p className="mt-3 text-sm text-slate-500">
+          <p className="text-sm text-muted">
             No tool usage logged yet — runs appear here as the team uses the toolbox.
           </p>
         ) : (
-          <div className="mt-4 overflow-x-auto">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full text-[13.5px]">
               <thead>
-                <tr className="text-left text-slate-500 border-b border-slate-200">
-                  <th className="pb-2">Tool</th>
-                  <th className="pb-2 text-right">Runs</th>
-                  <th className="pb-2 text-right">LLM cost</th>
+                <tr className="text-left text-muted border-b-[1.5px] border-border">
+                  <th className="py-2 pr-4 text-[11px] font-extrabold uppercase tracking-[0.08em]">Tool</th>
+                  <th className="py-2 pr-4 text-right text-[11px] font-extrabold uppercase tracking-[0.08em]">Runs</th>
+                  <th className="py-2 text-right text-[11px] font-extrabold uppercase tracking-[0.08em]">LLM cost (US$)</th>
                 </tr>
               </thead>
               <tbody>
-                {d.usage.perTool.map((t) => (
-                  <tr key={t.tool_slug} className="border-b border-slate-100">
-                    <td className="py-2 font-medium text-slate-800">{t.tool_slug}</td>
-                    <td className="py-2 text-right tabular-nums">{t.runs}</td>
-                    <td className="py-2 text-right tabular-nums">${t.cost_usd.toFixed(2)}</td>
+                {d.usage.perTool.slice(0, 8).map((t) => (
+                  <tr key={t.tool_slug} className="border-b border-border">
+                    <td className="py-2.5 pr-4 font-bold text-navy">{toolName.get(t.tool_slug) ?? t.tool_slug}</td>
+                    <td className="py-2.5 pr-4 text-right tabular-nums">{t.runs}</td>
+                    <td className="py-2.5 text-right tabular-nums">{t.cost_usd.toFixed(2)}</td>
                   </tr>
                 ))}
-                <tr className="font-semibold text-slate-900">
-                  <td className="pt-2">Total</td>
-                  <td className="pt-2 text-right tabular-nums">{d.usage.totalRuns}</td>
-                  <td className="pt-2 text-right tabular-nums">${d.usage.totalCostUsd.toFixed(2)}</td>
-                </tr>
               </tbody>
+              <tfoot>
+                <tr className="border-t-2 border-navy font-extrabold text-navy">
+                  <td className="py-2.5 pr-4">Total (all tools)</td>
+                  <td className="py-2.5 pr-4 text-right tabular-nums">{d.usage.totalRuns}</td>
+                  <td className="py-2.5 text-right tabular-nums">{d.usage.totalCostUsd.toFixed(2)}</td>
+                </tr>
+              </tfoot>
             </table>
           </div>
         )}

@@ -3,7 +3,10 @@
 import { useState } from "react";
 import { usePrefill, prefillUrl } from "@/components/tools/usePrefill";
 import OutputHistory, { type OutputItem } from "@/components/tools/OutputHistory";
-import PageHeader from "@/components/ui/PageHeader";
+import { downloadPdf } from "@/components/tools/downloadPdf";
+import { contentBriefToHtml } from "@/components/tools/pdfRenderers";
+import tool from "./tool";
+import { ToolPageHeader } from "@/lib/tool-icons";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
@@ -33,6 +36,7 @@ export default function ContentBriefPage() {
   const [historyKey, setHistoryKey] = useState(0);
   const [refineText, setRefineText] = useState("");
   const [refining, setRefining] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   async function generate(extra: { refineOutputId?: number; refineInstruction?: string } = {}) {
     setError(null);
@@ -78,12 +82,9 @@ export default function ContentBriefPage() {
   }
 
   return (
+    <>
+      <ToolPageHeader tool={tool} />
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <PageHeader
-        title="Content Brief Generator"
-        description="Turn a target keyword into a writer-ready brief — intent, audience, outline and FAQ ideas."
-      />
-
       <Card className="mt-6 grid gap-4">
         <Input
           label="Target keyword"
@@ -139,6 +140,26 @@ export default function ContentBriefPage() {
             >
               Schema →
             </a>
+            <button
+              onClick={async () => {
+                setExporting(true);
+                try {
+                  await downloadPdf({
+                    html: contentBriefToHtml(brief),
+                    filename: "content-brief.pdf",
+                    landscape: false,
+                  });
+                } catch (err) {
+                  setError(err instanceof Error ? err.message : String(err));
+                } finally {
+                  setExporting(false);
+                }
+              }}
+              disabled={exporting}
+              className="rounded-lg bg-fp-700 px-3 py-1.5 text-sm font-semibold text-white hover:bg-fp-800 disabled:opacity-40"
+            >
+              {exporting ? "Exporting…" : "Download PDF"}
+            </button>
             {cost != null && <span className="text-xs text-slate-500">Cost: US${cost.toFixed(4)}</span>}
           </div>
 
@@ -216,6 +237,7 @@ export default function ContentBriefPage() {
           <OutputHistory toolSlug="content-brief" refreshKey={historyKey} activeId={activeId} onLoad={loadOutput} />
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }

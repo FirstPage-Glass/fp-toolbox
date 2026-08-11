@@ -53,6 +53,13 @@ export interface GscQueryRow {
   position: number;
 }
 
+/** One day of GSC totals (group_by=date) — feeds the Organic clicks KPI sparkline. */
+export interface GscDailyPoint {
+  /** YYYY-MM-DD */
+  date: string;
+  clicks: number;
+}
+
 export interface Ga4TrendPoint {
   date: string;
   activeUsers: number;
@@ -102,6 +109,7 @@ export interface DashboardData {
     siteUrl: string;
     totals: GscTotals | null;
     queries: GscQueryRow[];
+    daily: GscDailyPoint[];
     error: string | null;
   };
   ga4: {
@@ -300,6 +308,20 @@ export async function getDashboardData(days = 30): Promise<DashboardData> {
       position: r.position ?? 0,
     }))
     .slice(0, 8);
+  // Daily clicks series (group_by=date) — feeds the Organic clicks KPI sparkline.
+  // Best-effort: on failure the sparkline just stays empty.
+  let gscDaily: GscDailyPoint[] = [];
+  try {
+    const dailyRows = await cached(
+      `mcp-gsc-daily:${GSC_SITE}:${dataStartDate(days - 1)}:${dataEndDate()}`,
+      () => getMcpGsc(GSC_SITE, dataStartDate(days - 1), dataEndDate(), 31, ["date"])
+    );
+    gscDaily = dailyRows
+      .map((r) => ({ date: (r.keys ?? [])[0] ?? "", clicks: r.clicks ?? 0 }))
+      .filter((p) => p.date.length === 10);
+  } catch {
+    // daily GSC is best-effort
+  }
   let gscPrevTotals: GscTotals | null = null;
   try {
     const gscPrevRows = await cached(
@@ -453,7 +475,7 @@ export async function getDashboardData(days = 30): Promise<DashboardData> {
     psi: { result: psi, error: psiError },
     ahrefs: { configured: ahrefsConfigured, result: ahrefsResult, error: ahrefsError },
     aiVisibility: { result: aiVisibility, error: aiVisibilityError },
-    gsc: { siteUrl: GSC_SITE, totals: gscTotals, queries: gscQueries, error: gscError },
+    gsc: { siteUrl: GSC_SITE, totals: gscTotals, queries: gscQueries, daily: gscDaily, error: gscError },
     ga4: { propertyId: GA4_PROPERTY, totals: ga4.totals, trend: ga4.trend, error: ga4Error },
     deals: { aggregate: deals, error: dealsError },
     engagement: { report: engagement, error: engagementError },

@@ -57,15 +57,15 @@ export default function OutputHistory({
   return (
     <Card noPadding className="p-4">
       <div className="flex items-center justify-between">
-        <span className="text-sm font-semibold text-slate-700">Previous outputs</span>
-        {loading && <span className="text-xs text-slate-400">loading…</span>}
+        <span className="text-sm font-semibold text-navy">Previous outputs</span>
+        {loading && <span className="text-xs text-muted">loading…</span>}
       </div>
 
       {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
 
       <div className="mt-2 max-h-64 overflow-y-auto">
         {!loading && items && items.length === 0 && (
-          <p className="py-3 text-xs text-slate-500">
+          <p className="py-3 text-xs text-muted">
             No saved outputs yet — generate once and it appears here.
           </p>
         )}
@@ -79,10 +79,10 @@ export default function OutputHistory({
             }`}
           >
             <span className="min-w-0">
-              <span className="block truncate text-sm font-medium text-slate-800">
+              <span className="block truncate text-sm font-medium text-navy">
                 {item.brief.clientName || "(untitled)"}
               </span>
-              <span className="block text-xs text-slate-500">
+              <span className="block text-xs text-muted">
                 {new Date(item.createdAt).toLocaleString("en-HK", {
                   month: "short",
                   day: "numeric",
@@ -91,7 +91,7 @@ export default function OutputHistory({
                 })}
               </span>
             </span>
-            <span className="shrink-0 text-xs text-slate-400">${Number(item.costUsd).toFixed(4)}</span>
+            <span className="shrink-0 text-xs text-muted">${Number(item.costUsd).toFixed(4)}</span>
           </button>
         ))}
       </div>

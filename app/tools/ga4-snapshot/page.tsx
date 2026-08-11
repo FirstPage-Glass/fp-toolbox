@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { useToolApi } from "@/components/tools/useToolApi";
 import ResultView, { type SendToLink } from "@/components/tools/ResultView";
 import { usePrefill, prefillUrl } from "@/components/tools/usePrefill";
-import PageHeader from "@/components/ui/PageHeader";
+import tool from "./tool";
+import { ToolPageHeader } from "@/lib/tool-icons";
 import Card from "@/components/ui/Card";
 import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
@@ -47,12 +48,9 @@ export default function Ga4SnapshotPage() {
     : [];
 
   return (
+    <>
+      <ToolPageHeader tool={tool} />
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <PageHeader
-        title="GA4 Traffic Snapshot"
-        description="Active users and sessions for any GA4 property in the portfolio, with a daily trend."
-      />
-
       <Card className="mt-6 grid gap-4 sm:grid-cols-2">
         <div>
           <Input
@@ -102,6 +100,7 @@ export default function Ga4SnapshotPage() {
           <ResultView data={data} sendTo={sendTo} />
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }

@@ -1,8 +1,7 @@
+import Link from "next/link";
 import { getSpamReport } from "@/lib/hubspot";
 import { cached } from "@/lib/cache";
-import PageHeader from "@/components/ui/PageHeader";
 import StatCard from "@/components/ui/StatCard";
-import Card from "@/components/ui/Card";
 
 export const dynamic = "force-dynamic";
 
@@ -10,76 +9,131 @@ export default async function AdminPage() {
   // Memoized 10 min (DB-backed) — the admin page no longer re-hits HubSpot on
   // every refresh.
   const report = await cached("spam-report-admin:30", () => getSpamReport(30), 10 * 60 * 1000);
+  const worstSource = report.topSources[0];
+  const totalSpam = report.spam || 1;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-      <PageHeader
-        title="Lead Quality Report"
-        description="Last 30 days of HubSpot contacts — how much of the inbound is real, and where the junk comes from."
-      />
-
-      <div className="grid gap-5 sm:grid-cols-4">
-        <StatCard label="Total contacts" value={String(report.total)} sub="last 30 days" />
-        <StatCard label="Real leads" value={String(report.good)} sub="pass domain-match + reputation filter" />
-        <StatCard label="Spam" value={String(report.spam)} sub="blocked by the filter" />
-        <StatCard label="Spam rate" value={`${report.spamRatePct}%`} sub="of all inbound" />
+    <>
+      {/* Banner */}
+      <div className="bg-grad-banner text-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-wrap items-end justify-between gap-5">
+          <div>
+            <h1 className="text-white text-[clamp(24px,3vw,32px)] font-extrabold tracking-[-0.015em]">
+              Lead Quality Report
+            </h1>
+            <p className="mt-1.5 text-[14px] text-[oklch(0.93_0.02_250)]">
+              Last 30 days · HubSpot contacts, run through the spam heuristics
+            </p>
+          </div>
+          <Link
+            href="/tools/spam-report"
+            className="inline-flex items-center gap-2 rounded-[10px] bg-grad-cta text-white font-bold text-[14px] px-5 py-3 min-h-[44px] shadow-[0_6px_16px_oklch(0.62_0.19_22_/_0.35)] hover:brightness-105 transition-all"
+          >
+            Run live spam report →
+          </Link>
+        </div>
       </div>
 
-      <div className="mt-8 grid gap-6 lg:grid-cols-2">
-        <Card>
-          <h2 className="text-lg font-semibold text-slate-900">Why contacts are spam</h2>
-          {report.categories.length === 0 ? (
-            <p className="mt-3 text-sm text-slate-500">No spam in the window — clean!</p>
-          ) : (
-            <div className="mt-4 space-y-3">
-              {report.categories.map((c) => {
-                const pct = report.spam ? Math.round((c.count / report.spam) * 100) : 0;
-                return (
-                  <div key={c.reason}>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-700">{c.reason}</span>
-                      <span className="text-slate-500">{c.count} · {pct}%</span>
-                    </div>
-                    <div className="mt-1 h-2 rounded-full bg-slate-100">
-                      <div
-                        className="h-2 rounded-full bg-red-400"
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Headline takeaways */}
+        <div className="rounded-[14px] border border-[oklch(0.62_0.2_22_/_0.22)] bg-[oklch(0.62_0.2_22_/_0.06)] px-5 py-4 mb-6 text-[14px] leading-relaxed text-foreground">
+          <b className="text-navy">Headline:</b> {report.spam.toLocaleString()} of{" "}
+          {report.total.toLocaleString()} inbound contacts ({report.spamRatePct}%) are spam.{" "}
+          <b className="text-navy">{report.good.toLocaleString()} real leads</b> pass the
+          filter{worstSource ? (
+            <>
+              {" "}
+              — top junk source: <b className="text-navy">{worstSource.domain}</b> (
+              {worstSource.count} contacts)
+            </>
+          ) : null}
+          .
+        </div>
+
+        {/* KPI row */}
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
+          <StatCard label="Total contacts" value={report.total.toLocaleString()} sub="last 30 days" />
+          <StatCard label="Real leads" value={report.good.toLocaleString()} sub="pass the spam filter" />
+          <StatCard label="Spam" value={report.spam.toLocaleString()} sub="blocked by the filter" />
+          <StatCard label="Spam rate" value={`${report.spamRatePct}%`} sub="of all inbound" />
+        </div>
+
+        {/* Two panels */}
+        <div className="grid gap-5 lg:grid-cols-2 items-start">
+          <div className="bg-white border border-border rounded-[14px] shadow-[var(--shadow-sm)] p-5">
+            <div className="flex items-center gap-2.5 mb-4">
+              <h2 className="text-[16px] font-extrabold text-navy">Why contacts are spam</h2>
+              <span className="ml-auto text-[11px] font-bold uppercase tracking-[0.06em] text-muted">
+                share of flagged
+              </span>
             </div>
-          )}
-        </Card>
+            {report.categories.length === 0 ? (
+              <p className="text-sm text-muted">No spam in the window — clean!</p>
+            ) : (
+              <div className="space-y-2">
+                {report.categories.map((c) => {
+                  const pct = Math.round((c.count / totalSpam) * 100);
+                  return (
+                    <div key={c.reason} className="flex items-center gap-3 py-0.5">
+                      <span className="w-[190px] shrink-0 text-[13px] font-semibold text-navy truncate">
+                        {c.reason}
+                      </span>
+                      <div className="flex-1 h-5 rounded-md bg-surface overflow-hidden">
+                        <div
+                          className="h-full rounded-md bg-[oklch(0.62_0.2_22_/_0.8)]"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                      <span className="w-[54px] shrink-0 text-right font-mono text-[13px] font-bold text-navy">
+                        {c.count} · {pct}%
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
 
-        <Card>
-          <h2 className="text-lg font-semibold text-slate-900">Worst source domains</h2>
-          <p className="mt-1 text-xs text-slate-400">
-            Email domains to consider blocking in HubSpot (settings → suppression).
-          </p>
-          {report.topSources.length === 0 ? (
-            <p className="mt-3 text-sm text-slate-500">No spam sources found.</p>
-          ) : (
-            <table className="mt-3 w-full text-sm">
-              <thead>
-                <tr className="text-left text-slate-500 border-b border-slate-200">
-                  <th className="pb-2">Domain</th>
-                  <th className="pb-2 text-right">Contacts</th>
-                </tr>
-              </thead>
-              <tbody>
-                {report.topSources.map((s) => (
-                  <tr key={s.domain} className="border-b border-slate-100">
-                    <td className="py-2 font-mono text-xs">{s.domain}</td>
-                    <td className="py-2 text-right">{s.count}</td>
+          <div className="bg-white border border-border rounded-[14px] shadow-[var(--shadow-sm)] p-5">
+            <div className="flex items-center gap-2.5 mb-4">
+              <h2 className="text-[16px] font-extrabold text-navy">Worst source domains</h2>
+              <span className="ml-auto text-[11px] font-bold uppercase tracking-[0.06em] text-muted">
+                by contacts
+              </span>
+            </div>
+            {report.topSources.length === 0 ? (
+              <p className="text-sm text-muted">No spam sources found.</p>
+            ) : (
+              <table className="w-full text-[13.5px]">
+                <thead>
+                  <tr className="text-left text-muted border-b-[1.5px] border-border">
+                    <th className="py-2 pr-4 text-[11px] font-extrabold uppercase tracking-[0.07em]">
+                      Domain
+                    </th>
+                    <th className="py-2 pr-4 text-right text-[11px] font-extrabold uppercase tracking-[0.07em]">
+                      Contacts
+                    </th>
+                    <th className="py-2 text-right text-[11px] font-extrabold uppercase tracking-[0.07em]">
+                      Share
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </Card>
-      </div>
-    </div>
+                </thead>
+                <tbody>
+                  {report.topSources.map((s) => (
+                    <tr key={s.domain} className="border-b border-border last:border-0">
+                      <td className="py-2.5 pr-4 font-mono text-xs text-navy">{s.domain}</td>
+                      <td className="py-2.5 pr-4 text-right tabular-nums">{s.count}</td>
+                      <td className="py-2.5 text-right tabular-nums">
+                        {((s.count / totalSpam) * 100).toFixed(1)}%
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+      </main>
+    </>
   );
 }

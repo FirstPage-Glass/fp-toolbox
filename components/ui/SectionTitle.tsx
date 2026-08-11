@@ -10,10 +10,10 @@ interface SectionTitleProps {
 /** Section heading with an optional count, e.g. "SEO Research 6". */
 export default function SectionTitle({ children, count, className = "" }: SectionTitleProps) {
   return (
-    <div className={`flex items-baseline gap-2 ${className}`}>
-      <h2 className="text-xl font-bold text-slate-900">{children}</h2>
+    <div className={`flex items-baseline gap-2.5 ${className}`}>
+      <h2 className="text-xl font-extrabold text-navy">{children}</h2>
       {count !== undefined ? (
-        <span className="text-sm text-slate-400">{count}</span>
+        <span className="text-xs font-bold text-muted">{count}</span>
       ) : null}
     </div>
   );

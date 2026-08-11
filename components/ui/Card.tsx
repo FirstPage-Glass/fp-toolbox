@@ -12,8 +12,8 @@ interface CardProps {
 }
 
 const TONE: Record<NonNullable<CardProps["tone"]>, string> = {
-  white: "bg-white border-slate-200",
-  slate: "bg-slate-50 border-slate-200",
+  white: "bg-white border-border",
+  slate: "bg-surface border-border",
 };
 
 /** Shared card container: white (or slate) background, rounded, subtle border + shadow. */
@@ -26,9 +26,13 @@ export default function Card({
 }: CardProps) {
   return (
     <div
-      className={`rounded-xl shadow-sm border ${TONE[tone]} ${
+      className={`rounded-[14px] shadow-[var(--shadow-sm)] border ${TONE[tone]} ${
         noPadding ? "" : "p-6"
-      } ${hover ? "hover:shadow-md hover:border-fp-300 transition-all" : ""} ${className}`}
+      } ${
+        hover
+          ? "hover:shadow-[var(--shadow-md)] hover:-translate-y-[3px] hover:border-fp-300 transition-all"
+          : ""
+      } ${className}`}
     >
       {children}
     </div>

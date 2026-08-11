@@ -3,7 +3,10 @@
 import { useEffect, useState } from "react";
 import { usePrefill, prefillUrl } from "@/components/tools/usePrefill";
 import OutputHistory, { type OutputItem } from "@/components/tools/OutputHistory";
-import PageHeader from "@/components/ui/PageHeader";
+import { downloadPdf } from "@/components/tools/downloadPdf";
+import { reportToHtml } from "@/components/tools/pdfRenderers";
+import tool from "./tool";
+import { ToolPageHeader } from "@/lib/tool-icons";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
@@ -29,6 +32,7 @@ export default function MonthlyReportPage() {
   const [historyKey, setHistoryKey] = useState(0);
   const [refineText, setRefineText] = useState("");
   const [refining, setRefining] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     fetch("/api/tools/monthly-report")
@@ -81,12 +85,9 @@ export default function MonthlyReportPage() {
   }
 
   return (
+    <>
+      <ToolPageHeader tool={tool} />
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <PageHeader
-        title="Monthly SEO Report"
-        description="GSC, GA4, PageSpeed and AI visibility data narrated into a client-ready monthly report."
-      />
-
       <Card className="mt-6 grid gap-4">
         <div>
           <Input
@@ -140,6 +141,26 @@ export default function MonthlyReportPage() {
             >
               Proposal →
             </a>
+            <button
+              onClick={async () => {
+                setExporting(true);
+                try {
+                  await downloadPdf({
+                    html: reportToHtml(report),
+                    filename: "monthly-seo-report.pdf",
+                    landscape: false,
+                  });
+                } catch (err) {
+                  setError(err instanceof Error ? err.message : String(err));
+                } finally {
+                  setExporting(false);
+                }
+              }}
+              disabled={exporting}
+              className="rounded-lg bg-fp-700 px-3 py-1.5 text-sm font-semibold text-white hover:bg-fp-800 disabled:opacity-40"
+            >
+              {exporting ? "Exporting…" : "Download PDF"}
+            </button>
             {cost != null && <span className="text-xs text-slate-500">Cost: US${cost.toFixed(4)}</span>}
           </div>
 
@@ -191,6 +212,7 @@ export default function MonthlyReportPage() {
           <OutputHistory toolSlug="monthly-report" refreshKey={historyKey} activeId={activeId} onLoad={loadOutput} />
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }

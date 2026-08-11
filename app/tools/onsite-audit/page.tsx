@@ -1,4 +1,6 @@
 "use client";
+import tool from "./tool";
+import { ToolPageHeader } from "@/lib/tool-icons";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Card from "@/components/ui/Card";
@@ -260,12 +262,9 @@ export default function OnsiteAuditPage() {
   });
 
   return (
+    <>
+      <ToolPageHeader tool={tool} />
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <h1 className="text-2xl font-bold text-slate-900">Onsite SEO Audit</h1>
-      <p className="mt-1 text-sm text-slate-600">
-        Runs the full SEO Implementation Checklist against a site — crawl + GSC/GA4/PSI/Ahrefs checks, with manual steps flagged for a human.
-      </p>
-
       <div className="mt-6 flex gap-2">
         <input
           value={url}
@@ -493,6 +492,7 @@ export default function OnsiteAuditPage() {
           ))}
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }

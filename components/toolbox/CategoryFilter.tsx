@@ -20,10 +20,10 @@ export default function CategoryFilter({
       type="button"
       onClick={onClick}
       aria-pressed={selected}
-      className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${
+      className={`rounded-full px-4 py-2 text-[13px] font-bold min-h-[42px] transition-all cursor-pointer ${
         selected
-          ? "bg-fp-600 text-white"
-          : "border border-slate-200 bg-white text-slate-600 hover:border-fp-300 hover:text-fp-700"
+          ? "bg-navy border border-navy text-white"
+          : "border border-border bg-white text-muted hover:border-blue hover:text-fp-600"
       }`}
     >
       {label}

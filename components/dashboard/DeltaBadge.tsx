@@ -16,7 +16,9 @@ export default function DeltaBadge({ delta, invert = false, suffix = "%" }: Delt
   return (
     <span
       className={`inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-semibold ${
-        good ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"
+        good
+          ? "bg-[oklch(0.55_0.14_152_/_0.13)] text-[oklch(0.42_0.13_152)]"
+          : "bg-[oklch(0.62_0.20_22_/_0.1)] text-[oklch(0.62_0.20_22)]"
       }`}
       title={`vs previous window`}
     >

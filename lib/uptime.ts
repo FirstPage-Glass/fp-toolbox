@@ -84,7 +84,7 @@ export async function getUptimeStats(
 ): Promise<UptimeStats> {
   try {
     await ensureUptimeTable();
-    // 1-min checks → up to 1440 rows in 24h; cap above that so the uptimePct
+    // 5-min checks → up to 288 rows in 24h; cap above that so the uptimePct
     // window really covers the full requested range.
     const { rows } = await pool.query(
       `SELECT ok, status_code AS "statusCode", latency_ms AS "latencyMs", checked_at AS "checkedAt"
@@ -108,7 +108,7 @@ export async function getUptimeStats(
       downChecks: totalChecks - okChecks,
       uptimePct: totalChecks === 0 ? null : Math.round((okChecks / totalChecks) * 1000) / 10,
       lastCheck: recent[0] ?? null,
-      recent: recent.slice(0, 12),
+      recent: recent.slice(0, 30),
     };
   } catch (err) {
     console.error("getUptimeStats failed:", err);

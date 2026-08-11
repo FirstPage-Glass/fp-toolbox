@@ -6,7 +6,7 @@ Next.js App Router surface of the toolbox platform: pages, API routes, tool UIs,
 
 ## Ownership
 
-- Owns: `app/page.tsx` (metrics dashboard), `app/layout.tsx`, `app/globals.css`, route folders (`login/`, `toolbox/`, `presentation/`, `api/login/`, `api/logout/`, `api/tools/`), `app/tools/<slug>/` (tool folders: `tool.ts` manifest + `page.tsx`), `app/components/NavBar.tsx`, `app/favicon.ico`.
+- Owns: `app/page.tsx` (metrics dashboard), `app/layout.tsx`, `app/globals.css`, route folders (`login/`, `toolbox/`, `usage/`, `api/login/`, `api/logout/`, `api/tools/`), `app/tools/<slug>/` (tool folders: `tool.ts` manifest + `page.tsx`), `app/components/NavBar.tsx`, `app/favicon.ico`.
 - Root owns: `proxy.ts` (auth guard; formerly `middleware.ts`, renamed in Next.js 16).
 - Data fetching lives here, but data sources live in `lib/` (see `lib/AGENTS.md`).
 
@@ -16,11 +16,11 @@ Routing map:
 
 | Route | Type | Auth | Data source |
 |-------|------|------|-------------|
-| `/` | Server | Yes | `lib/dashboard.ts` (HubSpot leads + deals/pipeline + usage events + firstpage MCP GA4/GSC/PSI + Ahrefs) + `lib/uptime.ts` (Site status) + `lib/ai-plans.ts` (AI-suggested action plans via OpenRouter, memoized 1h). Two sections (Website / Sales) with sticky `SectionNav`; `?days=7|30|90` range picker (default 30) |
+| `/` | Server | Yes | `lib/dashboard.ts` (HubSpot leads + deals/pipeline + usage events + firstpage MCP GA4/GSC/PSI + Ahrefs) + `lib/uptime.ts` (Site status) + `lib/ai-plans.ts` (AI-suggested action plans via OpenRouter, memoized 1h) + `lib/hubspot.ts` `getSpamReport(30)` (Lead Quality zone, memoized 10 min). Pagehead banner per `dashboard.html` (title + sub/submeta + `?days=` range picker), three sections (Website / Sales / Lead Quality) with sticky `SectionNav`; `?days=7|30|90` range picker (default 30) |
 | `/toolbox` | Server shell + client view | No | `lib/registry.ts` (code); client `ToolboxView` (components/toolbox/) handles search + category via `?q=&cat=` |
-| `/tools/<slug>` | Client | Yes | per-tool API route; ~22 tools across SEO Research / SEO Technical / Sales / Content / Operations (see Child DOX below) |
+| `/tools/<slug>` | Client | Yes | per-tool API route; 25 tools across SEO Research / SEO Technical / Sales / Content / Operations (see Child DOX below) |
 | `/tools/onsite-audit` | Client | Yes | full-site audit: POST starts a background job → `jobId`, GET `?jobId=` polls progress → result, GET `?outputId=` loads a past saved run (+ its manual-action states), bare GET lists run history. Crawl via self-hosted browserless (`lib/onsite-audit/`) + GSC/GA4/PSI/Ahrefs + LLM summary; every run persists to `tool_outputs`. Manual actions are interactive (status select + notes) via `/api/tools/onsite-audit/actions` (POST upsert / GET by domain), keyed per client domain |
-| `/presentation` | Server | Yes | Postgres usage stats |
+| `/usage` | Server | Yes | `lib/usage.ts` — tool runs / active users / LLM cost + per-tool run grid |
 | `/login` | Client | No | — |
 | `/api/login`, `/api/logout` | API | No | `AUTH_USERS` env |
 | `/api/tools/<slug>` | API | Yes (cookie) | GET = picker options (data tools) or history list (LLM tools); POST = run / refine |
@@ -36,8 +36,8 @@ Routing map:
 ## Work Guidance
 
 - Layout max-width: `max-w-7xl mx-auto px-4 sm:px-6 lg:px-8`.
-- Build from `components/ui/` atoms: `Card` (white/slate), `StatCard` (KPI, fp tones for emphasis), `PageHeader` (page titles), `Badge` (static color map), `Button`/`Input` (client forms). Extend `components/ui/` rather than hand-copying card classes.
-- Emoji icons as lightweight indicators; no icon library dependency. Brand colors: `--color-fp-50` … `--color-fp-950` in `globals.css` (Tailwind v4 `@theme inline` — do not create a `tailwind.config.js`).
+- Build from `components/ui/` atoms: `Card` (white/slate), `StatCard` (KPI, fp tones for emphasis), `PageHeader` (full-width blue-gradient banner; `ToolPageHeader` in `lib/tool-icons.tsx` for tool pages — SVG tile + meta chips), `Badge` (static color map), `Button`/`Input` (client forms). Extend `components/ui/` rather than hand-copying card classes.
+- Tool icons are stroke SVGs from `lib/tool-icons.tsx` (`ToolIcon`); category colors via `categoryColorClass`/`categoryBgClass`/`categoryBarClass`. Brand tokens in `globals.css` (`@theme inline`): `navy`/`coral`/`blue`/`surface`/`muted`/`border` + `--grad-cta`/`--grad-banner`, plus the `fp-*` blue scale. Font is Open Sans (`--font-open-sans`). Tailwind v4 — do not create a `tailwind.config.js`.
 - `images.unoptimized: true` must stay in `next.config.ts`; build output goes to `dist/`, not `.next/`.
 
 ## Verification

@@ -12,7 +12,7 @@ interface RangePickerProps {
  */
 export default function RangePicker({ days }: RangePickerProps) {
   return (
-    <div className="inline-flex items-center rounded-lg bg-slate-100 p-1">
+    <div className="inline-flex items-center gap-0.5 rounded-[10px] bg-white/14 border border-white/22 p-1">
       {RANGES.map((r) => {
         const isActive = days === r;
         return (
@@ -20,10 +20,10 @@ export default function RangePicker({ days }: RangePickerProps) {
             key={r}
             href={`/?days=${r}`}
             aria-current={isActive ? "page" : undefined}
-            className={`rounded-md px-3 py-1 text-sm font-medium transition-colors ${
+            className={`rounded-[7px] px-4 py-2 text-[13px] font-bold min-h-[38px] transition-colors ${
               isActive
-                ? "bg-white text-slate-900 shadow-sm"
-                : "text-slate-500 hover:text-slate-800"
+                ? "bg-white text-navy"
+                : "text-[oklch(0.93_0.02_250)] hover:bg-white/10"
             }`}
           >
             {r}d

@@ -2,12 +2,12 @@
 
 import {
   ResponsiveContainer,
-  LineChart,
+  AreaChart,
+  Area,
   Line,
   XAxis,
   YAxis,
   Tooltip,
-  Legend,
   CartesianGrid,
 } from "recharts";
 import type { Ga4TrendPoint } from "@/lib/dashboard";
@@ -25,35 +25,41 @@ function withMovingAverage(data: Ga4TrendPoint[]): (Ga4TrendPoint & { users7d: n
   });
 }
 
-/** Daily GA4 active users + sessions, with a 7-day moving average for users. */
+/** Daily GA4 active users (area) + sessions + 7d moving average — design-ref site analytics chart. */
 export default function TrafficTrendChart({ data }: TrafficTrendChartProps) {
   if (data.length === 0) {
     return (
-      <p className="py-10 text-center text-sm text-slate-500">
+      <p className="py-10 text-center text-sm text-muted">
         No GA4 data in this period.
       </p>
     );
   }
   const chartData = withMovingAverage(data);
   return (
-    <ResponsiveContainer width="100%" height={240}>
-      <LineChart data={chartData} margin={{ top: 8, right: 8, bottom: 0, left: -8 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+    <ResponsiveContainer width="100%" height={220}>
+      <AreaChart data={chartData} margin={{ top: 8, right: 8, bottom: 0, left: -8 }}>
+        <defs>
+          <linearGradient id="ga4Area" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="oklch(0.62 0.16 250 / 0.28)" />
+            <stop offset="100%" stopColor="oklch(0.62 0.16 250 / 0)" />
+          </linearGradient>
+        </defs>
+        <CartesianGrid strokeDasharray="3 3" stroke="#e5e5e5" />
         <XAxis
           dataKey="date"
-          tick={{ fontSize: 11, fill: "#64748b" }}
+          tick={{ fontSize: 11, fill: "#787878" }}
           tickFormatter={(d: string) => d.slice(5)}
           minTickGap={24}
         />
-        <YAxis tick={{ fontSize: 11, fill: "#64748b" }} allowDecimals={false} />
+        <YAxis tick={{ fontSize: 11, fill: "#787878" }} allowDecimals={false} />
         <Tooltip labelFormatter={(label) => String(label)} />
-        <Legend wrapperStyle={{ fontSize: 12 }} />
-        <Line
+        <Area
           type="monotone"
           dataKey="activeUsers"
           name="Active users"
           stroke="#427fe0"
-          strokeWidth={2}
+          strokeWidth={2.5}
+          fill="url(#ga4Area)"
           dot={false}
         />
         <Line
@@ -69,11 +75,11 @@ export default function TrafficTrendChart({ data }: TrafficTrendChartProps) {
           type="monotone"
           dataKey="sessions"
           name="Sessions"
-          stroke="#10b981"
+          stroke="oklch(0.5 0.14 254)"
           strokeWidth={2}
           dot={false}
         />
-      </LineChart>
+      </AreaChart>
     </ResponsiveContainer>
   );
 }

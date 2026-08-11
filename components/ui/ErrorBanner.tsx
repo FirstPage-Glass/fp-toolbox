@@ -10,7 +10,7 @@ export default function ErrorBanner({ children, className = "" }: ErrorBannerPro
   return (
     <div
       role="alert"
-      className={`rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700 ${className}`}
+      className={`rounded-[10px] border border-red-200 bg-red-50 p-4 text-sm text-red-700 ${className}`}
     >
       {children}
     </div>

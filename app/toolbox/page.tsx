@@ -11,15 +11,15 @@ export default async function ToolboxPage({
   const activeCount = tools.filter((t) => t.status === "active").length;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    <>
       <PageHeader
         title="Toolbox"
-        description="Sales weapons built into the platform. Pick a tool — each one generates a client-ready deliverable."
+        description="Sales weapons built into the platform — client-ready deliverables generated from real HubSpot, GA4, GSC, PageSpeed and Ahrefs data. Search by name, description, category or owner."
         count={`${activeCount} tools`}
       />
       {/* Initial q/cat come from the URL as server props → full SSR first paint.
           Client updates write back via router.replace; back/forward sync via popstate. */}
       <ToolboxView initialQuery={sp.q ?? ""} initialCategory={sp.cat ?? null} />
-    </div>
+    </>
   );
 }

@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 const SECTIONS = [
   { id: "website", label: "Website Performance" },
   { id: "sales", label: "Sales Performance" },
+  { id: "lead-quality", label: "Lead Quality" },
 ] as const;
 
 /**
@@ -36,20 +37,20 @@ export default function SectionNav() {
   return (
     <nav
       aria-label="Dashboard sections"
-      className="sticky top-16 z-40 border-b border-slate-200 bg-white/90 backdrop-blur"
+      className="sticky top-16 z-40 border-b border-border bg-white/96 backdrop-blur"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex gap-2 overflow-x-auto py-2.5">
+        <div className="flex gap-1.5 overflow-x-auto py-2.5">
           {SECTIONS.map((s) => {
             const isActive = active === s.id;
             return (
               <a
                 key={s.id}
                 href={`#${s.id}`}
-                className={`whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+                className={`whitespace-nowrap rounded-full px-4 py-2 text-[13.5px] font-bold transition-colors ${
                   isActive
-                    ? "bg-fp-500 text-white shadow-sm"
-                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                    ? "bg-navy text-white shadow-sm"
+                    : "bg-surface text-muted hover:bg-border"
                 }`}
               >
                 {s.label}

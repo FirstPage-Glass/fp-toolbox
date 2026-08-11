@@ -1,16 +1,15 @@
 import type { ReactNode } from "react";
-import RangePicker from "./RangePicker";
 import InsightList from "./InsightList";
 import type { Insight } from "@/lib/insights";
 
 interface SectionHeaderProps {
-  /** Anchor id the sticky nav jumps to (#website / #sales). */
+  /** Anchor id the sticky nav jumps to (#website / #sales / #lead-quality). */
   id: string;
   /** Accent color scheme for the section. */
   accent: "website" | "sales";
   title: string;
-  description: string;
-  days: number;
+  /** Tag pill next to the title, e.g. "firstpage.hk" / "HubSpot". */
+  tag: string;
   insights: Insight[];
   /** Extra content on the header right (e.g. uptime status pills). */
   right?: ReactNode;
@@ -18,38 +17,34 @@ interface SectionHeaderProps {
 
 const ACCENT_BAR: Record<SectionHeaderProps["accent"], string> = {
   website: "bg-fp-500",
-  sales: "bg-emerald-500",
+  sales: "bg-[oklch(0.55_0.14_152)]",
 };
 
-/** Section header: accent bar + title + range picker + rule-driven insights. */
+/** Section header (design-ref .zonehead + .takeaways): accent bar + title + tag pill + takeaways box. */
 export default function SectionHeader({
   id,
   accent,
   title,
-  description,
-  days,
+  tag,
   insights,
   right,
 }: SectionHeaderProps) {
   return (
-    <div id={id} className="scroll-mt-40">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex items-start gap-3">
-          <span className={`mt-2 w-1.5 self-stretch rounded-full ${ACCENT_BAR[accent]}`} aria-hidden />
-          <div>
-            <h2 className="text-2xl font-bold text-slate-900">{title}</h2>
-            <p className="mt-1 text-sm text-slate-600">{description}</p>
-          </div>
+    <div id={id} className="scroll-mt-40 pt-9">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5">
+          <span className={`w-1 h-[24px] rounded-[2px] ${ACCENT_BAR[accent]}`} aria-hidden />
+          <h2 className="text-2xl font-extrabold text-navy">{title}</h2>
+          <span className="text-[11.5px] font-bold uppercase tracking-[0.1em] text-muted border border-border bg-white px-2.5 py-1 rounded-full">
+            {tag}
+          </span>
         </div>
-        <div className="flex flex-col items-end gap-3">
-          {right ?? null}
-          <RangePicker days={days} />
-        </div>
+        {right ?? null}
       </div>
-      <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-          Key takeaways
-        </p>
+      <div className="mt-5 rounded-[14px] border border-border bg-white p-4 shadow-[var(--shadow-sm)]">
+        <span className="text-[11px] font-extrabold uppercase tracking-[0.1em] text-muted">
+          Last 30 days
+        </span>
         <div className="mt-2">
           <InsightList insights={insights} />
         </div>

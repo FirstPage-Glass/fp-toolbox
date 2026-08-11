@@ -50,7 +50,7 @@ export interface UsageStats {
 
 /**
  * Usage stats, optionally windowed to the last N days. No arg = all-time
- * (presentation page); the dashboard passes a window for its range picker.
+ * (usage page); the dashboard passes a window for its range picker.
  */
 export async function getUsageStats(days?: number): Promise<UsageStats> {
   try {

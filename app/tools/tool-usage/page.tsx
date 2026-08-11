@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useToolApi } from "@/components/tools/useToolApi";
 import ResultView from "@/components/tools/ResultView";
-import PageHeader from "@/components/ui/PageHeader";
+import tool from "./tool";
+import { ToolPageHeader } from "@/lib/tool-icons";
 import Select from "@/components/ui/Select";
 import Button from "@/components/ui/Button";
 import ErrorBanner from "@/components/ui/ErrorBanner";
@@ -21,12 +22,9 @@ export default function ToolUsagePage() {
   const { data, error, loading, run } = useToolApi<UsageStatsResult>("tool-usage");
 
   return (
+    <>
+      <ToolPageHeader tool={tool} />
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <PageHeader
-        title="Tool Usage Stats"
-        description="How much the team is using the toolbox — runs, active users and LLM cost per tool."
-      />
-
       <div className="mt-6 flex items-end gap-3">
         <div>
           <Select
@@ -52,6 +50,7 @@ export default function ToolUsagePage() {
           <ResultView data={data} />
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }

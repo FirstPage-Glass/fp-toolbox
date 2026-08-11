@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { useToolApi } from "@/components/tools/useToolApi";
 import ResultView, { type SendToLink } from "@/components/tools/ResultView";
 import { usePrefill, prefillUrl } from "@/components/tools/usePrefill";
-import PageHeader from "@/components/ui/PageHeader";
+import tool from "./tool";
+import { ToolPageHeader } from "@/lib/tool-icons";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
@@ -47,12 +48,9 @@ export default function SerpLandscapePage() {
     : [];
 
   return (
+    <>
+      <ToolPageHeader tool={tool} />
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <PageHeader
-        title="SERP Landscape"
-        description="The shape of a site&apos;s rankings — how many queries sit in each position bucket, and the biggest-impression queries."
-      />
-
       <Card className="mt-6 grid gap-4 sm:grid-cols-2">
         <div>
           <Input
@@ -100,6 +98,7 @@ export default function SerpLandscapePage() {
           <ResultView data={data} sendTo={sendTo} />
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }

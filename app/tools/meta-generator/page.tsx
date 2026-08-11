@@ -4,7 +4,8 @@ import { useState } from "react";
 import { usePrefill } from "@/components/tools/usePrefill";
 import ResultView from "@/components/tools/ResultView";
 import OutputHistory, { type OutputItem } from "@/components/tools/OutputHistory";
-import PageHeader from "@/components/ui/PageHeader";
+import tool from "./tool";
+import { ToolPageHeader } from "@/lib/tool-icons";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Textarea from "@/components/ui/Textarea";
@@ -74,12 +75,9 @@ export default function MetaGeneratorPage() {
   }
 
   return (
+    <>
+      <ToolPageHeader tool={tool} />
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <PageHeader
-        title="Meta Tag Generator"
-        description="One keyword per line — get SEO titles and meta descriptions for the whole list."
-      />
-
       <Card className="mt-6">
         <Textarea
           value={keywords}
@@ -131,6 +129,7 @@ export default function MetaGeneratorPage() {
           <OutputHistory toolSlug="meta-generator" refreshKey={historyKey} activeId={activeId} onLoad={loadOutput} />
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }
