@@ -1,6 +1,5 @@
 "use client";
 import tool from "./tool";
-import { ToolPageHeader } from "@/lib/tool-icons";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Card from "@/components/ui/Card";
@@ -108,6 +107,8 @@ export default function OnsiteAuditPage() {
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [actions, setActions] = useState<Record<string, ActionState>>({});
   const [actionFilter, setActionFilter] = useState<"all" | ActionStatus>("all");
+  const [verdictFilter, setVerdictFilter] = useState<"all" | Verdict>("all");
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const stopPoll = useCallback(() => {
@@ -263,122 +264,241 @@ export default function OnsiteAuditPage() {
 
   return (
     <>
-      <ToolPageHeader tool={tool} />
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mt-6 flex gap-2">
-        <input
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          placeholder="https://client-site.com"
-          className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-fp-400 focus:outline-none"
-        />
-        <button
-          onClick={run}
-          disabled={busy || !url}
-          className="rounded-lg bg-fp-700 px-5 py-2 text-sm font-semibold text-white hover:bg-fp-800 disabled:opacity-40"
-        >
-          {busy ? "Running…" : "Run audit"}
-        </button>
+      {/* Page head — onsite-audit.html hero */}
+      <div className="bg-grad-banner text-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-11 pb-[52px]">
+          <span className="inline-flex items-center text-xs font-bold tracking-[0.12em] uppercase bg-white/14 border border-white/22 px-3.5 py-1.5 rounded-full mb-5">
+            {tool.category} · Full-site audit
+          </span>
+          <h1 className="text-white text-[clamp(28px,3.4vw,40px)] font-extrabold tracking-[-0.02em] max-w-[24ch]">
+            {tool.name}
+          </h1>
+          <p className="text-[oklch(0.93_0.02_250)] text-[15.5px] mt-3 max-w-[62ch]">
+            {tool.description}
+          </p>
+          <div className="flex flex-wrap gap-2 mt-4">
+            <span className="text-[11px] font-bold uppercase tracking-[0.09em] bg-white/10 border border-white/18 text-[oklch(0.96_0.01_250)] px-3 py-1.5 rounded-full">
+              Job-based
+            </span>
+            <span className="text-[11px] font-bold uppercase tracking-[0.09em] bg-white/10 border border-white/18 text-[oklch(0.96_0.01_250)] px-3 py-1.5 rounded-full">
+              Owner: {tool.owner}
+            </span>
+          </div>
+        </div>
       </div>
 
-      <Card className="mt-6">
-        <h3 className="mb-3 text-base font-semibold text-slate-900">Previous runs</h3>
-        {history.length === 0 ? (
-          <p className="text-sm text-slate-500">
-            No saved runs yet — run an audit and it will appear here.
-          </p>
-        ) : (
-          <div className="divide-y divide-slate-100">
-            {history.map((h) => (
-              <div key={h.id} className="flex items-center justify-between gap-3 py-2">
-                <div className="min-w-0">
-                  <div className="truncate text-sm font-medium text-slate-800">
-                    {h.domain || `Run #${h.id}`}
-                  </div>
-                  <div className="text-xs text-slate-500">
-                    {new Date(h.createdAt).toLocaleString()} ·{" "}
-                    {h.summary
-                      ? `${h.summary.failed} fail · ${h.summary.warned} review · ${h.summary.manual} manual`
-                      : ""}
-                  </div>
-                </div>
-                <Button variant="secondary" onClick={() => void loadRun(h.id)}>
-                  View
-                </Button>
-              </div>
-            ))}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-14">
+        {/* Run card — onsite-audit.html .run-card */}
+        <div className="relative z-10 -mt-7 bg-white border border-border rounded-[14px] shadow-[var(--shadow-md)] p-6">
+          <div className="text-[11.5px] font-extrabold uppercase tracking-[0.09em] text-muted">
+            Target URL
           </div>
-        )}
-      </Card>
+          <div className="mt-2 flex flex-wrap gap-2.5">
+            <input
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="https://client-site.com"
+              className="flex-1 min-w-[240px] h-[48px] rounded-[10px] border border-border px-4 text-[15px] text-foreground placeholder:text-muted focus:border-blue focus:outline-none focus:ring-[3px] focus:ring-fp-500/15"
+            />
+            <button
+              onClick={run}
+              disabled={busy || !url}
+              className="inline-flex items-center gap-2.5 rounded-[10px] bg-grad-cta text-white font-bold text-[15px] px-5.5 min-h-[48px] shadow-[var(--shadow-md)] hover:brightness-105 active:translate-y-px disabled:opacity-45 disabled:cursor-default disabled:filter-none"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-[17px] h-[17px]" aria-hidden="true">
+                <circle cx="11" cy="11" r="7" />
+                <path d="M21 21l-4.3-4.3M11 8v6M8 11h6" />
+              </svg>
+              {busy ? "Running…" : "Run audit"}
+            </button>
+          </div>
+          <p className="mt-3 text-[12.5px] text-muted leading-relaxed">
+            The audit crawls the site, then checks on-page, Search Console,
+            Analytics, PageSpeed and backlink signals. Manual steps are returned
+            as a to-do list for the AM.
+          </p>
+        </div>
 
-      {error && (
-        <div className="mt-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>
-      )}
-
-      {progress && !result && (
-        <Card className="mt-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-sm font-semibold text-slate-900">{statusText(progress.status)}</div>
-              <div className="text-sm text-slate-500">{progress.message}</div>
+        {/* Progress card — onsite-audit.html .progress-card */}
+        {progress && !result && (
+          <div className="mt-4 bg-white border border-border rounded-[14px] shadow-[var(--shadow-sm)] p-6">
+            <div className="flex items-baseline justify-between gap-3">
+              <b className="text-[16px] font-extrabold text-navy tracking-[-0.01em]">{statusText(progress.status)}</b>
+              <span className="text-[12.5px] text-muted uppercase tracking-wide">JOB PHASE</span>
             </div>
+            <div className="mt-1 text-[13.5px] text-muted">{progress.message}</div>
             {progress.status === "crawling" && progress.pagesTotal > 0 && (
-              <div className="text-sm font-semibold text-fp-700">
+              <div className="mt-2.5 text-[13px] font-bold text-fp-600 tabular-nums">
                 {progress.pagesCrawled}/{progress.pagesTotal} pages
               </div>
             )}
-          </div>
-          {progress.status === "crawling" && progress.pagesTotal > 0 && (
-            <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-slate-100">
+            <div className="mt-3.5 h-2 rounded-full bg-surface overflow-hidden">
               <div
-                className="h-full bg-fp-600 transition-all"
-                style={{ width: `${Math.min(100, (progress.pagesCrawled / progress.pagesTotal) * 100)}%` }}
+                className="h-full rounded-full bg-grad-banner transition-all duration-500"
+                style={{
+                  width:
+                    progress.status === "crawling" && progress.pagesTotal > 0
+                      ? `${Math.min(100, (progress.pagesCrawled / progress.pagesTotal) * 100)}%`
+                      : progress.status === "done"
+                        ? "100%"
+                        : "8%",
+                }}
               />
             </div>
-          )}
-        </Card>
-      )}
+          </div>
+        )}
 
-      {result && (
-        <div className="mt-6 space-y-6">
-          <Card>
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h2 className="text-lg font-bold text-slate-900">Audit result — {result.domain}</h2>
-                <div className="mt-1 text-sm text-slate-500">{result.llmSummary}</div>
-              </div>
-              <div className="flex gap-2">
-                <Button variant="secondary" onClick={() => download("onsite-audit.md", toMarkdown(result), "text/markdown")}>
-                  Download report (.md)
-                </Button>
-                <Button variant="secondary" onClick={() => download("onsite-audit.json", JSON.stringify(result, null, 2), "application/json")}>
-                  Download JSON
-                </Button>
-              </div>
-            </div>
-            <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-5">
-              {[
-                { k: "Total", v: result.summary.total, cls: "text-slate-900" },
-                { k: "Pass", v: result.summary.passed, cls: "text-emerald-600" },
-                { k: "Fail", v: result.summary.failed, cls: "text-rose-600" },
-                { k: "Review", v: result.summary.warned, cls: "text-amber-600" },
-                { k: "Manual", v: result.summary.manual, cls: "text-slate-500" },
-              ].map((s) => (
-                <div key={s.k} className="rounded-lg bg-slate-50 p-3 text-center">
-                  <div className={`text-2xl font-bold ${s.cls}`}>{s.v}</div>
-                  <div className="text-xs uppercase tracking-wide text-slate-500">{s.k}</div>
+        {error && (
+          <div className="mt-4 rounded-[10px] border border-[oklch(0.58_0.21_26_/_0.25)] bg-[oklch(0.62_0.2_22_/_0.06)] px-4 py-3 text-sm font-semibold text-[oklch(0.62_0.2_22)]">
+            {error}
+          </div>
+        )}
+
+        {result && (
+          <div className="mt-4">
+            {/* Result head — onsite-audit.html .result-head */}
+            <div className="bg-white border border-border rounded-[14px] shadow-[var(--shadow-sm)] p-6">
+              <div className="flex flex-wrap items-start justify-between gap-3.5">
+                <div>
+                  <h2 className="text-[19px] font-extrabold text-navy">Audit result</h2>
+                  <div className="text-[19px] font-extrabold text-navy">{result.domain}</div>
+                  <div className="mt-0.5 text-[12.5px] text-muted">
+                    {new Date().toLocaleString()} · {result.jobId}
+                  </div>
                 </div>
-              ))}
-            </div>
-          </Card>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => download("onsite-audit.md", toMarkdown(result), "text/markdown")}
+                    className="inline-flex items-center gap-1.5 rounded-[9px] border border-border bg-white px-3.5 py-2 text-[13px] font-bold text-navy hover:bg-surface"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-[15px] h-[15px]" aria-hidden="true">
+                      <path d="M12 3v12M7 10l5 5 5-5" />
+                      <path d="M4 21h16" />
+                    </svg>
+                    Report (.md)
+                  </button>
+                  <button
+                    onClick={() => download("onsite-audit.json", JSON.stringify(result, null, 2), "application/json")}
+                    className="inline-flex items-center gap-1.5 rounded-[9px] border border-border bg-white px-3.5 py-2 text-[13px] font-bold text-navy hover:bg-surface"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-[15px] h-[15px]" aria-hidden="true">
+                      <path d="M12 3v12M7 10l5 5 5-5" />
+                      <path d="M4 21h16" />
+                    </svg>
+                    JSON
+                  </button>
+                  <button
+                    onClick={() => {
+                      setResult(null);
+                      setProgress(null);
+                      setActions({});
+                    }}
+                    className="inline-flex items-center gap-1.5 px-2 py-2 text-[13px] font-bold text-fp-600"
+                  >
+                    Run another audit
+                  </button>
+                </div>
+              </div>
 
-          {manualList.length > 0 && (
-            <Card>
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <h3 className="text-base font-semibold text-slate-900">
-                  Manual actions needed ({doneCount}/{manualList.length} done)
-                </h3>
-                <div className="flex gap-1">
+              {/* Stats — onsite-audit.html .stats */}
+              <div className="mt-5 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-5">
+                {[
+                  { k: "Total", v: result.summary.total, cls: "text-navy" },
+                  { k: "Pass", v: result.summary.passed, cls: "text-[oklch(0.42_0.13_152)]" },
+                  { k: "Fail", v: result.summary.failed, cls: "text-[oklch(0.62_0.2_22)]" },
+                  { k: "Review", v: result.summary.warned, cls: "text-[oklch(0.55_0.13_75)]" },
+                  { k: "Manual", v: result.summary.manual, cls: "text-muted" },
+                ].map((s) => (
+                  <div key={s.k} className="rounded-[10px] bg-surface px-4 py-3.5">
+                    <div className={`text-[28px] font-extrabold tracking-[-0.02em] leading-none tabular-nums ${s.cls}`}>{s.v}</div>
+                    <div className="mt-1.5 text-[11px] font-extrabold uppercase tracking-[0.09em] text-muted">{s.k}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Executive summary — onsite-audit.html .summary-ai */}
+              <div className="mt-5 border-t border-border pt-4">
+                <div className="text-[11px] font-extrabold uppercase tracking-[0.1em] text-muted mb-2">
+                  Executive summary
+                </div>
+                <p className="text-[14px] leading-relaxed max-w-[75ch] text-[oklch(0.3_0.05_266)]">{result.llmSummary}</p>
+              </div>
+            </div>
+
+            {/* Manual actions — onsite-audit.html .result-manual */}
+            {manualList.length > 0 && (
+              <div className="mt-4 bg-white border border-border rounded-[14px] shadow-[var(--shadow-sm)] p-6">
+                <div className="flex flex-wrap items-baseline gap-2.5">
+                  <h3 className="text-[17px] font-extrabold text-navy">Manual actions needed</h3>
+                  <span className="text-xs font-bold text-muted">{doneCount}/{manualList.length} done</span>
+                </div>
+                <p className="mt-1 text-[12.5px] text-muted">
+                  Items that need an AM, client access, or a separate task. Tick them off as they are handled.
+                </p>
+                <div className="mt-3.5 h-2 rounded-full bg-surface overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-[oklch(0.55_0.14_152)] transition-all"
+                    style={{ width: `${Math.min(100, (doneCount / manualList.length) * 100)}%` }}
+                  />
+                </div>
+                <div className="mt-3">
+                  {filteredManual.map((m) => {
+                    const a = actions[m.id] ?? { status: "pending" as ActionStatus, note: "", saved: true, saving: false };
+                    const done = a.status === "done" || a.status === "n-a";
+                    return (
+                      <div key={m.id} className={`flex items-start gap-3 py-2.5 border-t border-border first:border-0 ${done ? "opacity-45" : ""}`}>
+                        <input
+                          type="checkbox"
+                          checked={done}
+                          onChange={() => void updateAction(m.id, { status: done ? "pending" : "done" })}
+                          className="mt-1 h-[17px] w-[17px] shrink-0 cursor-pointer accent-fp-600"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <b className={`text-[13.5px] font-bold text-navy ${done ? "line-through" : ""}`}>{m.item}</b>
+                          {m.instruction && (
+                            <span className="block text-[12.5px] text-muted mt-0.5">{m.instruction}</span>
+                          )}
+                          <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                            <select
+                              value={a.status}
+                              onChange={(e) => void updateAction(m.id, { status: e.target.value as ActionStatus })}
+                              className="rounded-lg border border-border px-2 py-1 text-xs focus:border-fp-400 focus:outline-none"
+                            >
+                              {ACTION_STATUSES.map((s) => (
+                                <option key={s} value={s}>
+                                  {ACTION_STYLE[s].label}
+                                </option>
+                              ))}
+                            </select>
+                            <input
+                              value={a.note}
+                              onChange={(e) =>
+                                setActions((prev) => ({
+                                  ...prev,
+                                  [m.id]: { ...prev[m.id], note: e.target.value, saved: false, saving: false },
+                                }))
+                              }
+                              onBlur={() => {
+                                const cur = actions[m.id];
+                                if (cur && !cur.saved) void updateAction(m.id, { note: cur.note });
+                              }}
+                              placeholder="Note…"
+                              className="min-w-0 flex-1 rounded-lg border border-border px-2 py-1 text-xs focus:border-fp-400 focus:outline-none"
+                            />
+                            <span className="w-14 text-right text-xs text-muted">
+                              {a.saving ? "saving…" : a.saved ? "✓ saved" : ""}
+                            </span>
+                          </div>
+                        </div>
+                        <span className="font-mono text-[11.5px] text-muted pt-0.5 shrink-0">{m.id}</span>
+                      </div>
+                    );
+                  })}
+                  {filteredManual.length === 0 && (
+                    <p className="py-2 text-sm text-muted">No manual actions in this filter.</p>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-1.5 mt-3">
                   {ACTION_FILTERS.map((f) => {
                     const count =
                       f === "all"
@@ -388,8 +508,10 @@ export default function OnsiteAuditPage() {
                       <button
                         key={f}
                         onClick={() => setActionFilter(f)}
-                        className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                          actionFilter === f ? "bg-fp-700 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                        className={`rounded-full border px-3.5 py-1.5 text-[12.5px] font-bold transition-all ${
+                          actionFilter === f
+                            ? "bg-navy border-navy text-white"
+                            : "border-border bg-white text-muted hover:border-[oklch(0.75_0_0)]"
                         }`}
                       >
                         {f === "all" ? "All" : ACTION_STYLE[f].label} ({count})
@@ -398,101 +520,152 @@ export default function OnsiteAuditPage() {
                   })}
                 </div>
               </div>
-              <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-slate-100">
-                <div
-                  className="h-full bg-emerald-500 transition-all"
-                  style={{ width: `${Math.min(100, (doneCount / manualList.length) * 100)}%` }}
-                />
-              </div>
-              <ul className="mt-4 space-y-3">
-                {filteredManual.map((m) => {
-                  const a = actions[m.id] ?? { status: "pending" as ActionStatus, note: "", saved: true, saving: false };
-                  return (
-                    <li key={m.id} className="rounded-lg border border-slate-200 p-3">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="text-sm text-slate-800">
-                            <span className="mr-1 font-mono text-xs text-slate-400">{m.id}</span>
-                            <span className="font-semibold">{m.item}</span>
-                          </div>
-                          {m.instruction && <div className="mt-0.5 text-xs text-slate-500">{m.instruction}</div>}
-                        </div>
-                        <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${ACTION_STYLE[a.status].cls}`}>
-                          {ACTION_STYLE[a.status].label}
-                        </span>
-                      </div>
-                      <div className="mt-2 flex flex-wrap items-center gap-2">
-                        <select
-                          value={a.status}
-                          onChange={(e) => void updateAction(m.id, { status: e.target.value as ActionStatus })}
-                          className="rounded-lg border border-slate-300 px-2 py-1 text-xs focus:border-fp-400 focus:outline-none"
-                        >
-                          {ACTION_STATUSES.map((s) => (
-                            <option key={s} value={s}>
-                              {ACTION_STYLE[s].label}
-                            </option>
-                          ))}
-                        </select>
-                        <input
-                          value={a.note}
-                          onChange={(e) =>
-                            setActions((prev) => ({
-                              ...prev,
-                              [m.id]: { ...prev[m.id], note: e.target.value, saved: false, saving: false },
-                            }))
-                          }
-                          onBlur={() => {
-                            const cur = actions[m.id];
-                            if (cur && !cur.saved) void updateAction(m.id, { note: cur.note });
-                          }}
-                          placeholder="Note…"
-                          className="min-w-0 flex-1 rounded-lg border border-slate-300 px-2 py-1 text-xs focus:border-fp-400 focus:outline-none"
-                        />
-                        <span className="w-14 text-right text-xs text-slate-400">
-                          {a.saving ? "saving…" : a.saved ? "✓ saved" : ""}
-                        </span>
-                      </div>
-                    </li>
-                  );
-                })}
-                {filteredManual.length === 0 && (
-                  <li className="text-sm text-slate-500">No manual actions in this filter.</li>
-                )}
-              </ul>
-            </Card>
-          )}
+            )}
 
-          {result.sections.map((sec) => (
-            <Card key={sec.name}>
-              <h3 className="mb-3 text-base font-semibold text-slate-900">{sec.name}</h3>
-              <div className="divide-y divide-slate-100">
-                {sec.items.map((it) => {
-                  const st = VERDICT_STYLE[it.verdict] ?? { label: it.verdict, cls: "bg-slate-200 text-slate-600" };
-                  const act = it.verdict === "manual" ? actions[it.id] : undefined;
-                  return (
-                    <div key={it.id} className="flex items-start gap-3 py-2">
-                      <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${st.cls}`}>{st.label}</span>
-                      {act && (
-                        <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${ACTION_STYLE[act.status].cls}`}>
-                          {ACTION_STYLE[act.status].label}
+            {/* Checks filters — onsite-audit.html .filters */}
+            <div className="flex flex-wrap gap-1.5 mt-5 mb-1">
+              {(["all", "fail", "warn", "pass", "manual"] as const).map((f) => {
+                const count = result.sections.reduce(
+                  (n, s) => n + s.items.filter((it) => f === "all" || it.verdict === f).length,
+                  0
+                );
+                const label = f === "all" ? "All" : f === "warn" ? "Review" : f === "pass" ? "Pass" : f === "fail" ? "Fail" : "Manual";
+                return (
+                  <button
+                    key={f}
+                    onClick={() => setVerdictFilter(f)}
+                    className={`rounded-full border px-3.5 py-1.5 text-[12.5px] font-bold transition-all ${
+                      verdictFilter === f
+                        ? "bg-navy border-navy text-white"
+                        : "border-border bg-white text-muted hover:border-[oklch(0.75_0_0)]"
+                    }`}
+                  >
+                    {label} ({count})
+                  </button>
+                );
+              })}
+              <span className="ml-auto self-center text-[11px] font-bold uppercase tracking-[0.06em] text-muted">
+                Auto · Semi-auto · Manual
+              </span>
+            </div>
+
+            {/* Sections — onsite-audit.html .sections / .sec */}
+            <div className="mt-3.5 space-y-3.5">
+              {result.sections.map((sec) => {
+                const visible = sec.items.filter((it) => verdictFilter === "all" || it.verdict === verdictFilter);
+                if (visible.length === 0) return null;
+                const collapsed = collapsedSections.has(sec.name);
+                const passCount = sec.items.filter((it) => it.verdict === "pass").length;
+                const failCount = sec.items.filter((it) => it.verdict === "fail").length;
+                return (
+                  <div key={sec.name} className="border border-border rounded-[14px] bg-white shadow-[var(--shadow-sm)] overflow-hidden">
+                    <div
+                      className="flex items-center gap-3 px-5 py-3.5 cursor-pointer select-none border-b border-border"
+                      onClick={() =>
+                        setCollapsedSections((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(sec.name)) next.delete(sec.name);
+                          else next.add(sec.name);
+                          return next;
+                        })
+                      }
+                    >
+                      <h3 className="text-[15.5px] font-extrabold text-navy">{sec.name}</h3>
+                      <span className="text-xs font-bold text-muted">{visible.length}</span>
+                      <span className="ml-auto flex gap-2.5 text-[11px] font-bold tracking-[0.05em] text-muted">
+                        <span>
+                          <b className="text-[oklch(0.42_0.13_152)]">{passCount}</b> pass
                         </span>
-                      )}
-                      <div className="min-w-0">
-                        <div className="text-sm text-slate-800">
-                          <span className="mr-1 font-mono text-xs text-slate-400">{it.id}</span>
-                          {it.item}
-                        </div>
-                        {it.evidence && <div className="mt-0.5 text-xs text-slate-500">{it.evidence}</div>}
-                      </div>
+                        <span>
+                          <b className="text-[oklch(0.62_0.2_22)]">{failCount}</b> fail
+                        </span>
+                      </span>
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className={`w-4 h-4 text-muted transition-transform ${collapsed ? "-rotate-90" : ""}`}
+                        aria-hidden="true"
+                      >
+                        <path d="M6 9l6 6 6-6" />
+                      </svg>
                     </div>
-                  );
-                })}
-              </div>
-            </Card>
-          ))}
+                    {!collapsed && (
+                      <div className="px-5 py-1.5">
+                        {visible.map((it) => {
+                          const st = VERDICT_STYLE[it.verdict] ?? { label: it.verdict, cls: "bg-surface text-navy" };
+                          const act = it.verdict === "manual" ? actions[it.id] : undefined;
+                          return (
+                            <div key={it.id} className="flex items-start gap-3 py-2 border-t border-border/60 first:border-0">
+                              <span className="font-mono text-[11.5px] text-muted pt-0.5 shrink-0 min-w-[34px]">{it.id}</span>
+                              <div className="min-w-0 flex-1">
+                                <div className="text-[13.5px] text-navy">
+                                  {it.item}
+                                  {it.kind ? (
+                                    <span className="inline-block text-[10px] font-extrabold uppercase tracking-[0.05em] px-1.5 py-0.5 rounded ml-1.5 align-middle bg-surface text-muted">
+                                      {it.kind === "semi-auto" ? "Semi-auto" : it.kind}
+                                    </span>
+                                  ) : null}
+                                </div>
+                                {it.evidence && <div className="mt-0.5 text-xs text-muted">{it.evidence}</div>}
+                              </div>
+                              <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10.5px] font-extrabold uppercase tracking-[0.06em] ${st.cls}`}>
+                                {st.label}
+                              </span>
+                              {act && (
+                                <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10.5px] font-extrabold uppercase tracking-[0.06em] ${ACTION_STYLE[act.status].cls}`}>
+                                  {ACTION_STYLE[act.status].label}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+              {result.sections.every(
+                (s) => s.items.filter((it) => verdictFilter === "all" || it.verdict === verdictFilter).length === 0
+              ) && <p className="py-6 text-center text-[13.5px] text-muted">No checks match this filter in the current view.</p>}
+            </div>
+
+          </div>
+        )}
+
+        {/* History — onsite-audit.html .history-card */}
+        <div className="mt-4 bg-white border border-border rounded-[14px] shadow-[var(--shadow-sm)] p-6">
+          <div className="flex items-baseline gap-2.5 mb-1.5">
+            <h3 className="text-[17px] font-extrabold text-navy">Previous runs</h3>
+            <span className="text-xs font-bold text-muted">{history.length}</span>
+          </div>
+          {history.length === 0 ? (
+            <p className="py-2 text-sm text-muted">No saved runs yet — run an audit and it will appear here.</p>
+          ) : (
+            <div>
+              {history.map((h) => (
+                <div key={h.id} className="flex items-center gap-3.5 py-3 border-t border-border first:border-0">
+                  <div className="min-w-0 flex-1">
+                    <b className="text-[14px] font-bold text-navy break-all">{h.domain || `Run #${h.id}`}</b>
+                    <div className="text-xs text-muted mt-0.5">
+                      {new Date(h.createdAt).toLocaleString()}
+                      {h.summary
+                        ? ` · ${h.summary.failed} fail · ${h.summary.warned} review · ${h.summary.manual} manual`
+                        : ""}
+                    </div>
+                  </div>
+                  <Button variant="secondary" onClick={() => void loadRun(h.id)}>
+                    View
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-      )}
-      </div>
+      </main>
     </>
   );
 }

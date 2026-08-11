@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Card from "@/components/ui/Card";
-import { ToolIcon, categoryBgClass, categoryBarClass, categoryColorClass } from "@/lib/tool-icons";
+import { ToolIcon, categoryBgClass, categoryColorClass } from "@/lib/tool-icons";
 import type { ToolManifest } from "@/lib/registry";
 
 interface ToolCardProps {
@@ -12,11 +12,7 @@ export default function ToolCard({ tool }: ToolCardProps) {
   const isExternal = Boolean(tool.externalLink);
 
   const card = (
-    <Card hover className="relative flex h-full flex-col overflow-hidden">
-      <span
-        className={`absolute left-0 top-0 bottom-0 w-1 opacity-0 group-hover:opacity-100 transition-opacity ${categoryBarClass(tool.category)}`}
-        aria-hidden
-      />
+    <Card hover className="relative flex h-full flex-col">
       <div className="flex items-start justify-between">
         <div
           className={`flex h-11 w-11 items-center justify-center rounded-[11px] ${categoryBgClass(tool.category)} ${categoryColorClass(tool.category)}`}
