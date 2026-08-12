@@ -1,6 +1,6 @@
 import { complete } from "./llm";
 import { cached } from "./cache";
-import type { DashboardData } from "./dashboard";
+import type { WebsiteData, SalesData } from "./dashboard";
 
 export interface AiPlan {
   /** One concrete, executable action. */
@@ -29,34 +29,34 @@ Rules:
 const pct = (n: number | null): string => (n === null ? "n/a" : `${n > 0 ? "+" : ""}${n.toFixed(0)}%`);
 
 /** Compact, LLM-friendly snapshot of the dashboard metrics (real numbers only). */
-export function buildDashboardSummary(d: DashboardData): string {
-  const lines: string[] = [`Dashboard snapshot — last ${d.rangeDays} days (vs previous ${d.rangeDays} days)`];
+export function buildDashboardSummary(web: WebsiteData, sales: SalesData): string {
+  const lines: string[] = [`Dashboard snapshot — last ${web.rangeDays} days (vs previous ${web.rangeDays} days)`];
 
   lines.push("\nWEBSITE");
-  lines.push(`- GA4 active users: ${d.ga4.totals?.activeUsers ?? "n/a"} (delta ${pct(d.deltas.ga4Users)}), sessions: ${d.ga4.totals?.sessions ?? "n/a"} (delta ${pct(d.deltas.ga4Sessions)})`);
-  lines.push(`- GSC: ${d.gsc.totals?.impressions ?? "n/a"} impressions (delta ${pct(d.deltas.gscImpressions)}), ${d.gsc.totals?.clicks ?? "n/a"} clicks (delta ${pct(d.deltas.gscClicks)}), CTR ${d.gsc.totals ? (d.gsc.totals.ctr * 100).toFixed(1) + "%" : "n/a"}, avg position ${d.gsc.totals?.position.toFixed(1) ?? "n/a"}`);
-  if (d.gsc.queries.length) {
-    lines.push(`- Top queries: ${d.gsc.queries.slice(0, 5).map((q) => `"${q.query}" (${q.clicks} clicks, pos ${q.position.toFixed(0)})`).join("; ")}`);
+  lines.push(`- GA4 active users: ${web.ga4.totals?.activeUsers ?? "n/a"} (delta ${pct(web.deltas.ga4Users)}), sessions: ${web.ga4.totals?.sessions ?? "n/a"} (delta ${pct(web.deltas.ga4Sessions)})`);
+  lines.push(`- GSC: ${web.gsc.totals?.impressions ?? "n/a"} impressions (delta ${pct(web.deltas.gscImpressions)}), ${web.gsc.totals?.clicks ?? "n/a"} clicks (delta ${pct(web.deltas.gscClicks)}), CTR ${web.gsc.totals ? (web.gsc.totals.ctr * 100).toFixed(1) + "%" : "n/a"}, avg position ${web.gsc.totals?.position.toFixed(1) ?? "n/a"}`);
+  if (web.gsc.queries.length) {
+    lines.push(`- Top queries: ${web.gsc.queries.slice(0, 5).map((q) => `"${q.query}" (${q.clicks} clicks, pos ${q.position.toFixed(0)})`).join("; ")}`);
   }
-  if (d.psi.result) {
-    lines.push(`- PageSpeed mobile: ${d.psi.result.performanceScore ?? "n/a"}/100, LCP ${d.psi.result.lcpMs !== null ? (d.psi.result.lcpMs / 1000).toFixed(1) + "s" : "n/a"}, CLS ${d.psi.result.cls ?? "n/a"}`);
+  if (web.psi.result) {
+    lines.push(`- PageSpeed mobile: ${web.psi.result.performanceScore ?? "n/a"}/100, LCP ${web.psi.result.lcpMs !== null ? (web.psi.result.lcpMs / 1000).toFixed(1) + "s" : "n/a"}, CLS ${web.psi.result.cls ?? "n/a"}`);
   }
-  if (d.ahrefs.result?.keywords.length) {
-    lines.push(`- Ahrefs top keywords: ${d.ahrefs.result.keywords.slice(0, 5).map((k) => `"${k.keyword}" (vol ${k.volume})`).join("; ")}`);
+  if (web.ahrefs.result?.keywords.length) {
+    lines.push(`- Ahrefs top keywords: ${web.ahrefs.result.keywords.slice(0, 5).map((k) => `"${k.keyword}" (vol ${k.volume})`).join("; ")}`);
   }
 
   lines.push("\nSALES");
-  lines.push(`- Leads: ${d.hubspot.leads.length} (delta ${pct(d.deltas.leads)}), spam rate ${d.hubspot.spam?.spamRatePct ?? "n/a"}% (delta ${d.deltas.spamRate !== null ? `${d.deltas.spamRate > 0 ? "+" : ""}${d.deltas.spamRate.toFixed(1)}pp` : "n/a"})`);
-  if (d.hubspot.spam?.topSources.length) {
-    lines.push(`- Top spam sources: ${d.hubspot.spam.topSources.slice(0, 3).map((s) => `${s.domain} (${s.count})`).join("; ")}`);
+  lines.push(`- Leads: ${sales.hubspot.leads.length} (delta ${pct(sales.deltas.leads)}), spam rate ${sales.hubspot.spam?.spamRatePct ?? "n/a"}% (delta ${sales.deltas.spamRate !== null ? `${sales.deltas.spamRate > 0 ? "+" : ""}${sales.deltas.spamRate.toFixed(1)}pp` : "n/a"})`);
+  if (sales.hubspot.spam?.topSources.length) {
+    lines.push(`- Top spam sources: ${sales.hubspot.spam.topSources.slice(0, 3).map((s) => `${s.domain} (${s.count})`).join("; ")}`);
   }
-  const deals = d.deals.aggregate;
-  lines.push(`- Deals created: ${deals?.newCount ?? "n/a"}, new pipeline ${deals ? "$" + deals.pipelineValue.toLocaleString() : "n/a"} (delta ${pct(d.deltas.pipelineValue)}), avg deal size ${deals?.avgAmount ? "$" + deals.avgAmount.toLocaleString() : "n/a"}`);
-  lines.push(`- Closed-won: ${deals?.closedWon.count ?? "n/a"} deals, ${deals ? "$" + deals.closedWon.revenue.toLocaleString() : "n/a"} (delta ${pct(d.deltas.closedWonRevenue)})`);
+  const deals = sales.deals.aggregate;
+  lines.push(`- Deals created: ${deals?.newCount ?? "n/a"}, new pipeline ${deals ? "$" + deals.pipelineValue.toLocaleString() : "n/a"} (delta ${pct(sales.deltas.pipelineValue)}), avg deal size ${deals?.avgAmount ? "$" + deals.avgAmount.toLocaleString() : "n/a"}`);
+  lines.push(`- Closed-won: ${deals?.closedWon.count ?? "n/a"} deals, ${deals ? "$" + deals.closedWon.revenue.toLocaleString() : "n/a"} (delta ${pct(sales.deltas.closedWonRevenue)})`);
   if (deals?.perOwner.length) {
     lines.push(`- Leaderboard: ${deals.perOwner.map((o) => `${o.ownerName} $${o.wonRevenue.toLocaleString()}`).join("; ")}`);
   }
-  lines.push(`- Tool usage: ${d.usage.totalRuns} runs, $${d.usage.totalCostUsd.toFixed(2)} LLM cost; top tools: ${d.usage.perTool.slice(0, 3).map((t) => `${t.tool_slug} (${t.runs})`).join("; ") || "none yet"}`);
+  lines.push(`- Tool usage: ${sales.usage.totalRuns} runs, $${sales.usage.totalCostUsd.toFixed(2)} LLM cost; top tools: ${sales.usage.perTool.slice(0, 3).map((t) => `${t.tool_slug} (${t.runs})`).join("; ") || "none yet"}`);
 
   return lines.join("\n");
 }
@@ -95,18 +95,19 @@ function parsePlans(raw: string): AiPlans | null {
 }
 
 /**
- * AI-suggested actionable plans for the dashboard. Memoized 1h (same TTL as the
- * underlying dashboard data). Returns null when OPENROUTER_API is unset, the
- * LLM call fails, or the output fails validation — the page then falls back to
- * the rule-driven insights only.
+ * AI-suggested actionable plans for the dashboard. ONE shared LLM call for
+ * both zones (memoized 1h, same TTL as the underlying dashboard data) — the
+ * page feeds both sections from the same promise so the call never doubles.
+ * Returns null when OPENROUTER_API is unset, the LLM call fails, or the output
+ * fails validation — the page then falls back to the rule-driven insights only.
  */
-export async function buildAiPlans(d: DashboardData): Promise<AiPlans | null> {
+export async function buildAiPlans(web: WebsiteData, sales: SalesData): Promise<AiPlans | null> {
   if (!process.env.OPENROUTER_API && !process.env.OPENROUTER_API_KEY) return null;
   try {
-    return await cached(`ai-plans:${d.rangeDays}`, async () => {
+    return await cached(`ai-plans:${web.rangeDays}`, async () => {
       const result = await complete({
         system: SYSTEM_PROMPT,
-        user: buildDashboardSummary(d),
+        user: buildDashboardSummary(web, sales),
       });
       return parsePlans(result.text);
     });

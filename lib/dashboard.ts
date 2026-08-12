@@ -84,14 +84,17 @@ export interface Deltas {
   usageCost: number | null;
 }
 
-export interface DashboardData {
-  hubspot: {
-    configured: boolean;
-    leads: HubSpotLead[];
-    trend: LeadTrendPoint[];
-    spam: SpamReport | null;
-    error: string | null;
-  };
+/** Website-zone deltas only — the fields WebsiteSection consumes. */
+export type WebsiteDeltas = Pick<Deltas, "ga4Users" | "ga4Sessions" | "gscClicks" | "gscImpressions">;
+/** Sales-zone deltas only — the fields SalesSection consumes. */
+export type SalesDeltas = Pick<Deltas, "leads" | "spamRate" | "closedWonRevenue" | "pipelineValue" | "usageRuns" | "usageCost">;
+
+/**
+ * Website-performance half of the dashboard. Fetching is split per zone so the
+ * `/` page can stream each section independently: WebsiteSection reads exactly
+ * these fields (plus targets + rangeDays).
+ */
+export interface WebsiteData {
   psi: {
     result: McpPsiResult | null;
     error: string | null;
@@ -118,6 +121,22 @@ export interface DashboardData {
     trend: Ga4TrendPoint[];
     error: string | null;
   };
+  targets: { url: string; domain: string };
+  rangeDays: number;
+  deltas: WebsiteDeltas;
+}
+
+/**
+ * Sales-performance half of the dashboard — the fields SalesSection consumes.
+ */
+export interface SalesData {
+  hubspot: {
+    configured: boolean;
+    leads: HubSpotLead[];
+    trend: LeadTrendPoint[];
+    spam: SpamReport | null;
+    error: string | null;
+  };
   deals: {
     aggregate: DealsAggregate | null;
     error: string | null;
@@ -127,14 +146,15 @@ export interface DashboardData {
     error: string | null;
   };
   usage: UsageStats;
-  clients: {
-    configured: boolean;
-    inventory: McpInventory | null;
-    error: string | null;
-  };
-  targets: { url: string; domain: string };
   rangeDays: number;
-  deltas: Deltas;
+  deltas: SalesDeltas;
+}
+
+/** Client portfolio size for the dashboard pagehead (independent, never blocks). */
+export interface ClientsInfo {
+  configured: boolean;
+  inventory: McpInventory | null;
+  error: string | null;
 }
 
 /** Percent change, null when the previous baseline is zero. */
@@ -227,79 +247,106 @@ async function fetchPsiSafely(): Promise<{
   }
 }
 
-/**
- * Aggregate dashboard data for the / page.
- * Every section degrades gracefully: missing keys and API failures surface as
- * `configured: false` / `error` instead of throwing, so the page always renders.
- * `days` is the dashboard range window; deltas compare against the previous
- * window of the same length (2d window − d window, valid because every metric
- * here is a sum).
- */
-export async function getDashboardData(days = 30): Promise<DashboardData> {
-  const targets = { url: TARGET_URL, domain: TARGET_DOMAIN };
+// ---- zone-level tolerant fetchers (each degrades instead of throwing) -------
 
-  // HubSpot — good leads via the 1h Postgres cache, spam metrics via memoized report.
-  let leads: HubSpotLead[] = [];
-  let spam: SpamReport | null = null;
-  let hubspotError: string | null = null;
-  const hubspotConfigured = Boolean(process.env.HUBSPOT_SERVICE_KEY);
-  if (hubspotConfigured) {
-    try {
-      leads = await getRecentLeads(days);
-    } catch (err) {
-      hubspotError = err instanceof Error ? err.message : String(err);
-    }
-    try {
-      spam = await cached(`spam-report:${days}`, () => getSpamReport(days));
-    } catch (err) {
-      if (!hubspotError) hubspotError = err instanceof Error ? err.message : String(err);
-    }
-  }
-
-  // PageSpeed via MCP (firstpage's own key) — degrade on API failure.
-  const { result: psi, error: psiError } = await fetchPsiSafely();
-
-  // Ahrefs — needs AHREFS_API_KEY.
-  let ahrefsResult: CompetitorResult | null = null;
-  let ahrefsError: string | null = null;
-  const ahrefsConfigured = Boolean(process.env.AHREFS_API_KEY);
-  if (ahrefsConfigured) {
-    try {
-      ahrefsResult = await cached("ahrefs", () =>
-        getCompetitorKeywords(TARGET_DOMAIN, { country: "hk", limit: 10 })
-      );
-    } catch (err) {
-      ahrefsError = err instanceof Error ? err.message : String(err);
-    }
-  }
-
-  // AI visibility (Ahrefs) — 15 units/platform/call, moves slowly → 6h cache.
-  let aiVisibility: AiVisibilityResult | null = null;
-  let aiVisibilityError: string | null = null;
-  if (ahrefsConfigured) {
-    try {
-      aiVisibility = await cached("ahrefs-ai", () => getAiVisibility(TARGET_DOMAIN), 6 * 60 * 60 * 1000);
-    } catch (err) {
-      aiVisibilityError = err instanceof Error ? err.message : String(err);
-    }
-  }
-
-  // GSC — search performance. Windows are exact `days` calendar days each and
-  // non-overlapping: current = [E−days+1, E], previous = [E−2d+1, E−days],
-  // where E = yesterday. (dataStartDate(n) is E−n, so current starts at
-  // dataStartDate(days−1) and previous ends at dataStartDate(days).)
-  let gscRows: GscRow[] = [];
-  let gscError: string | null = null;
+async function fetchLeads(days: number): Promise<{ leads: HubSpotLead[]; error: string | null }> {
   try {
-    gscRows = await cached(
-      `mcp-gsc:${GSC_SITE}:${dataStartDate(days - 1)}:${dataEndDate()}`,
-      () => getMcpGsc(GSC_SITE, dataStartDate(days - 1), dataEndDate())
-    );
+    return { leads: await getRecentLeads(days), error: null };
   } catch (err) {
-    gscError = err instanceof Error ? err.message : String(err);
+    return { leads: [], error: err instanceof Error ? err.message : String(err) };
   }
-  const gscTotals = gscRows.length ? sumGsc(gscRows) : null;
-  const gscQueries: GscQueryRow[] = gscRows
+}
+
+async function fetchSpam(days: number): Promise<{ spam: SpamReport | null; error: string | null }> {
+  try {
+    return { spam: await cached(`spam-report:${days}`, () => getSpamReport(days)), error: null };
+  } catch (err) {
+    return { spam: null, error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+async function fetchDeals(days: number): Promise<{ aggregate: DealsAggregate | null; error: string | null }> {
+  try {
+    const report = await cached(`deals-report:${days}`, () => getDealsReport(days));
+    return { aggregate: aggregateDeals(report), error: null };
+  } catch (err) {
+    return { aggregate: null, error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+async function fetchEngagement(days: number): Promise<{ report: EngagementReport | null; error: string | null }> {
+  try {
+    return { report: await cached(`engagement:${days}`, () => getEngagementReport(days)), error: null };
+  } catch (err) {
+    return { report: null, error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+/** Previous-window lead count (explicit window — leads are deduped by email). Best-effort. */
+async function fetchLeadsPrev(days: number): Promise<number> {
+  try {
+    return (await cached(`leads-prev:${days}`, () => fetchRecentLeads(2 * days, days))).length;
+  } catch {
+    return 0;
+  }
+}
+
+// Tolerant no-op fallbacks for the HubSpot-backed fetchers when the key is
+// unset — same shape as their results, no API call.
+const noLeads = (): Promise<{ leads: HubSpotLead[]; error: string | null }> =>
+  Promise.resolve({ leads: [], error: null });
+const noSpam = (): Promise<{ spam: SpamReport | null; error: string | null }> =>
+  Promise.resolve({ spam: null, error: null });
+const noDeals = (): Promise<{ aggregate: DealsAggregate | null; error: string | null }> =>
+  Promise.resolve({ aggregate: null, error: null });
+const noEngagement = (): Promise<{ report: EngagementReport | null; error: string | null }> =>
+  Promise.resolve({ report: null, error: null });
+const zero = (): Promise<number> => Promise.resolve(0);
+
+async function fetchGscRows(
+  key: string,
+  fn: () => Promise<GscRow[]>
+): Promise<{ rows: GscRow[]; error: string | null }> {
+  try {
+    return { rows: await cached(key, fn), error: null };
+  } catch (err) {
+    return { rows: [], error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+interface GscBundle {
+  totals: GscTotals | null;
+  prevTotals: GscTotals | null;
+  queries: GscQueryRow[];
+  daily: GscDailyPoint[];
+  error: string | null;
+}
+
+/**
+ * GSC search performance for the website zone. Windows are exactly `days`
+ * calendar days each and non-overlapping: current = [E−days+1, E], previous =
+ * [E−2d+1, E−days], where E = yesterday. (dataStartDate(n) is E−n, so current
+ * starts at dataStartDate(days−1) and previous ends at dataStartDate(days).)
+ * Current + daily + previous windows are fetched in parallel; daily and
+ * previous are best-effort (deltas/sparkline just go null/empty on failure).
+ */
+async function fetchGsc(days: number): Promise<GscBundle> {
+  const currentStart = dataStartDate(days - 1);
+  const end = dataEndDate();
+  const prevStart = dataStartDate(2 * days - 1);
+  const prevEnd = dataStartDate(days);
+
+  const [current, daily, prev] = await Promise.all([
+    fetchGscRows(`mcp-gsc:${GSC_SITE}:${currentStart}:${end}`, () => getMcpGsc(GSC_SITE, currentStart, end)),
+    fetchGscRows(
+      `mcp-gsc-daily:${GSC_SITE}:${currentStart}:${end}`,
+      () => getMcpGsc(GSC_SITE, currentStart, end, 31, ["date"])
+    ),
+    fetchGscRows(`mcp-gsc:${GSC_SITE}:${prevStart}:${prevEnd}`, () => getMcpGsc(GSC_SITE, prevStart, prevEnd)),
+  ]);
+
+  const totals = current.rows.length ? sumGsc(current.rows) : null;
+  const queries: GscQueryRow[] = current.rows
     .map((r) => ({
       query: (r.keys ?? []).join(" "),
       clicks: r.clicks ?? 0,
@@ -308,181 +355,219 @@ export async function getDashboardData(days = 30): Promise<DashboardData> {
       position: r.position ?? 0,
     }))
     .slice(0, 8);
-  // Daily clicks series (group_by=date) — feeds the Organic clicks KPI sparkline.
-  // Best-effort: on failure the sparkline just stays empty.
-  let gscDaily: GscDailyPoint[] = [];
-  try {
-    const dailyRows = await cached(
-      `mcp-gsc-daily:${GSC_SITE}:${dataStartDate(days - 1)}:${dataEndDate()}`,
-      () => getMcpGsc(GSC_SITE, dataStartDate(days - 1), dataEndDate(), 31, ["date"])
-    );
-    gscDaily = dailyRows
-      .map((r) => ({ date: (r.keys ?? [])[0] ?? "", clicks: r.clicks ?? 0 }))
-      .filter((p) => p.date.length === 10);
-  } catch {
-    // daily GSC is best-effort
-  }
-  let gscPrevTotals: GscTotals | null = null;
-  try {
-    const gscPrevRows = await cached(
-      `mcp-gsc:${GSC_SITE}:${dataStartDate(2 * days - 1)}:${dataStartDate(days)}`,
-      () => getMcpGsc(GSC_SITE, dataStartDate(2 * days - 1), dataStartDate(days))
-    );
-    gscPrevTotals = gscPrevRows.length ? sumGsc(gscPrevRows) : null;
-  } catch {
-    // previous-window GSC is best-effort — deltas just go null
-  }
+  const dailyPoints: GscDailyPoint[] = daily.rows
+    .map((r) => ({ date: (r.keys ?? [])[0] ?? "", clicks: r.clicks ?? 0 }))
+    .filter((p) => p.date.length === 10);
+  const prevTotals = prev.rows.length ? sumGsc(prev.rows) : null;
 
-  // GA4 — traffic trend. The previous window is fetched as its OWN explicit
-  // window (not 2d−d subtraction): activeUsers is a unique-user count, and
-  // unique counts don't add across windows, so 2d−d would understate the prior
-  // window and inflate the delta.
-  let ga4: { totals: { activeUsers: number; sessions: number } | null; trend: Ga4TrendPoint[] } = {
-    totals: null,
-    trend: [],
-  };
-  let ga4Error: string | null = null;
-  try {
-    const report = await cached(`mcp-ga4:${GA4_PROPERTY}:${days}`, () =>
+  return { totals, prevTotals, queries, daily: dailyPoints, error: current.error };
+}
+
+interface Ga4Bundle {
+  totals: { activeUsers: number; sessions: number } | null;
+  prevTotals: { activeUsers: number; sessions: number } | null;
+  trend: Ga4TrendPoint[];
+  error: string | null;
+}
+
+/**
+ * GA4 traffic for the website zone. The previous window is fetched as its OWN
+ * explicit window (not 2d−d subtraction): activeUsers is a unique-user count,
+ * and unique counts don't add across windows, so 2d−d would understate the
+ * prior window and inflate the delta. Current + previous run in parallel.
+ */
+async function fetchGa4(days: number): Promise<Ga4Bundle> {
+  const [current, prev] = await Promise.all([
+    fetchGa4Report(`mcp-ga4:${GA4_PROPERTY}:${days}`, () =>
       getMcpGa4(GA4_PROPERTY, ["activeUsers", "sessions"], ["date"], `${days}daysAgo`, "today")
-    );
-    ga4 = parseGa4(report);
-  } catch (err) {
-    ga4Error = err instanceof Error ? err.message : String(err);
-  }
-  let ga4Prev: { totals: { activeUsers: number; sessions: number } | null; trend: Ga4TrendPoint[] } = {
-    totals: null,
-    trend: [],
-  };
-  try {
-    const reportPrev = await cached(`mcp-ga4:${GA4_PROPERTY}:prev:${days}`, () =>
+    ),
+    fetchGa4Report(`mcp-ga4:${GA4_PROPERTY}:prev:${days}`, () =>
       getMcpGa4(GA4_PROPERTY, ["activeUsers", "sessions"], ["date"], `${2 * days}daysAgo`, `${days}daysAgo`)
-    );
-    ga4Prev = parseGa4(reportPrev);
-  } catch {
-    // best-effort — deltas just go null
-  }
+    ),
+  ]);
 
-  // Deals — pipeline + closed-won (current + double window for deltas).
-  let deals: DealsAggregate | null = null;
-  let dealsError: string | null = null;
-  const dealsConfigured = Boolean(process.env.HUBSPOT_SERVICE_KEY);
-  if (dealsConfigured) {
-    try {
-      const report = await cached(`deals-report:${days}`, () => getDealsReport(days));
-      deals = aggregateDeals(report);
-    } catch (err) {
-      dealsError = err instanceof Error ? err.message : String(err);
-    }
-  }
-  let dealsPrev: DealsAggregate | null = null;
-  if (dealsConfigured) {
-    try {
-      const report2x = await cached(`deals-report:${2 * days}`, () => getDealsReport(2 * days));
-      dealsPrev = aggregateDeals(report2x);
-    } catch {
-      // best-effort
-    }
-  }
+  return {
+    totals: current.parsed.totals,
+    prevTotals: prev.parsed.totals,
+    trend: current.parsed.trend,
+    error: current.error,
+  };
+}
 
-  // Usage events — windowed Postgres stats (current + double window for deltas).
-  const usage = await getUsageStats(days);
-  const usage2x = await getUsageStats(2 * days);
-
-  // Engagement cross-check — heavy (notes + associations), memoized 1h.
-  let engagement: EngagementReport | null = null;
-  let engagementError: string | null = null;
-  if (hubspotConfigured) {
-    try {
-      engagement = await cached(`engagement:${days}`, () => getEngagementReport(days));
-    } catch (err) {
-      engagementError = err instanceof Error ? err.message : String(err);
-    }
+async function fetchGa4Report(
+  key: string,
+  fn: () => Promise<Ga4Report>
+): Promise<{
+  parsed: { totals: { activeUsers: number; sessions: number } | null; trend: Ga4TrendPoint[] };
+  error: string | null;
+}> {
+  try {
+    return { parsed: parseGa4(await cached(key, fn)), error: null };
+  } catch (err) {
+    return { parsed: { totals: null, trend: [] }, error: err instanceof Error ? err.message : String(err) };
   }
+}
 
-  // Client portfolio size — count of every accessible GSC site + GA4 property.
-  let inventory: McpInventory | null = null;
-  let clientsError: string | null = null;
-  const mcpConfigured = Boolean(process.env.FP_MCP_API_KEY);
-  if (mcpConfigured) {
-    try {
-      inventory = await cached("mcp-inventory", () => getMcpInventory());
-    } catch (err) {
-      clientsError = err instanceof Error ? err.message : String(err);
-    }
+interface AhrefsBundle {
+  configured: boolean;
+  result: CompetitorResult | null;
+  aiVisibility: AiVisibilityResult | null;
+  aiVisibilityError: string | null;
+  error: string | null;
+}
+
+/** Ahrefs keywords + AI visibility (6h cache for the slow-moving citations), in parallel. */
+async function fetchAhrefs(): Promise<AhrefsBundle> {
+  const configured = Boolean(process.env.AHREFS_API_KEY);
+  if (!configured) {
+    return { configured: false, result: null, aiVisibility: null, aiVisibilityError: null, error: null };
   }
-
-  // ---- previous-window baselines (sum metrics: 2d − d) ----------------------
-  let leadsPrevCount = 0;
-  let spamPrev: { total: number; spam: number } | null = null;
-  if (hubspotConfigured) {
-    try {
-      // Explicit previous window [now−2d, now−d) — leads are deduped by email,
-      // so "double window minus window" would understate the prior window.
-      leadsPrevCount = (await cached(`leads-prev:${days}`, () => fetchRecentLeads(2 * days, days))).length;
-    } catch {
-      // best-effort
-    }
-    if (spam) {
+  const [kw, ai] = await Promise.all([
+    (async (): Promise<{ result: CompetitorResult | null; error: string | null }> => {
       try {
-        const s2x = await cached(`spam-report:${2 * days}`, () => getSpamReport(2 * days));
-        spamPrev = {
-          total: Math.max(0, s2x.total - spam.total),
-          spam: Math.max(0, s2x.spam - spam.spam),
-        };
-      } catch {
-        // best-effort
+        return { result: await cached("ahrefs", () => getCompetitorKeywords(TARGET_DOMAIN, { country: "hk", limit: 10 })), error: null };
+      } catch (err) {
+        return { result: null, error: err instanceof Error ? err.message : String(err) };
       }
-    }
+    })(),
+    (async (): Promise<{ result: AiVisibilityResult | null; error: string | null }> => {
+      try {
+        return { result: await cached("ahrefs-ai", () => getAiVisibility(TARGET_DOMAIN), 6 * 60 * 60 * 1000), error: null };
+      } catch (err) {
+        return { result: null, error: err instanceof Error ? err.message : String(err) };
+      }
+    })(),
+  ]);
+  return {
+    configured: true,
+    result: kw.result,
+    aiVisibility: ai.result,
+    aiVisibilityError: ai.error,
+    error: kw.error,
+  };
+}
+
+/**
+ * Website-zone dashboard data (PSI + GSC + GA4 + Ahrefs). Every sub-source
+ * degrades to `null`/`error` instead of throwing, so the zone always renders.
+ * All independent fetches run in parallel (`Promise.all`).
+ */
+export async function getWebsiteData(days = 30): Promise<WebsiteData> {
+  const targets = { url: TARGET_URL, domain: TARGET_DOMAIN };
+  const [psi, gsc, ga4, ahrefs] = await Promise.all([
+    fetchPsiSafely(),
+    fetchGsc(days),
+    fetchGa4(days),
+    fetchAhrefs(),
+  ]);
+
+  const deltas: WebsiteDeltas = {
+    ga4Users: ga4.totals && ga4.prevTotals ? pctChange(ga4.totals.activeUsers, ga4.prevTotals.activeUsers) : null,
+    ga4Sessions: ga4.totals && ga4.prevTotals ? pctChange(ga4.totals.sessions, ga4.prevTotals.sessions) : null,
+    gscClicks: gsc.totals && gsc.prevTotals ? pctChange(gsc.totals.clicks, gsc.prevTotals.clicks) : null,
+    gscImpressions: gsc.totals && gsc.prevTotals ? pctChange(gsc.totals.impressions, gsc.prevTotals.impressions) : null,
+  };
+
+  return {
+    psi: { result: psi.result, error: psi.error },
+    ahrefs: { configured: ahrefs.configured, result: ahrefs.result, error: ahrefs.error },
+    aiVisibility: { result: ahrefs.aiVisibility, error: ahrefs.aiVisibilityError },
+    gsc: { siteUrl: GSC_SITE, totals: gsc.totals, queries: gsc.queries, daily: gsc.daily, error: gsc.error },
+    ga4: { propertyId: GA4_PROPERTY, totals: ga4.totals, trend: ga4.trend, error: ga4.error },
+    targets,
+    rangeDays: days,
+    deltas,
+  };
+}
+
+/**
+ * Sales-zone dashboard data (HubSpot leads/spam + deals + engagement + usage).
+ * Every sub-source degrades to `null`/`error` instead of throwing. Independent
+ * fetches run in parallel; the previous-window baselines feed the deltas.
+ */
+export async function getSalesData(days = 30): Promise<SalesData> {
+  const hubspotConfigured = Boolean(process.env.HUBSPOT_SERVICE_KEY);
+
+  // HubSpot calls share ONE API quota — run them in small batches (≤3 in
+  // flight) so a cold cache can't trip the 429 rate limit. Postgres-backed
+  // usage stats run alongside; they don't consume the HubSpot quota.
+  const [leadsRes, spamRes] = await Promise.all([
+    hubspotConfigured ? fetchLeads(days) : noLeads(),
+    hubspotConfigured ? fetchSpam(days) : noSpam(),
+  ]);
+  const [usageRes, usage2xRes, dealsRes, engagementRes] = await Promise.all([
+    getUsageStats(days),
+    getUsageStats(2 * days),
+    hubspotConfigured ? fetchDeals(days) : noDeals(),
+    hubspotConfigured ? fetchEngagement(days) : noEngagement(),
+  ]);
+  // Previous-window baselines (sums/deduped counts, never 2d−d subtractions).
+  // Always fetch the double window when configured — spamPrev only applies
+  // when both windows succeeded (same behaviour as the old conditional).
+  const [spam2xRes, deals2xRes, leadsPrevCount] = await Promise.all([
+    hubspotConfigured ? fetchSpam(2 * days) : noSpam(),
+    hubspotConfigured ? fetchDeals(2 * days) : noDeals(),
+    hubspotConfigured ? fetchLeadsPrev(days) : zero(),
+  ]);
+
+  const hubspotError = leadsRes.error ?? spamRes.error;
+
+  // Spam-rate delta: exact rates on both sides — spamRatePct is rounded to an
+  // integer, mixing it with the exact previous rate could flip the ±2pp threshold.
+  let spamPrev: { total: number; spam: number } | null = null;
+  if (spamRes.spam && spam2xRes.spam) {
+    spamPrev = {
+      total: Math.max(0, spam2xRes.spam.total - spamRes.spam.total),
+      spam: Math.max(0, spam2xRes.spam.spam - spamRes.spam.spam),
+    };
   }
 
-  const ga4Totals = ga4.totals;
-  const ga4PrevTotals = ga4Prev.totals;
-
-  const prevClosedWon = dealsPrev
-    ? { count: dealsPrev.closedWon.count - (deals?.closedWon.count ?? 0), revenue: dealsPrev.closedWon.revenue - (deals?.closedWon.revenue ?? 0) }
+  const prevClosedWon = deals2xRes.aggregate
+    ? {
+        count: deals2xRes.aggregate.closedWon.count - (dealsRes.aggregate?.closedWon.count ?? 0),
+        revenue: deals2xRes.aggregate.closedWon.revenue - (dealsRes.aggregate?.closedWon.revenue ?? 0),
+      }
     : null;
-  const prevPipeline = dealsPrev
-    ? dealsPrev.pipelineValue - (deals?.pipelineValue ?? 0)
+  const prevPipeline = deals2xRes.aggregate
+    ? deals2xRes.aggregate.pipelineValue - (dealsRes.aggregate?.pipelineValue ?? 0)
     : null;
 
-  const deltas: Deltas = {
-    leads: pctChange(leads.length, leadsPrevCount),
+  const deltas: SalesDeltas = {
+    leads: pctChange(leadsRes.leads.length, leadsPrevCount),
     spamRate:
-      spam && spamPrev && spam.total > 0 && spamPrev.total > 0
-        ? // exact rates on both sides — spamRatePct is rounded to an integer,
-          // mixing it with the exact previous rate could flip the ±2pp threshold
-          (spam.spam / spam.total) * 100 - (spamPrev.spam / spamPrev.total) * 100
+      spamRes.spam && spamPrev && spamRes.spam.total > 0 && spamPrev.total > 0
+        ? (spamRes.spam.spam / spamRes.spam.total) * 100 - (spamPrev.spam / spamPrev.total) * 100
         : null,
-    ga4Users: ga4Totals && ga4PrevTotals ? pctChange(ga4Totals.activeUsers, ga4PrevTotals.activeUsers) : null,
-    ga4Sessions: ga4Totals && ga4PrevTotals ? pctChange(ga4Totals.sessions, ga4PrevTotals.sessions) : null,
-    gscClicks: gscTotals && gscPrevTotals ? pctChange(gscTotals.clicks, gscPrevTotals.clicks) : null,
-    gscImpressions: gscTotals && gscPrevTotals ? pctChange(gscTotals.impressions, gscPrevTotals.impressions) : null,
-    closedWonRevenue: deals && prevClosedWon ? pctChange(deals.closedWon.revenue, prevClosedWon.revenue) : null,
-    pipelineValue: deals ? pctChange(deals.pipelineValue, prevPipeline ?? 0) : null,
-    usageRuns: pctChange(usage.totalRuns, usage2x.totalRuns - usage.totalRuns),
-    usageCost: pctChange(usage.totalCostUsd, usage2x.totalCostUsd - usage.totalCostUsd),
+    closedWonRevenue: dealsRes.aggregate && prevClosedWon ? pctChange(dealsRes.aggregate.closedWon.revenue, prevClosedWon.revenue) : null,
+    pipelineValue: dealsRes.aggregate ? pctChange(dealsRes.aggregate.pipelineValue, prevPipeline ?? 0) : null,
+    usageRuns: pctChange(usageRes.totalRuns, usage2xRes.totalRuns - usageRes.totalRuns),
+    usageCost: pctChange(usageRes.totalCostUsd, usage2xRes.totalCostUsd - usageRes.totalCostUsd),
   };
 
   return {
     hubspot: {
       configured: hubspotConfigured,
-      leads,
-      trend: buildTrend(leads, days),
-      spam,
+      leads: leadsRes.leads,
+      trend: buildTrend(leadsRes.leads, days),
+      spam: spamRes.spam,
       error: hubspotError,
     },
-    psi: { result: psi, error: psiError },
-    ahrefs: { configured: ahrefsConfigured, result: ahrefsResult, error: ahrefsError },
-    aiVisibility: { result: aiVisibility, error: aiVisibilityError },
-    gsc: { siteUrl: GSC_SITE, totals: gscTotals, queries: gscQueries, daily: gscDaily, error: gscError },
-    ga4: { propertyId: GA4_PROPERTY, totals: ga4.totals, trend: ga4.trend, error: ga4Error },
-    deals: { aggregate: deals, error: dealsError },
-    engagement: { report: engagement, error: engagementError },
-    usage,
-    clients: { configured: mcpConfigured, inventory, error: clientsError },
-    targets,
+    deals: { aggregate: dealsRes.aggregate, error: dealsRes.error },
+    engagement: { report: engagementRes.report, error: engagementRes.error },
+    usage: usageRes,
     rangeDays: days,
     deltas,
   };
+}
+
+/** Client portfolio size for the pagehead — memoized 1h, never blocks the page. */
+export async function getClientsInventory(): Promise<ClientsInfo> {
+  const mcpConfigured = Boolean(process.env.FP_MCP_API_KEY);
+  if (!mcpConfigured) return { configured: false, inventory: null, error: null };
+  try {
+    const inventory = await cached("mcp-inventory", () => getMcpInventory());
+    return { configured: true, inventory, error: null };
+  } catch (err) {
+    return { configured: true, inventory: null, error: err instanceof Error ? err.message : String(err) };
+  }
 }

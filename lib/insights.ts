@@ -1,13 +1,8 @@
-import type { DashboardData } from "./dashboard";
+import type { WebsiteData, SalesData } from "./dashboard";
 
 export interface Insight {
   tone: "good" | "bad" | "neutral";
   text: string;
-}
-
-export interface Insights {
-  website: Insight[];
-  sales: Insight[];
 }
 
 const fmtPct = (n: number): string => `${n > 0 ? "+" : ""}${n.toFixed(0)}%`;
@@ -28,14 +23,11 @@ function deltaInsight(
 }
 
 /**
- * Rule-driven headline takeaways for the two dashboard sections — no LLM.
- * Emits only signals above a noise threshold; both lists stay 0–4 items.
+ * Rule-driven headline takeaways for the Website zone — no LLM.
+ * Emits only signals above a noise threshold; stays 0–4 items.
  */
-export function buildInsights(d: DashboardData): Insights {
+export function buildWebsiteInsights(d: WebsiteData): Insight[] {
   const website: Insight[] = [];
-  const sales: Insight[] = [];
-
-  // ---- website ----
   const traffic = deltaInsight("Website traffic", d.deltas.ga4Users);
   if (traffic) website.push(traffic);
   const clicks = deltaInsight("Organic clicks", d.deltas.gscClicks);
@@ -52,8 +44,15 @@ export function buildInsights(d: DashboardData): Insights {
       website.push({ tone: "bad", text: `PageSpeed ${score}/100 — needs priority optimisation` });
     }
   }
+  return website;
+}
 
-  // ---- sales ----
+/**
+ * Rule-driven headline takeaways for the Sales zone — no LLM.
+ * Emits only signals above a noise threshold; stays 0–4 items.
+ */
+export function buildSalesInsights(d: SalesData): Insight[] {
+  const sales: Insight[] = [];
   const leads = deltaInsight("New leads", d.deltas.leads);
   if (leads) sales.push(leads);
   if (d.deltas.spamRate !== null && Math.abs(d.deltas.spamRate) >= 2) {
@@ -76,5 +75,5 @@ export function buildInsights(d: DashboardData): Insights {
     });
   }
 
-  return { website, sales };
+  return sales;
 }

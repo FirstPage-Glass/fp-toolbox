@@ -1,14 +1,19 @@
 import Link from "next/link";
-import { getDashboardData } from "@/lib/dashboard";
+import { Suspense } from "react";
+import { getWebsiteData, getSalesData, getClientsInventory } from "@/lib/dashboard";
+import type { WebsiteData, SalesData } from "@/lib/dashboard";
 import { getUptimeStats } from "@/lib/uptime";
-import { buildInsights } from "@/lib/insights";
+import { buildWebsiteInsights, buildSalesInsights } from "@/lib/insights";
 import { buildAiPlans } from "@/lib/ai-plans";
+import type { AiPlans } from "@/lib/ai-plans";
 import RangePicker from "@/components/dashboard/RangePicker";
 import SectionNav from "@/components/dashboard/SectionNav";
 import WebsiteSection from "@/components/dashboard/WebsiteSection";
 import SalesSection from "@/components/dashboard/SalesSection";
 import LeadQualitySection from "@/components/dashboard/LeadQualitySection";
+import { ZoneSkeleton } from "@/components/dashboard/DashboardSkeleton";
 import { getSpamReport } from "@/lib/hubspot";
+import type { SpamReport } from "@/lib/hubspot";
 import { cached } from "@/lib/cache";
 
 // ponytail: render on every request — the uptime panel must reflect the 5-min
@@ -21,6 +26,67 @@ function parseDays(raw: string | undefined): number {
   return n === 7 || n === 90 ? n : 30;
 }
 
+/** Pagehead portfolio line — independent fetch, streams in after the banner. */
+async function ClientsCount() {
+  const { configured, inventory } = await getClientsInventory();
+  if (!configured || !inventory) return null;
+  return (
+    <p className="mt-[3px] text-[12.5px] text-[oklch(0.93_0.02_250)] opacity-85">
+      {inventory.gscSites} GSC sites · {inventory.ga4Properties} GA4 properties under management
+    </p>
+  );
+}
+
+/** Website zone: waits only on its own data, then streams in independently. */
+async function WebsiteZone({
+  webP,
+  plansP,
+}: {
+  webP: Promise<WebsiteData>;
+  plansP: Promise<AiPlans | null>;
+}) {
+  const web = await webP;
+  const uptime = await getUptimeStats(web.targets.url);
+  const insights = buildWebsiteInsights(web);
+  return <WebsiteSection d={web} uptime={uptime} insights={insights} plansP={plansP} />;
+}
+
+/** Sales zone: waits only on its own data, then streams in independently. */
+async function SalesZone({
+  salesP,
+  plansP,
+}: {
+  salesP: Promise<SalesData>;
+  plansP: Promise<AiPlans | null>;
+}) {
+  const sales = await salesP;
+  const insights = buildSalesInsights(sales);
+  return <SalesSection d={sales} insights={insights} plansP={plansP} />;
+}
+
+/** Empty report shape for the tolerant fallback — never rendered when `error` is set. */
+const EMPTY_SPAM_REPORT: SpamReport = {
+  total: 0,
+  good: 0,
+  spam: 0,
+  spamRatePct: 0,
+  categories: [],
+  topSources: [],
+};
+
+/** Lead Quality zone — same memoized 10-min source as /admin. Tolerant: a
+ * HubSpot 429 (rate limit) degrades to an inline error instead of crashing. */
+async function LeadQualityZone() {
+  let report: SpamReport | null = null;
+  let error: string | null = null;
+  try {
+    report = await cached("spam-report-overview:30", () => getSpamReport(30), 10 * 60 * 1000);
+  } catch (err) {
+    error = err instanceof Error ? err.message : String(err);
+  }
+  return <LeadQualitySection report={report ?? EMPTY_SPAM_REPORT} days={30} error={error} />;
+}
+
 export default async function HomePage({
   searchParams,
 }: {
@@ -28,18 +94,15 @@ export default async function HomePage({
 }) {
   const sp = await searchParams;
   const days = parseDays(sp.days);
-  const d = await getDashboardData(days);
-  const uptime = await getUptimeStats(d.targets.url);
-  const insights = buildInsights(d);
-  // AI plans are memoized 1h and degrade to null — never block the page.
-  const aiPlans = await buildAiPlans(d);
-  // Lead Quality report (same memoized 10-min source as /admin).
-  const spamReport = await cached("spam-report-overview:30", () => getSpamReport(30), 10 * 60 * 1000);
 
-  const inventory =
-    d.clients.configured && d.clients.inventory
-      ? `${d.clients.inventory.gscSites} GSC sites · ${d.clients.inventory.ga4Properties} GA4 properties`
-      : null;
+  // Kick off both zones' fetches NOW (not awaited here) so they run in
+  // parallel while the shell streams; the shared AI-plans promise resolves
+  // once BOTH zones' data is ready (single LLM call, both cards fill together).
+  const webP = getWebsiteData(days);
+  const salesP = getSalesData(days);
+  const plansP = Promise.all([webP, salesP])
+    .then(([web, sales]) => buildAiPlans(web, sales))
+    .catch(() => null);
 
   return (
     <>
@@ -53,11 +116,15 @@ export default async function HomePage({
             <p className="mt-1 text-[14px] text-[oklch(0.93_0.02_250)]">
               Website &amp; sales performance, refreshed hourly
             </p>
-            {inventory ? (
-              <p className="mt-[3px] text-[12.5px] text-[oklch(0.93_0.02_250)] opacity-85">
-                {inventory} under management
-              </p>
-            ) : null}
+            <Suspense
+              fallback={
+                <p className="mt-[3px] text-[12.5px] text-[oklch(0.93_0.02_250)] opacity-60">
+                  Loading portfolio…
+                </p>
+              }
+            >
+              <ClientsCount />
+            </Suspense>
           </div>
           <RangePicker days={days} />
         </div>
@@ -66,21 +133,30 @@ export default async function HomePage({
       <SectionNav />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <WebsiteSection
-          d={d}
-          uptime={uptime}
-          insights={insights.website}
-          aiPlans={aiPlans?.website ?? null}
-        />
+        {/* Anchors live OUTSIDE the Suspense boundaries so SectionNav's
+            scrollspy keeps observing stable nodes while zones stream in. */}
+        <section id="website" className="scroll-mt-40">
+          <Suspense
+            fallback={<ZoneSkeleton title="Website Performance" tag="firstpage.hk" />}
+          >
+            <WebsiteZone webP={webP} plansP={plansP} />
+          </Suspense>
+        </section>
         <div className="mt-12" aria-hidden>
-          <SalesSection
-            d={d}
-            insights={insights.sales}
-            aiPlans={aiPlans?.sales ?? null}
-          />
+          <section id="sales" className="scroll-mt-40">
+            <Suspense fallback={<ZoneSkeleton title="Sales Performance" tag="HubSpot" />}>
+              <SalesZone salesP={salesP} plansP={plansP} />
+            </Suspense>
+          </section>
         </div>
 
-        <LeadQualitySection report={spamReport} days={30} />
+        <section id="lead-quality" className="scroll-mt-40 pt-9">
+          <Suspense
+            fallback={<ZoneSkeleton title="Lead Quality" takeaways={false} cards={2} />}
+          >
+            <LeadQualityZone />
+          </Suspense>
+        </section>
 
         <p className="mt-10 pb-4 text-sm text-muted">
           Data refreshes hourly. Sources: HubSpot, firstpage MCP (GA4/GSC/PSI), Ahrefs.{" "}

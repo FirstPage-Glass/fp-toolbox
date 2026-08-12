@@ -1,8 +1,9 @@
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 import MetricCard from "./MetricCard";
 import UnconfiguredNotice from "./UnconfiguredNotice";
 import SectionHeader from "./SectionHeader";
-import AiPlanList from "./AiPlanList";
+import AiPlanCards from "./AiPlanCards";
+import { AiPlanSkeleton } from "./DashboardSkeleton";
 import CardHead from "./CardHead";
 import StatMini from "./StatMini";
 import TwoCol from "./TwoCol";
@@ -11,10 +12,10 @@ import HBarRow from "./HBarRow";
 import TrafficTrendChart from "./TrafficTrendChart";
 import SearchPerformanceTable from "./SearchPerformanceTable";
 import Card from "@/components/ui/Card";
-import type { DashboardData } from "@/lib/dashboard";
+import type { WebsiteData } from "@/lib/dashboard";
 import type { UptimeStats } from "@/lib/uptime";
 import type { Insight } from "@/lib/insights";
-import type { AiPlan } from "@/lib/ai-plans";
+import type { AiPlans } from "@/lib/ai-plans";
 
 /** HK-local time for the uptime panel, e.g. "10/08 14:35". */
 function fmtTime(d: Date): string {
@@ -47,14 +48,15 @@ function psiStatus(score: number | null): { label: string; tone: "good" | "warn"
 }
 
 interface WebsiteSectionProps {
-  d: DashboardData;
+  d: WebsiteData;
   uptime: UptimeStats;
   insights: Insight[];
-  aiPlans?: AiPlan[] | null;
+  /** Shared AI-plans promise — one LLM call feeds both zones; card fills in separately. */
+  plansP: Promise<AiPlans | null>;
 }
 
 /** Website performance half of the dashboard — design-ref website zone. */
-export default function WebsiteSection({ d, uptime, insights, aiPlans }: WebsiteSectionProps) {
+export default function WebsiteSection({ d, uptime, insights, plansP }: WebsiteSectionProps) {
   const psiScore = d.psi.result?.performanceScore ?? null;
   const ga4Trend = d.ga4.trend;
   const ai = d.aiVisibility.result;
@@ -62,7 +64,7 @@ export default function WebsiteSection({ d, uptime, insights, aiPlans }: Website
   const maxVolume = keywords.length ? Math.max(...keywords.map((k) => k.volume)) : 0;
 
   return (
-    <section id="website" className="scroll-mt-40">
+    <>
       <SectionHeader
         id="website"
         accent="website"
@@ -71,7 +73,9 @@ export default function WebsiteSection({ d, uptime, insights, aiPlans }: Website
         insights={insights}
       />
 
-      <AiPlanList plans={aiPlans} />
+      <Suspense fallback={<AiPlanSkeleton />}>
+        <AiPlanCards plansP={plansP} zone="website" />
+      </Suspense>
 
       {/* Site status — uptime checker */}
       <Card className="mt-6">
@@ -331,6 +335,6 @@ export default function WebsiteSection({ d, uptime, insights, aiPlans }: Website
           />
         )}
       </Card>
-    </section>
+    </>
   );
 }

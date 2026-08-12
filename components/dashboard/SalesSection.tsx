@@ -1,7 +1,9 @@
+import { Suspense } from "react";
 import MetricCard from "./MetricCard";
 import UnconfiguredNotice from "./UnconfiguredNotice";
 import SectionHeader from "./SectionHeader";
-import AiPlanList from "./AiPlanList";
+import AiPlanCards from "./AiPlanCards";
+import { AiPlanSkeleton } from "./DashboardSkeleton";
 import CardHead from "./CardHead";
 import StatMini from "./StatMini";
 import TwoCol from "./TwoCol";
@@ -11,9 +13,9 @@ import Card from "@/components/ui/Card";
 import LeadTrendChart from "./LeadTrendChart";
 import LeadScoreChart from "./LeadScoreChart";
 import { tools } from "@/lib/registry";
-import type { DashboardData } from "@/lib/dashboard";
+import type { SalesData } from "@/lib/dashboard";
 import type { Insight } from "@/lib/insights";
-import type { AiPlan } from "@/lib/ai-plans";
+import type { AiPlans } from "@/lib/ai-plans";
 
 const usd = (n: number): string =>
   `$${n.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
@@ -21,13 +23,14 @@ const usd = (n: number): string =>
 const toolName = new Map(tools.map((t) => [t.slug, t.name]));
 
 interface SalesSectionProps {
-  d: DashboardData;
+  d: SalesData;
   insights: Insight[];
-  aiPlans?: AiPlan[] | null;
+  /** Shared AI-plans promise — one LLM call feeds both zones; card fills in separately. */
+  plansP: Promise<AiPlans | null>;
 }
 
 /** Sales performance half of the dashboard — design-ref sales zone. */
-export default function SalesSection({ d, insights, aiPlans }: SalesSectionProps) {
+export default function SalesSection({ d, insights, plansP }: SalesSectionProps) {
   const totalLeads = d.hubspot.spam?.good ?? d.hubspot.leads.length;
   const spamRate = d.hubspot.spam?.spamRatePct ?? null;
   const deals = d.deals.aggregate;
@@ -54,7 +57,7 @@ export default function SalesSection({ d, insights, aiPlans }: SalesSectionProps
   const maxRevenue = deals?.perOwner[0]?.wonRevenue ?? 0;
 
   return (
-    <section id="sales" className="scroll-mt-40">
+    <>
       <SectionHeader
         id="sales"
         accent="sales"
@@ -63,7 +66,9 @@ export default function SalesSection({ d, insights, aiPlans }: SalesSectionProps
         insights={insights}
       />
 
-      <AiPlanList plans={aiPlans} />
+      <Suspense fallback={<AiPlanSkeleton />}>
+        <AiPlanCards plansP={plansP} zone="sales" />
+      </Suspense>
 
       {/* KPI row */}
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -374,6 +379,6 @@ export default function SalesSection({ d, insights, aiPlans }: SalesSectionProps
           </div>
         )}
       </Card>
-    </section>
+    </>
   );
 }

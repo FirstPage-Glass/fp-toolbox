@@ -5,15 +5,17 @@ import type { SpamReport } from "@/lib/hubspot";
 interface LeadQualitySectionProps {
   report: SpamReport;
   days: number;
+  /** Load failure (e.g. HubSpot 429) — renders an inline error instead of the report. */
+  error?: string | null;
 }
 
 /** Lead Quality zone on the dashboard — the full admin.html report (headline, KPI row, spam-reason bars, worst-source domains). */
-export default function LeadQualitySection({ report, days }: LeadQualitySectionProps) {
+export default function LeadQualitySection({ report, days, error }: LeadQualitySectionProps) {
   const worstSource = report.topSources[0];
   const totalSpam = report.spam || 1;
 
   return (
-    <section id="lead-quality" className="scroll-mt-40 pt-9">
+    <>
       {/* Zone head */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
@@ -33,7 +35,19 @@ export default function LeadQualitySection({ report, days }: LeadQualitySectionP
         </Link>
       </div>
 
-      {/* Headline takeaways */}
+      {error ? (
+        <div
+          className="mt-5 rounded-[14px] border-2 border-dashed border-rose-200 bg-rose-50 p-6 text-center"
+          role="alert"
+        >
+          <p className="text-sm font-medium text-rose-700">
+            Couldn&apos;t load the lead quality report.
+          </p>
+          <p className="mt-1 text-xs text-rose-500">{error}</p>
+        </div>
+      ) : (
+        <>
+          {/* Headline takeaways */}
       <div className="mt-5 rounded-[14px] border border-[oklch(0.62_0.2_22_/_0.22)] bg-[oklch(0.62_0.2_22_/_0.06)] px-5 py-4 text-[14px] leading-relaxed text-foreground">
         <b className="text-navy">Headline:</b> {report.spam.toLocaleString()} of{" "}
         {report.total.toLocaleString()} inbound contacts ({report.spamRatePct}%) are spam.{" "}
@@ -131,6 +145,8 @@ export default function LeadQualitySection({ report, days }: LeadQualitySectionP
           )}
         </div>
       </div>
-    </section>
+        </>
+      )}
+    </>
   );
 }
