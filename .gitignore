@@ -45,3 +45,6 @@ reasonix.toml
 next-env.d.ts
 dist/
 .opencode/
+
+# local pnpm store copy (workspace rw; home is ro)
+.pnpm-store/

@@ -83,7 +83,7 @@ When the user requests a durable behavior change, record it here or in the relev
 - `app/AGENTS.md` — App Router surface: pages, API routes, routing/auth rules. Owns everything under `app/`.
 - `lib/AGENTS.md` — Data layer: tool registry, external API clients (MCP/Ahrefs/HubSpot), Postgres runtime, caching. Owns everything under `lib/`.
 - `components/AGENTS.md` — Reusable toolbox UI components. Owns everything under `components/`.
-- Root-owned: `db/init.sql` (schema bootstrap), `docker-compose.yml` (local Postgres), `Dockerfile` (production image), `proxy.ts`, `instrumentation.ts` (boots the 5-min uptime checker), config files (`next.config.ts`, `tsconfig.json`, `postcss.config.mjs`, `eslint.config.mjs`), `public/`, `README.md`, `.env` / `.env.local` (secrets, not committed), `reasonix.toml` (agent MCP config — `firstpage` server at `https://mcp.firstpage.com.hk/mcp/` with bearer key; gitignored), `.opencode/`.
+- Root-owned: `db/init.sql` (schema bootstrap), `docker-compose.yml` (local Postgres), `Dockerfile` (production image), `proxy.ts`, `instrumentation.ts` (boots the 5-min uptime checker), config files (`next.config.ts`, `tsconfig.json`, `postcss.config.mjs`, `eslint.config.mjs`), `public/`, `README.md`, `CLAUDE.md` (Zeabur project/service IDs), `.env` / `.env.local` (secrets, not committed), `reasonix.toml` (agent MCP config — `firstpage` server at `https://mcp.firstpage.com.hk/mcp/` with bearer key; gitignored), `.opencode/`.
 
 ---
 
