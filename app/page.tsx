@@ -137,7 +137,17 @@ export default async function HomePage({
             scrollspy keeps observing stable nodes while zones stream in. */}
         <section id="website" className="scroll-mt-40">
           <Suspense
-            fallback={<ZoneSkeleton title="Website Performance" tag="firstpage.hk" />}
+            fallback={
+              <>
+                {days !== 30 ? (
+                  <p className="pt-4 text-[13px] text-muted" role="status">
+                    First load of the {days}-day window — fetching fresh data, can take a
+                    minute. Cached for 1 hour afterwards.
+                  </p>
+                ) : null}
+                <ZoneSkeleton title="Website Performance" tag="firstpage.hk" />
+              </>
+            }
           >
             <WebsiteZone webP={webP} plansP={plansP} />
           </Suspense>
