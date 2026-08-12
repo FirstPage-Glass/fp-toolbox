@@ -156,3 +156,23 @@ pnpm build
 - **Tech Stack aggregation**: Automatically parses `tech_stack` from all systems
 - **Team coverage**: Dynamic from `serve` MultiSelect field
 - **HKD currency**: All monetary values displayed in HK$
+
+## DeepSeek Gateway (OpenRouter BYOK)
+
+Internal team API-key management: one company DeepSeek key, issued as limited
+per-team keys ($30/team/month default, enforced by OpenRouter's per-key limit —
+BYOK spend counted, hard-blocked at the limit). fp-toolbox handles teams,
+champions and alerting; OpenRouter enforces limits.
+
+- **Management UI**: `/gateway` — champion view (own team's key + usage)
+  and admin view (`ADMIN_USERS`: all teams, create teams, alerts)
+- **Co-worker setup**: any OpenAI-compatible client → base URL
+  `https://openrouter.ai/api/v1`, model `deepseek/deepseek-v4-flash`, key issued
+  by the team champion (plaintext shown once)
+- **Env**: `OPENROUTER_MANAGEMENT_KEY` (required), `ADMIN_USERS`,
+  `SLACK_WEBHOOK_URL` (optional 80%/100% alerts), `GATEWAY_TEAM_LIMIT_USD` (30),
+  `GATEWAY_POLL_MINUTES` (60). See `.env.example`.
+- **Prerequisite**: bind the company DeepSeek key in OpenRouter BYOK settings
+  (`openrouter.ai/workspaces/default/byok`) before issuing keys.
+- **PoC script**: `.poc/openrouter-poc.ts` verifies limit enforcement + cache
+  pricing before production rollout (delete the `.poc/` folder afterwards).

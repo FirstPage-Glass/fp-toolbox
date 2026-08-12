@@ -51,3 +51,37 @@ CREATE TABLE IF NOT EXISTS uptime_checks (
 );
 CREATE INDEX IF NOT EXISTS idx_uptime_target_time
   ON uptime_checks (target, checked_at DESC);
+
+-- deepseek gateway — team keys + usage snapshots + alert dedupe (lib/gateway/db.ts)
+-- Mirrors the CREATE TABLE IF NOT EXISTS statements in lib/gateway/db.ts.
+CREATE TABLE IF NOT EXISTS deepseek_teams (
+  id BIGSERIAL PRIMARY KEY,
+  name TEXT NOT NULL UNIQUE,
+  champion TEXT NOT NULL,
+  limit_usd NUMERIC(10,2) NOT NULL DEFAULT 30,
+  key_hash TEXT,
+  key_label TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS deepseek_usage_snapshots (
+  id BIGSERIAL PRIMARY KEY,
+  team_id BIGINT NOT NULL REFERENCES deepseek_teams(id),
+  usage_usd NUMERIC(12,6) NOT NULL,
+  limit_usd NUMERIC(10,2) NOT NULL,
+  captured_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_ds_snap_team_time
+  ON deepseek_usage_snapshots (team_id, captured_at DESC);
+CREATE TABLE IF NOT EXISTS deepseek_alerts_log (
+  id BIGSERIAL PRIMARY KEY,
+  team_id BIGINT NOT NULL REFERENCES deepseek_teams(id),
+  level TEXT NOT NULL,
+  usage_usd NUMERIC(12,6) NOT NULL,
+  sent_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+-- Dedupe: one alert per (team, level, calendar month, UTC) — expression needs a
+-- unique index (not a table UNIQUE constraint), with an explicit timezone so
+-- date_trunc is IMMUTABLE (timestamptz date_trunc is STABLE otherwise).
+CREATE UNIQUE INDEX IF NOT EXISTS idx_ds_alerts_dedupe
+  ON deepseek_alerts_log (team_id, level, date_trunc('month', sent_at AT TIME ZONE 'UTC'));

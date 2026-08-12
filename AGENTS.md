@@ -83,7 +83,7 @@ When the user requests a durable behavior change, record it here or in the relev
 - `app/AGENTS.md` — App Router surface: pages, API routes, routing/auth rules. Owns everything under `app/`.
 - `lib/AGENTS.md` — Data layer: tool registry, external API clients (MCP/Ahrefs/HubSpot), Postgres runtime, caching. Owns everything under `lib/`.
 - `components/AGENTS.md` — Reusable toolbox UI components. Owns everything under `components/`.
-- Root-owned: `db/init.sql` (schema bootstrap), `docker-compose.yml` (local Postgres), `Dockerfile` (production image), `proxy.ts`, `instrumentation.ts` (boots the 5-min uptime checker), config files (`next.config.ts`, `tsconfig.json`, `postcss.config.mjs`, `eslint.config.mjs`), `public/`, `README.md`, `CLAUDE.md` (Zeabur project/service IDs), `.env` / `.env.local` (secrets, not committed), `reasonix.toml` (agent MCP config — `firstpage` server at `https://mcp.firstpage.com.hk/mcp/` with bearer key; gitignored), `.opencode/`.
+- Root-owned: `db/init.sql` (schema bootstrap; includes the deepseek gateway tables), `docker-compose.yml` (local Postgres), `Dockerfile` (production image), `proxy.ts`, `instrumentation.ts` (boots the 5-min uptime checker + hourly gateway usage poller), config files (`next.config.ts`, `tsconfig.json`, `postcss.config.mjs`, `eslint.config.mjs`), `public/`, `README.md`, `CLAUDE.md` (Zeabur project/service IDs), `.env` / `.env.local` (secrets, not committed), `reasonix.toml` (agent MCP config — `firstpage` server at `https://mcp.firstpage.com.hk/mcp/` with bearer key; gitignored), `.opencode/`.
 
 ---
 
@@ -173,12 +173,13 @@ The app is a Next.js server-rendered application that fetches live data from ext
 │   ├── llm.ts, ahrefs.ts, mcp.ts, pdf.ts, screenshot.ts, render-diff.ts  # External API clients + browserless helpers
 │   ├── db.ts, usage.ts, outputs.ts, cache.ts, uptime*.ts  # Postgres runtime + caching
 │   ├── auth.ts                   # AUTH_USERS env parsing + validation
+│   ├── gateway/                  # DeepSeek team-key gateway (OpenRouter BYOK): db, openrouter client, service, alert scheduler
 │   └── data.ts, nocodb.ts, unified-tools.ts  # Legacy, retired — reference only
 │
 ├── db/                           # Database bootstrap
 │   └── init.sql                  # Schema for usage_events, tool_outputs, hubspot_leads_cache, uptime_checks (onsite_audit_actions auto-creates on first use)
 ├── proxy.ts                     # Route-level auth guard (cookie check + redirects); formerly middleware.ts (renamed in Next.js 16)
-├── instrumentation.ts           # Server bootstrap: starts the 5-min uptime checker (lib/uptime-scheduler.ts)
+├── instrumentation.ts           # Server bootstrap: starts the 5-min uptime checker (lib/uptime-scheduler.ts) + hourly gateway usage poller (lib/gateway/alert-scheduler.ts)
 ├── next.config.ts                # distDir: 'dist', images.unoptimized: true
 ├── postcss.config.mjs            # @tailwindcss/postcss plugin
 ├── eslint.config.mjs             # Next.js core-web-vitals + typescript rules
@@ -231,7 +232,7 @@ The `dist/` folder contains a Next.js server build (not a static export). Deploy
 
 1. **Code = source of truth** — tool registry (`lib/registry.ts`) is a static index of `app/tools/<slug>/tool.ts` manifests. Adding a tool = one folder + one import line. No drift possible.
 2. **Postgres** — runtime data: `usage_events` table (user, tool, tokens, cost) via `lib/usage.ts` / `lib/db.ts`. `DATABASE_URL` env. Dev: podman `postgres:18-alpine`.
-3. **External APIs** — OpenRouter (`lib/llm.ts`, `OPENROUTER_API`), Ahrefs (`lib/ahrefs.ts`, `AHREFS_API_KEY`), HubSpot contacts (`lib/hubspot.ts`, `HUBSPOT_SERVICE_KEY`; 1h Postgres cache), firstpage MCP (`lib/mcp.ts`, `FP_MCP_API_KEY`) — **all PageSpeed/Lighthouse data comes from MCP `psi_audit` (4 categories + CWV); Google's public PSI REST API is decommissioned (404), do not reintroduce it**. Browserless (`lib/pdf.ts` / `lib/screenshot.ts` / `lib/render-diff.ts`, `BROWSERLESS_URL`/`BROWSERLESS_TOKEN`) powers PDF export, page screenshots and JS-render diffs. The `/` dashboard aggregates these via `lib/dashboard.ts`.
+3. **External APIs** — OpenRouter (`lib/llm.ts`, `OPENROUTER_API`), Ahrefs (`lib/ahrefs.ts`, `AHREFS_API_KEY`), HubSpot contacts (`lib/hubspot.ts`, `HUBSPOT_SERVICE_KEY`; 1h Postgres cache), firstpage MCP (`lib/mcp.ts`, `FP_MCP_API_KEY`) — **all PageSpeed/Lighthouse data comes from MCP `psi_audit` (4 categories + CWV); Google's public PSI REST API is decommissioned (404), do not reintroduce it**. Browserless (`lib/pdf.ts` / `lib/screenshot.ts` / `lib/render-diff.ts`, `BROWSERLESS_URL`/`BROWSERLESS_TOKEN`) powers PDF export, page screenshots and JS-render diffs. OpenRouter Management API (`lib/gateway/openrouter.ts`, `OPENROUTER_MANAGEMENT_KEY`) powers the **DeepSeek team-key gateway** (`/gateway`): one company DeepSeek key bound via BYOK, per-team keys with monthly USD limits enforced by OpenRouter's per-key limit (`include_byok_in_limit`), champions manage their own team's key, hourly poller (`lib/gateway/alert-scheduler.ts`) snapshots usage + alerts at 80%/100% (Slack webhook + in-app). The `/` dashboard aggregates these via `lib/dashboard.ts`.
 4. **FirstPage MCP** — `lib/mcp.ts` is a JSON-RPC client for `https://mcp.firstpage.com.hk/mcp/` (`FP_MCP_API_KEY`, same key the agent MCP config uses). Dashboard consumes PSI audits, GA4 (firstpage.hk = `374723776`), GSC (`https://www.firstpage.hk/`) and the full client portfolio (752 GSC sites / 1058 GA4 properties). Targets: `DASHBOARD_TARGET_URL` / `DASHBOARD_TARGET_DOMAIN` (default `firstpage.hk`), `DASHBOARD_GSC_SITE`, `DASHBOARD_GA4_PROPERTY`.
 4. **Content** — brand guide + case studies as markdown in `content/` (`lib/content.ts`), fed into the deck/proposal generation.
 5. **NocoDB (legacy, retired)** — `lib/nocodb.ts` and `lib/data.ts` remain for reference only; no live page reads them. NocoDB is no longer the source of truth.
@@ -277,6 +278,8 @@ The app uses **per-user cookie authentication**:
 | `/tools/proposal` | Client | Yes | `lib/client-data.ts` (GSC + GA4 + PSI + Ahrefs) → OpenRouter |
 | `/tools/*` (23 more) | Client | Yes | per-tool API routes; see `app/AGENTS.md` for the full list |
 | `/usage` | Server | Yes | `lib/usage.ts` — tool runs, active users, LLM cost, per-tool run counts (hero banner + bignums + tools grid) |
+| `/gateway` | Server + client | Yes | `lib/gateway/` — DeepSeek team-key management (champion: own team's key + usage; admin: all teams + create teams + alerts) |
+| `/api/gateway` | API | Yes (cookie) | GET team views · POST create team (admin) · POST/DELETE `/api/gateway/teams/<id>/keys` issue/revoke (champion or admin) |
 | `/login` | Client | No | — |
 | `/api/login` | API | No | `AUTH_USERS` env |
 | `/api/logout` | API | No | — |
@@ -345,6 +348,11 @@ Make sure these are set in your hosting environment:
 - `HUBSPOT_SERVICE_KEY` — HubSpot private app token for recent-leads import
 - `BROWSERLESS_URL` — self-hosted browserless base URL (e.g. `https://browserless.firstpage.com.hk/`); used by the onsite-audit crawler (`/content`), PDF export (`/pdf`), page screenshots (`/screenshot`) and render-diff (`/content`). `/lighthouse` is NOT available on this build.
 - `BROWSERLESS_TOKEN` — browserless auth token (server-side only)
+- `OPENROUTER_MANAGEMENT_KEY` — OpenRouter management key for the DeepSeek gateway (`/gateway`): issue/revoke team keys, read per-key usage. Prereq: company DeepSeek key bound in OpenRouter BYOK settings
+- `ADMIN_USERS` — comma-separated usernames with gateway admin rights (all teams + create teams)
+- `SLACK_WEBHOOK_URL` — optional; 80%/100% team-limit alerts (in-app alerts always record)
+- `GATEWAY_TEAM_LIMIT_USD` — default per-team monthly USD limit when creating a team (30)
+- `GATEWAY_POLL_MINUTES` — gateway usage poll + alert interval in minutes (60)
 - A Postgres service must be provisioned (Coolify container; schema auto-creates on first use)
 
 ---
@@ -356,6 +364,7 @@ Make sure these are set in your hosting environment:
 3. **Cookie is not httpOnly in client-side NavBar**: The auth cookie is read by client-side JavaScript in `NavBar.tsx` to show/hide navigation. The `httpOnly` flag is set to `false` in the login route to allow this.
 4. **No HTTPS enforcement**: The auth cookie sets `secure: true` only in production (`NODE_ENV === 'production'`). Ensure production deployments use HTTPS.
 5. **Server deployment required**: This app requires a Next.js server. Do not deploy to pure static hosts (GitHub Pages, S3 static hosting) — the proxy, API routes, and auth will not work. Use Vercel, a Node.js server, or Docker.
+6. **Gateway keys stay server-side**: `OPENROUTER_MANAGEMENT_KEY` never reaches client code. Issued sub-keys are returned once (plaintext) and only the OpenRouter `hash` is stored in Postgres — a leaked sub-key can be revoked from `/gateway` without touching the master key. Co-workers' sub-keys only authorize chat completion calls on OpenRouter's endpoint; they cannot manage keys or read the management key.
 
 ---
 
