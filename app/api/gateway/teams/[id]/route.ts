@@ -1,18 +1,14 @@
 import { NextResponse } from "next/server";
 import {
   currentUsername,
-  issueKey,
+  updateTeamLimits,
   GatewayConflictError,
   GatewayForbiddenError,
   GatewayNotFoundError,
 } from "@/lib/gateway/service";
 
-/**
- * POST /api/gateway/teams/[id]/keys — issue a fresh sub-key for the team
- * (champion of the team or admin). Body: { limitUsd, members?: string[] }.
- * Validates max_keys + credit pool; returns the plaintext key exactly once.
- */
-export async function POST(
+/** PATCH /api/gateway/teams/[id] — adjust team credit pool / key count (admin only). */
+export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -33,18 +29,26 @@ export async function POST(
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
-  const limitUsd = Number(body.limitUsd ?? NaN);
-  const members = Array.isArray(body.members)
-    ? (body.members as unknown[]).map((m) => String(m))
-    : [];
+
+  const patch: { creditUsd?: number; maxKeys?: number } = {};
+  if (body.creditUsd !== undefined) {
+    const v = Number(body.creditUsd);
+    if (!Number.isFinite(v) || v <= 0) {
+      return NextResponse.json({ error: "creditUsd must be a positive number" }, { status: 400 });
+    }
+    patch.creditUsd = v;
+  }
+  if (body.maxKeys !== undefined) {
+    const v = Number(body.maxKeys);
+    if (!Number.isInteger(v) || v < 1) {
+      return NextResponse.json({ error: "maxKeys must be an integer ≥ 1" }, { status: 400 });
+    }
+    patch.maxKeys = v;
+  }
 
   try {
-    const issued = await issueKey(username, teamId, { limitUsd, members });
-    return NextResponse.json({
-      key: issued.key, // plaintext — shown once, never stored
-      label: issued.label,
-      message: "Key issued. It is shown only once — copy it now.",
-    });
+    const team = await updateTeamLimits(username, teamId, patch);
+    return NextResponse.json({ team });
   } catch (err) {
     if (err instanceof GatewayForbiddenError) {
       return NextResponse.json({ error: err.message }, { status: 403 });
@@ -55,10 +59,7 @@ export async function POST(
     if (err instanceof GatewayConflictError) {
       return NextResponse.json({ error: err.message }, { status: 409 });
     }
-    console.error("gateway issueKey failed:", err);
-    return NextResponse.json(
-      { error: "Failed to issue key — check OPENROUTER_MANAGEMENT_KEY" },
-      { status: 502 }
-    );
+    console.error("gateway updateTeamLimits failed:", err);
+    return NextResponse.json({ error: "Failed to update team" }, { status: 500 });
   }
 }

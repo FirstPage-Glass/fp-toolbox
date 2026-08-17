@@ -53,35 +53,61 @@ CREATE INDEX IF NOT EXISTS idx_uptime_target_time
   ON uptime_checks (target, checked_at DESC);
 
 -- deepseek gateway — team keys + usage snapshots + alert dedupe (lib/gateway/db.ts)
--- Mirrors the CREATE TABLE IF NOT EXISTS statements in lib/gateway/db.ts.
+-- Mirrors the CREATE TABLE IF NOT EXISTS + idempotent ALTER statements in
+-- lib/gateway/db.ts. Multi-key model: teams hold a credit pool + key-count
+-- limit (admin-controlled); each key has its own OpenRouter USD limit; a key
+-- binds 1–2 members.
 CREATE TABLE IF NOT EXISTS deepseek_teams (
   id BIGSERIAL PRIMARY KEY,
   name TEXT NOT NULL UNIQUE,
   champion TEXT NOT NULL,
-  limit_usd NUMERIC(10,2) NOT NULL DEFAULT 30,
-  key_hash TEXT,
-  key_label TEXT,
+  credit_usd NUMERIC(10,2) NOT NULL DEFAULT 30,
+  max_keys INTEGER NOT NULL DEFAULT 1,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+ALTER TABLE deepseek_teams DROP COLUMN IF EXISTS key_hash;
+ALTER TABLE deepseek_teams DROP COLUMN IF EXISTS key_label;
+CREATE TABLE IF NOT EXISTS deepseek_keys (
+  id BIGSERIAL PRIMARY KEY,
+  team_id BIGINT NOT NULL REFERENCES deepseek_teams(id),
+  hash TEXT NOT NULL UNIQUE,
+  label TEXT NOT NULL,
+  limit_usd NUMERIC(10,2) NOT NULL,
+  status TEXT NOT NULL DEFAULT 'active',
+  created_by TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_ds_keys_team ON deepseek_keys (team_id, status);
+CREATE TABLE IF NOT EXISTS deepseek_key_members (
+  id BIGSERIAL PRIMARY KEY,
+  key_id BIGINT NOT NULL REFERENCES deepseek_keys(id) ON DELETE CASCADE,
+  username TEXT NOT NULL,
+  assigned_by TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (key_id, username)
 );
 CREATE TABLE IF NOT EXISTS deepseek_usage_snapshots (
   id BIGSERIAL PRIMARY KEY,
   team_id BIGINT NOT NULL REFERENCES deepseek_teams(id),
+  key_id BIGINT REFERENCES deepseek_keys(id),
   usage_usd NUMERIC(12,6) NOT NULL,
   limit_usd NUMERIC(10,2) NOT NULL,
   captured_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-CREATE INDEX IF NOT EXISTS idx_ds_snap_team_time
-  ON deepseek_usage_snapshots (team_id, captured_at DESC);
+CREATE INDEX IF NOT EXISTS idx_ds_snap_key_time
+  ON deepseek_usage_snapshots (key_id, captured_at DESC);
 CREATE TABLE IF NOT EXISTS deepseek_alerts_log (
   id BIGSERIAL PRIMARY KEY,
   team_id BIGINT NOT NULL REFERENCES deepseek_teams(id),
+  key_id BIGINT,
   level TEXT NOT NULL,
   usage_usd NUMERIC(12,6) NOT NULL,
   sent_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
--- Dedupe: one alert per (team, level, calendar month, UTC) — expression needs a
+-- Dedupe: one alert per (key, level, calendar month, UTC) — expression needs a
 -- unique index (not a table UNIQUE constraint), with an explicit timezone so
 -- date_trunc is IMMUTABLE (timestamptz date_trunc is STABLE otherwise).
+DROP INDEX IF EXISTS idx_ds_alerts_dedupe;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_ds_alerts_dedupe
-  ON deepseek_alerts_log (team_id, level, date_trunc('month', sent_at AT TIME ZONE 'UTC'));
+  ON deepseek_alerts_log (key_id, level, date_trunc('month', sent_at AT TIME ZONE 'UTC'));

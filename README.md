@@ -160,12 +160,16 @@ pnpm build
 ## DeepSeek Gateway (OpenRouter BYOK)
 
 Internal team API-key management: one company DeepSeek key, issued as limited
-per-team keys ($30/team/month default, enforced by OpenRouter's per-key limit —
-BYOK spend counted, hard-blocked at the limit). fp-toolbox handles teams,
-champions and alerting; OpenRouter enforces limits.
+per-key sub-keys. Each key carries its own monthly USD limit (enforced by
+OpenRouter's per-key limit — hard-blocked at the limit); teams (departments)
+have an admin-controlled monthly credit pool and key-count cap.
 
-- **Management UI**: `/gateway` — champion view (own team's key + usage)
-  and admin view (`ADMIN_USERS`: all teams, create teams, alerts)
+- **Management UI**: `/gateway` — three role views:
+  - **Admin** (`ADMIN_USERS`): all teams; create teams; adjust each team's
+    credit pool (`credit_usd`) and key-count cap (`max_keys`); alerts
+  - **Champion** (team lead): issue keys for their team (each key's limit,
+    sum ≤ team credit; 1–2 members per key), revoke/assign, per-key usage
+  - **Member**: sees only the key assigned to them (usage bar + config hint)
 - **Co-worker setup**: any OpenAI-compatible client → base URL
   `https://openrouter.ai/api/v1`, model `deepseek/deepseek-v4-flash`, key issued
   by the team champion (plaintext shown once)
@@ -173,6 +177,6 @@ champions and alerting; OpenRouter enforces limits.
   `SLACK_WEBHOOK_URL` (optional 80%/100% alerts), `GATEWAY_TEAM_LIMIT_USD` (30),
   `GATEWAY_POLL_MINUTES` (60). See `.env.example`.
 - **Prerequisite**: bind the company DeepSeek key in OpenRouter BYOK settings
-  (`openrouter.ai/workspaces/default/byok`) before issuing keys.
-- **PoC script**: `.poc/openrouter-poc.ts` verifies limit enforcement + cache
-  pricing before production rollout (delete the `.poc/` folder afterwards).
+  (`openrouter.ai/workspaces/default/byok`) before issuing keys. Known issue:
+  BYOK routing is currently not active (`is_byok: false`) — spend runs through
+  OpenRouter credits; limits still enforce exactly.

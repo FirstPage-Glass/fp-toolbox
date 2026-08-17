@@ -21,7 +21,7 @@ export default async function GatewayAdminPage() {
               DeepSeek Gateway
             </h1>
             <p className="mt-1.5 text-[14px] text-[oklch(0.93_0.02_250)]">
-              Team API keys · OpenRouter BYOK · ${view.teams[0]?.limitUsd ?? 30}/team/month
+              Team API keys · OpenRouter BYOK · credit pool ${view.teams[0]?.creditUsd ?? 30}/mo per team
             </p>
           </div>
         </div>
