@@ -186,3 +186,7 @@ have an admin-controlled monthly credit pool and key-count cap.
   then `POST /api/v1/guardrails/{id}/assignments/keys` with
   `{ key_hashes }`. Non-allowlisted models are blocked (403) per key. Currently
   applied to the 8 `fp-*` team keys (guardrail `fp-deepseek-v4-flash-0731-only`).
+  **Exceptions**: `fp-Content` uses its own guardrail
+  (`fp-content-0731-plus-sonar`, allowlist `0731 + perplexity/sonar`) so the
+  content team can also use Perplexity Sonar. Note: sonar rejects a
+  `max_tokens` body param (400) — send the plain chat body for it.
