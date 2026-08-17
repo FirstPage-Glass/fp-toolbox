@@ -180,3 +180,9 @@ have an admin-controlled monthly credit pool and key-count cap.
   (`openrouter.ai/workspaces/default/byok`) before issuing keys. Known issue:
   BYOK routing is currently not active (`is_byok: false`) — spend runs through
   OpenRouter credits; limits still enforce exactly.
+- **Lock a key to a single model (no code)**: OpenRouter API keys can't be
+  model-locked directly, but a **guardrail** with `allowed_models` can. Create
+  `POST /api/v1/guardrails` with `{ name, allowed_models: ["deepseek/deepseek-v4-flash-0731"] }`,
+  then `POST /api/v1/guardrails/{id}/assignments/keys` with
+  `{ key_hashes }`. Non-allowlisted models are blocked (403) per key. Currently
+  applied to the 8 `fp-*` team keys (guardrail `fp-deepseek-v4-flash-0731-only`).
