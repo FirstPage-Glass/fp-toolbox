@@ -27,7 +27,12 @@ All data access and tool logic: tool registry, LLM + data-source clients, Postgr
 - `lib/uptime.ts` — site-alive checker: `runUptimeCheck()` (HEAD, 15s timeout) + `getUptimeStats()` for the `uptime_checks` table; dashboard Site status panel.
 - `lib/uptime-scheduler.ts` — background loop (probe on boot, then every 5 min) started by root `instrumentation.ts`; single-instance assumption, HMR-safe guard.
 - `lib/content.ts` — loads brand guide + case studies from `content/` as markdown.
-- `lib/auth.ts` — `AUTH_USERS` env parsing + credential validation.
+- `lib/auth.ts` — `AUTH_USERS` env parsing + credential validation; `isAdminUser()` reads `ADMIN_USERS` (gateway admins).
+- `lib/gateway/` — DeepSeek team-key gateway (OpenRouter BYOK hybrid: OpenRouter enforces each key's monthly USD limit, fp-toolbox manages teams/champions/members/alerting). **Multi-key model** (feat/gateway-multi-key):
+  - `db.ts` — `deepseek_teams` (name/champion/**credit_usd** monthly pool + **max_keys** count, admin-controlled), `deepseek_keys` (one per OpenRouter key: hash/label/limit_usd/status/created_by), `deepseek_key_members` (key↔username, 1–2 per key, UNIQUE(key_id, username)), `deepseek_usage_snapshots` (hourly per-key spend), `deepseek_alerts_log` (dedupe per key/level/month via unique index `idx_ds_alerts_dedupe` on `(key_id, level, date_trunc('month', sent_at AT TIME ZONE 'UTC'))` — expression index needs explicit timezone to be IMMUTABLE); CREATE TABLE IF NOT EXISTS + idempotent ALTERs, same pattern as `lib/usage.ts`. Tables also mirrored in `db/init.sql`.
+  - `openrouter.ts` — Management API client (`OPENROUTER_MANAGEMENT_KEY`): `createKey` (POST + PATCH `include_byok_in_limit: true`, `limit_reset: "monthly"` — BYOK spend counts against the key limit), `listKeys` (paginated; `byok_usage_monthly` is the spend source), `getKey`, `updateKey`, `deleteKey`. Plaintext key returned at body level (`{data, key}`) once, never stored.
+  - `service.ts` — role resolution (`resolveRole`: admin / champion / member / none), `getTeamsView` (role-scoped), `issueKey` (validates max_keys + sum of active key limits ≤ credit_usd + members ≤2 & one active key per user), `assignMember`/`removeMember`, `revokeKey`, `updateTeamLimits` (admin-only, cannot go below allocated credit/keys).
+  - `alert-scheduler.ts` — hourly poll (`GATEWAY_POLL_MINUTES`, default 60) started by root `instrumentation.ts`: snapshot per-key usage, push 80%/100% alerts to `SLACK_WEBHOOK_URL` + `deepseek_alerts_log` (in-app), deduped per key/level/month.
 - `lib/hubspot.ts` — HubSpot recent-leads client (`HUBSPOT_SERVICE_KEY`), spam filter (email domain must match website domain), paginated fetch, Postgres cache (1h TTL) via `getRecentLeads()` (cache reads are filtered by the requested day window); `fetchRecentLeads(days, sinceDaysAgo?)` supports an explicit previous-window fetch for deltas.
 - `lib/outputs.ts` — `tool_outputs` persistence: saveOutput / listOutputs / getOutput.
 - `lib/tool-runtime.ts` — shared tool API path for pitch-deck/proposal: client-data enrichment (via `getClientData`) + generate + logUsage + saveOutput + refine resolution.
@@ -46,7 +51,7 @@ All data access and tool logic: tool registry, LLM + data-source clients, Postgr
 ## Local Contracts
 
 - **Code is the source of truth.** The tool registry is a static index of `app/tools/<slug>/tool.ts` manifests — no external DB for tool metadata, so the directory can never drift.
-- **Postgres is the runtime store.** Usage events only. `CREATE TABLE IF NOT EXISTS` on first use — no migration framework (ponytail: fine at this scale).
+- **Postgres is the runtime store.** Usage events + gateway tables. `CREATE TABLE IF NOT EXISTS` on first use — no migration framework (ponytail: fine at this scale).
 - **Metrics are real.** Every tool API route must call `logUsage()` on each run (user from `fp-auth` cookie, tokens, cost). Never hand-claim numbers in dashboards.
 - **Every generation is persisted** to `tool_outputs` (brief + output JSON) — history, reload, and refine all read from it. Refine is owner-only.
 - **Secrets stay server-side.** `OPENROUTER_API`, `AHREFS_API_KEY`, `DATABASE_URL` never reach client components.

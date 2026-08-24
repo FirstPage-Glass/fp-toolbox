@@ -6,7 +6,7 @@ Next.js App Router surface of the toolbox platform: pages, API routes, tool UIs,
 
 ## Ownership
 
-- Owns: `app/page.tsx` (metrics dashboard), `app/layout.tsx`, `app/globals.css`, route folders (`login/`, `toolbox/`, `usage/`, `api/login/`, `api/logout/`, `api/tools/`), `app/tools/<slug>/` (tool folders: `tool.ts` manifest + `page.tsx`), `app/components/NavBar.tsx`, `app/favicon.ico`.
+- Owns: `app/page.tsx` (metrics dashboard), `app/layout.tsx`, `app/globals.css`, route folders (`login/`, `toolbox/`, `usage/`, `gateway/`, `api/login/`, `api/logout/`, `api/gateway/`, `api/tools/`), `app/tools/<slug>/` (tool folders: `tool.ts` manifest + `page.tsx`), `app/components/NavBar.tsx`, `app/favicon.ico`.
 - Root owns: `proxy.ts` (auth guard; formerly `middleware.ts`, renamed in Next.js 16).
 - Data fetching lives here, but data sources live in `lib/` (see `lib/AGENTS.md`).
 
@@ -23,8 +23,10 @@ Routing map:
 | `/usage` | Server | Yes | `lib/usage.ts` — tool runs / active users / LLM cost + per-tool run grid |
 | `/login` | Client | No | — |
 | `/api/login`, `/api/logout` | API | No | `AUTH_USERS` env |
+| `/api/gateway` | API | Yes (cookie) | DeepSeek team-key gateway (`lib/gateway/`): GET = role-scoped views (admin: all; champion: own team; member: own key); POST = create team (admin); PATCH `/teams/<id>` = adjust credit/max_keys (admin); POST `/teams/<id>/keys` = issue key w/ limit + members (champion/admin); DELETE `/keys/<id>` = revoke; POST/DELETE `/keys/<id>/members` = assign/unbind user |
 | `/api/tools/<slug>` | API | Yes (cookie) | GET = picker options (data tools) or history list (LLM tools); POST = run / refine |
 | `/api/hubspot/recent-leads` | API | Yes (cookie) | HubSpot contacts, spam-filtered + 1h cache |
+| `/gateway` | Server + client | Yes | DeepSeek team-key management: `GatewayClient` (`components/gateway/`) — admin view (all teams, edit credit/max_keys, create-team form, alerts), champion view (own team: issue/revoke/assign keys, plaintext shown once, per-key usage), member view (own key card only) |
 
 - Server components are the default; mark `"use client"` only when state, effects, or browser APIs are required.
 - **Never put API keys in client components** — OpenRouter/Ahrefs keys are server-side only (`lib/`).
