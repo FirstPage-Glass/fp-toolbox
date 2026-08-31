@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
+import { currentUsername } from "@/lib/auth";
 import { getRecentLeads, scoreLead } from "@/lib/hubspot";
 
 export async function GET() {
   // Contact data is personal — require login (unlike the public toolbox)
-  const user = (await cookies()).get("fp-auth")?.value;
+  const user = await currentUsername();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

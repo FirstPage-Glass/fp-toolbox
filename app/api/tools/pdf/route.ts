@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
+import { currentUsername } from "@/lib/auth";
 import { htmlToPdf, PdfError } from "@/lib/pdf";
 import { logUsage } from "@/lib/usage";
 
@@ -19,7 +19,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "html too large (max 1MB)" }, { status: 400 });
   }
 
-  const user = (await cookies()).get("fp-auth")?.value || "unknown";
+  const user = (await currentUsername()) || "unknown";
   const started = Date.now();
   try {
     const pdf = await htmlToPdf(html, { landscape });

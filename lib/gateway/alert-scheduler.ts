@@ -7,7 +7,7 @@
  *
  * Started from root instrumentation.ts (same pattern as lib/uptime-scheduler.ts).
  */
-import { listAllKeys, listTeams, recordAlert, recordUsageSnapshot } from "./db";
+import { listAllKeys, listTeams, pruneSnapshots, recordAlert, recordUsageSnapshot } from "./db";
 import { listKeys } from "./openrouter";
 
 const globalKey = "__firstpageGatewayAlertSchedulerStarted";
@@ -42,6 +42,8 @@ export async function runGatewayAlertCheck(): Promise<void> {
   const teams = await listTeams();
   const localKeys = await listAllKeys();
   if (teams.length === 0 || localKeys.length === 0) return;
+
+  await pruneSnapshots(60);
 
   const remoteKeys = await listKeys();
   const usageByHash = new Map(remoteKeys.map((k) => [k.hash, k]));

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
+import { currentUsername } from "@/lib/auth";
 import {
-  currentUsername,
   issueKey,
   GatewayConflictError,
   GatewayForbiddenError,

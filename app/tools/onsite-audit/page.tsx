@@ -2,7 +2,6 @@
 import tool from "./tool";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { usePrefill } from "@/components/tools/usePrefill";
 

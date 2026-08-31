@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { getSessionUser } from "@/lib/auth";
 
-export function proxy(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Static assets pass through (files with an extension: images, manifest, etc.)
@@ -14,8 +15,15 @@ export function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const authCookie = request.cookies.get("fp-auth");
-  const isLoggedIn = Boolean(authCookie?.value);
+  // Gate on the session being VALID (validated against mcp /admin/api/session
+  // with a 60s cache inside getSessionUser): the fp_session cookie in SSO
+  // mode, the legacy fp-auth cookie otherwise. Fetch errors degrade to
+  // unauthenticated. request cookies are passed explicitly because
+  // next/headers cookies() is unavailable in the proxy.
+  const cookieValue = process.env.FP_MCP_INTERNAL_KEY
+    ? request.cookies.get("fp_session")?.value
+    : request.cookies.get("fp-auth")?.value;
+  const isLoggedIn = Boolean(await getSessionUser(cookieValue));
 
   // Public paths
   if (pathname === "/toolbox" || pathname === "/login") {

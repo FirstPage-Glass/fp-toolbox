@@ -9,11 +9,7 @@ An internal stakeholder-facing dashboard that showcases the HK team's production
 | **Toolbox View** (default, no login) | `/toolbox`, `/login` | Live tool directory only | Toolbox · **Login** |
 | **System View** (logged in) | All pages | Overview, Systems, Toolbox, Stack, Detail pages | Overview · Toolbox · Our Systems · Stack · **Logout** |
 
-**Credentials:**
-```
-user: firstpage
-pass: TYRRs61MwW7vWR1M2i6EFJB9HCL7t5Eu
-```
+**Credentials:** Login credentials are NOT stored in this README. They live only in the gitignored `.env` file (`AUTH_USERS`). Reset login by editing `AUTH_USERS` in `.env` and redeploying; never commit real credentials to README.
 
 ## Quick Start
 
@@ -120,18 +116,12 @@ No code changes needed — the detail page auto-generates from the slug via `gen
 
 ## Environment Variables
 
-Copy `.env.local` and fill in:
+Copy `.env.example` to `.env` and fill in the real secrets (`.env` is gitignored — see `.env.example` for the full list of keys):
 
 ```bash
-# NocoDB
-NOCODB_URL=https://nocodb.firstpage.com.hk
-NOCODB_API_TOKEN=your_token
-NOCODB_TOOLS_BASE_ID=p9ri10dzcq5d71l
-NOCODB_TOOLS_TABLE_ID=m84ca9736466jfm
-
-# Auth
-AUTH_USER=firstpage
-AUTH_PASS=TYRRs61MwW7vWR1M2i6EFJB9HCL7t5Eu
+# Auth (NocoDB is retired — no NocoDB vars needed)
+AUTH_USERS=name:pass,name2:pass2
+DATABASE_URL=postgres://...
 ```
 
 ## Deployment
@@ -171,7 +161,7 @@ have an admin-controlled monthly credit pool and key-count cap.
     sum ≤ team credit; 1–2 members per key), revoke/assign, per-key usage
   - **Member**: sees only the key assigned to them (usage bar + config hint)
 - **Co-worker setup**: any OpenAI-compatible client → base URL
-  `https://openrouter.ai/api/v1`, model `deepseek/deepseek-v4-flash`, key issued
+  `https://openrouter.ai/api/v1`, model `deepseek/deepseek-v4-flash-0731`, key issued
   by the team champion (plaintext shown once)
 - **Env**: `OPENROUTER_MANAGEMENT_KEY` (required), `ADMIN_USERS`,
   `SLACK_WEBHOOK_URL` (optional 80%/100% alerts), `GATEWAY_TEAM_LIMIT_USD` (30),
