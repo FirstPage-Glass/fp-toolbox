@@ -68,8 +68,24 @@ export interface AlertLogEntry {
   sentAt: string;
 }
 
-/** Create/migrate the gateway tables + indexes on first use. Safe to repeat. */
+// Concurrent callers (getTeamsView fans out per team/key) must share ONE
+// in-flight DDL run — parallel CREATE INDEX IF NOT EXISTS / DROP INDEX on the
+// same names races pg_class and throws "duplicate key value violates unique
+// constraint pg_class_relname_nsp_index". Memoized at module scope: concurrent
+// callers await the same promise; on failure it resets so the next call retries.
+let ensurePromise: Promise<void> | null = null;
+
 export async function ensureGatewayTables(): Promise<void> {
+  if (ensurePromise) return ensurePromise;
+  ensurePromise = runEnsureTables().catch((err) => {
+    ensurePromise = null;
+    throw err;
+  });
+  return ensurePromise;
+}
+
+/** Create/migrate the gateway tables + indexes on first use. Safe to repeat. */
+async function runEnsureTables(): Promise<void> {
   // teams — multi-key columns (credit pool + key count limit), migrate old
   // single-key columns away (single-key model predates feat/gateway-multi-key).
   await pool.query(`
@@ -382,6 +398,14 @@ export async function listSnapshots(keyId: number, days: number): Promise<UsageS
     limitUsd: Number(r.limit_usd),
     capturedAt: String(r.captured_at),
   }));
+}
+
+/** Drop hourly snapshots older than `days` — unbounded growth guard. */
+export async function pruneSnapshots(days: number): Promise<void> {
+  await pool.query(
+    `DELETE FROM deepseek_usage_snapshots WHERE captured_at < now() - make_interval(days => $1)`,
+    [Math.max(1, Math.floor(days))]
+  );
 }
 
 // ---- alerts -----------------------------------------------------------------

@@ -135,7 +135,7 @@ The app is a Next.js server-rendered application that fetches live data from ext
 │   ├── api/login/route.ts        # POST /api/login — cookie-based auth
 │   ├── api/logout/route.ts       # POST /api/logout — clears auth cookie
 │   ├── api/tools/<slug>/route.ts # Per-tool API routes (data tools + LLM tools)
-│   ├── tools/<slug>/             # 25 tool folders: tool.ts manifest + page.tsx
+│   ├── tools/<slug>/             # 26 tool folders: tool.ts manifest + page.tsx
 │   └── components/NavBar.tsx     # Auth-aware navigation (client component)
 │
 ├── components/ui/                # Shared design-language atoms (server-safe, no deps)
@@ -172,9 +172,8 @@ The app is a Next.js server-rendered application that fetches live data from ext
 │   ├── dashboard.ts              # Dashboard aggregation (HubSpot/MCP/PSI/Ahrefs/usage)
 │   ├── llm.ts, ahrefs.ts, mcp.ts, pdf.ts, screenshot.ts, render-diff.ts  # External API clients + browserless helpers
 │   ├── db.ts, usage.ts, outputs.ts, cache.ts, uptime*.ts  # Postgres runtime + caching
-│   ├── auth.ts                   # AUTH_USERS env parsing + validation
-│   ├── gateway/                  # DeepSeek team-key gateway (OpenRouter BYOK): db, openrouter client, service, alert scheduler
-│   └── data.ts, nocodb.ts, unified-tools.ts  # Legacy, retired — reference only
+│   ├── auth.ts                   # SSO vs firstpage-mcp (FP_MCP_*), AUTH_USERS fallback; email identity
+│   └── gateway/                  # DeepSeek team-key gateway (OpenRouter BYOK): db, openrouter client, service, alert scheduler
 │
 ├── db/                           # Database bootstrap
 │   └── init.sql                  # Schema for usage_events, tool_outputs, hubspot_leads_cache, uptime_checks (onsite_audit_actions auto-creates on first use)
@@ -234,8 +233,7 @@ The `dist/` folder contains a Next.js server build (not a static export). Deploy
 2. **Postgres** — runtime data: `usage_events` table (user, tool, tokens, cost) via `lib/usage.ts` / `lib/db.ts`. `DATABASE_URL` env. Dev: podman `postgres:18-alpine`.
 3. **External APIs** — OpenRouter (`lib/llm.ts`, `OPENROUTER_API`), Ahrefs (`lib/ahrefs.ts`, `AHREFS_API_KEY`), HubSpot contacts (`lib/hubspot.ts`, `HUBSPOT_SERVICE_KEY`; 1h Postgres cache), firstpage MCP (`lib/mcp.ts`, `FP_MCP_API_KEY`) — **all PageSpeed/Lighthouse data comes from MCP `psi_audit` (4 categories + CWV); Google's public PSI REST API is decommissioned (404), do not reintroduce it**. Browserless (`lib/pdf.ts` / `lib/screenshot.ts` / `lib/render-diff.ts`, `BROWSERLESS_URL`/`BROWSERLESS_TOKEN`) powers PDF export, page screenshots and JS-render diffs. OpenRouter Management API (`lib/gateway/openrouter.ts`, `OPENROUTER_MANAGEMENT_KEY`) powers the **DeepSeek team-key gateway** (`/gateway`): one company DeepSeek key bound via BYOK, per-key monthly USD limits enforced by OpenRouter (`include_byok_in_limit`). Multi-key model: teams (departments) hold an admin-controlled credit pool (`credit_usd`) + key-count limit (`max_keys`); champions issue keys (each with its own limit, sum ≤ team credit) and bind 1–2 members per key; members see only their own key. Hourly poller (`lib/gateway/alert-scheduler.ts`) snapshots per-key usage + alerts at 80%/100% (Slack webhook + in-app). The `/` dashboard aggregates these via `lib/dashboard.ts`.
 4. **FirstPage MCP** — `lib/mcp.ts` is a JSON-RPC client for `https://mcp.firstpage.com.hk/mcp/` (`FP_MCP_API_KEY`, same key the agent MCP config uses). Dashboard consumes PSI audits, GA4 (firstpage.hk = `374723776`), GSC (`https://www.firstpage.hk/`) and the full client portfolio (752 GSC sites / 1058 GA4 properties). Targets: `DASHBOARD_TARGET_URL` / `DASHBOARD_TARGET_DOMAIN` (default `firstpage.hk`), `DASHBOARD_GSC_SITE`, `DASHBOARD_GA4_PROPERTY`.
-4. **Content** — brand guide + case studies as markdown in `content/` (`lib/content.ts`), fed into the deck/proposal generation.
-5. **NocoDB (legacy, retired)** — `lib/nocodb.ts` and `lib/data.ts` remain for reference only; no live page reads them. NocoDB is no longer the source of truth.
+4. **Content** — brand guide + case studies as markdown in `content/` (`lib/content.ts`), fed into the deck/proposal generation. (NocoDB is retired — `lib/nocodb.ts`, `lib/data.ts`, `lib/unified-tools.ts` were deleted; do not reintroduce them.)
 
 ---
 
@@ -251,20 +249,29 @@ The app uses **per-user cookie authentication**:
 ### Auth Flow
 
 1. User submits credentials on `/login` → `POST /api/login`
-2. Server validates against `AUTH_USERS` env (comma-separated `name:password` pairs)
-3. On success, sets `fp-auth=<username>` cookie (1-week expiry, `sameSite: strict`)
-4. `proxy.ts` checks the cookie on every request
-5. Unauthenticated users hitting protected routes are redirected to `/toolbox`
-6. Logout clears the cookie via `POST /api/logout`
-7. The cookie value is the username — used for usage attribution in `usage_events`
+2. Server validates email+password against firstpage-mcp (`POST {FP_MCP_URL}/admin/api/authenticate`, Bearer `FP_MCP_INTERNAL_KEY`) when the key is set; otherwise falls back to `AUTH_USERS` env (comma-separated `name:password` pairs)
+3. On success, mcp returns a `session_token`; login sets the shared httpOnly `fp_session` cookie (domain=`FP_SESSION_DOMAIN`, ≤8h) — the user's identity when `FP_MCP_INTERNAL_KEY` is set. It also sets host-only `fp-auth=<email>` (1-week, `sameSite: strict`), used for usage attribution in `usage_events` and as the identity in legacy mode
+4. Identity in SSO mode: the `fp_session` cookie, validated on every request against mcp `GET /admin/api/session` (Bearer `FP_MCP_INTERNAL_KEY`, 60s module cache in `lib/auth.ts`). Legacy mode (key unset): `fp-auth` validated against `AUTH_USERS`
+5. `proxy.ts` validates the session on every page request (passing the request cookie to `getSessionUser()` — `next/headers` is unavailable in the proxy); route handlers use `currentUsername()`/`getSessionUser()` from `lib/auth.ts`. A session-validation fetch error degrades to unauthenticated, never throws
+6. Unauthenticated users hitting protected routes are redirected to `/toolbox`
+7. `GET /api/me` returns `{loggedIn, username, isAdmin}`; `NavBar` fetches it on mount (mounted placeholder prevents hydration mismatch — no client-side cookie parsing)
+8. Registration lives on the mcp admin panel (`{FP_MCP_URL}/admin/register`); the toolbox `/login` page links there ("No account? Register at the MCP admin panel →", server-rendered prop)
+9. Logout clears both cookies via `POST /api/logout`
+10. Gateway champion/member names are mcp user emails (`is_verified`), validated against the cached `GET /admin/api/users` list; admins = mcp `is_admin` OR `ADMIN_USERS`
+
+When `FP_MCP_INTERNAL_KEY` is configured there is **no fallback to AUTH_USERS**: mcp network/HTTP failures surface as 502s in login (rather than silently accepting local credentials), and session-validation failures degrade to unauthenticated (redirect/401).
 
 ### Auth Environment Variables
 
-| Variable | Example |
-|----------|---------|
-| `AUTH_USERS` | `glass:pass,wing:pass2` |
+| Variable | Example | Purpose |
+|----------|---------|---------|
+| `FP_MCP_URL` | `https://mcp.firstpage.com.hk` | firstpage-mcp base URL for auth/users/session validation (SSO mode; optional) |
+| `FP_MCP_INTERNAL_KEY` | *(secret)* | Internal key for mcp `/admin/api/*`. Set → SSO mode (identity = `fp_session`); unset → legacy `AUTH_USERS` |
+| `FP_SESSION_DOMAIN` | `firstpage.com.hk` | Domain for the shared httpOnly `fp_session` cookie (mcp session; the SSO identity) |
+| `AUTH_USERS` | `glass:pass,wing:pass2` | Legacy fallback only — `name:password` pairs used when `FP_MCP_INTERNAL_KEY` is unset |
+| `ADMIN_USERS` | `glass@firstpage.com.hk` | Gateway admin emails; OR on top of mcp `is_admin` in both modes |
 
-**Security note**: Simple credential scheme for an internal team. Not robust auth — do not expose sensitive tools behind it alone.
+**Security note**: With the internal key set, credentials validate against firstpage-mcp (PBKDF2 + verified-email check) — the robust path. The `AUTH_USERS` fallback is a simple scheme for an internal team; do not run sensitive tools behind it alone.
 
 ---
 
@@ -276,12 +283,12 @@ The app uses **per-user cookie authentication**:
 | `/toolbox` | Server shell + client view | No | `lib/registry.ts` (code); `ToolboxView` filters/search via `?q=&cat=` URL params |
 | `/tools/pitch-deck` | Client | Yes | `lib/client-data.ts` (GSC + GA4 + PSI + Ahrefs) → OpenRouter |
 | `/tools/proposal` | Client | Yes | `lib/client-data.ts` (GSC + GA4 + PSI + Ahrefs) → OpenRouter |
-| `/tools/*` (23 more) | Client | Yes | per-tool API routes; see `app/AGENTS.md` for the full list |
+| `/tools/*` (24 more) | Client | Yes | per-tool API routes; see `app/AGENTS.md` for the full list |
 | `/usage` | Server | Yes | `lib/usage.ts` — tool runs, active users, LLM cost, per-tool run counts (hero banner + bignums + tools grid) |
-| `/gateway` | Server + client | Yes | `lib/gateway/` — DeepSeek team-key management. Admin: all teams + edit credit/max_keys + create teams; Champion: own team's keys (issue/revoke/assign, plaintext shown once); Member: own key only |
+| `/gateway` | Server + client | Yes | `lib/gateway/` — DeepSeek team-key management. Admin (`mcp is_admin`/`ADMIN_USERS` emails): all teams + edit credit/max_keys + create teams; Champion (mcp user email in `deepseek_teams.champion`): own team's keys (issue/revoke/assign, plaintext shown once); Member: own key only |
 | `/api/gateway` | API | Yes (cookie) | GET role-scoped views · POST create team (admin) · PATCH `/api/gateway/teams/<id>` adjust credit/max_keys (admin) · POST `/api/gateway/teams/<id>/keys` issue (champion/admin) · DELETE `/api/gateway/keys/<id>` revoke · POST/DELETE `/api/gateway/keys/<id>/members` assign/unbind |
 | `/login` | Client | No | — |
-| `/api/login` | API | No | `AUTH_USERS` env |
+| `/api/login` | API | No | SSO vs firstpage-mcp (`AUTH_USERS` fallback) |
 | `/api/logout` | API | No | — |
 | `/api/tools/<slug>` | API | Yes (cookie) | data/LLM tool routes (GET = options or history, POST = run/refine) |
 
@@ -341,15 +348,18 @@ If you add tests:
 ### Environment Variables for Production
 
 Make sure these are set in your hosting environment:
-- `AUTH_USERS` — per-user credentials (`name:pass,name2:pass2`)
+- `FP_MCP_URL` — firstpage-mcp base URL (default `https://mcp.firstpage.com.hk`); SSO auth + user list
+- `FP_MCP_INTERNAL_KEY` — internal key for mcp `/admin/api/*`. Set → SSO mode (email identity); unset → `AUTH_USERS` fallback
+- `FP_SESSION_DOMAIN` — optional shared-cookie domain (e.g. `firstpage.com.hk`) for the httpOnly `fp_session` mcp-session cookie
+- `AUTH_USERS` — legacy fallback only: per-user credentials (`name:pass,name2:pass2`) when `FP_MCP_INTERNAL_KEY` is unset
 - `DATABASE_URL` — Postgres connection (usage events + tool outputs + leads cache)
 - `OPENROUTER_API` — OpenRouter key for deck/proposal generation
 - `AHREFS_API_KEY` — competitor data for the deck pipeline
 - `HUBSPOT_SERVICE_KEY` — HubSpot private app token for recent-leads import
 - `BROWSERLESS_URL` — self-hosted browserless base URL (e.g. `https://browserless.firstpage.com.hk/`); used by the onsite-audit crawler (`/content`), PDF export (`/pdf`), page screenshots (`/screenshot`) and render-diff (`/content`). `/lighthouse` is NOT available on this build.
 - `BROWSERLESS_TOKEN` — browserless auth token (server-side only)
-- `OPENROUTER_MANAGEMENT_KEY` — OpenRouter management key for the DeepSeek gateway (`/gateway`): issue/revoke team keys, read per-key usage. Prereq: company DeepSeek key bound in OpenRouter BYOK settings (note: BYOK routing currently not active — `is_byok:false`; tracked separately)
-- `ADMIN_USERS` — comma-separated usernames with gateway admin rights (all teams; create teams; adjust team credit/max_keys)
+- `OPENROUTER_MANAGEMENT_KEY` — OpenRouter management key for the DeepSeek gateway (`/gateway`): issue/revoke team keys, read per-key usage. Prereq: company DeepSeek key bound in OpenRouter BYOK settings (BYOK active — DeepSeek spend counts toward per-key limits)
+- `ADMIN_USERS` — comma-separated gateway admin emails; OR on top of mcp `is_admin` (all teams; create teams; adjust team credit/max_keys)
 - `SLACK_WEBHOOK_URL` — optional; 80%/100% team-limit alerts (in-app alerts always record)
 - `GATEWAY_TEAM_LIMIT_USD` — default per-team monthly USD limit when creating a team (30)
 - `GATEWAY_POLL_MINUTES` — gateway usage poll + alert interval in minutes (60)
@@ -359,7 +369,7 @@ Make sure these are set in your hosting environment:
 
 ## Security Considerations
 
-1. **Hardcoded fallback credentials**: `app/api/login/route.ts` has a fallback password in source code. Override with `AUTH_PASS` env var in production.
+1. **Credentials never live in this repo**: with `FP_MCP_INTERNAL_KEY` set, login validates against firstpage-mcp (`POST /admin/api/authenticate`, PBKDF2 in the mcp's users module); the `AUTH_USERS` legacy fallback applies when the key is unset. Either way credentials stay in gitignored env/config — never in source or `README.md`.
 2. **API keys in client components**: OpenRouter/Ahrefs/HubSpot tokens are server-side only (`lib/`). Never pass them to client components or `components/ui/`.
 3. **Cookie is not httpOnly in client-side NavBar**: The auth cookie is read by client-side JavaScript in `NavBar.tsx` to show/hide navigation. The `httpOnly` flag is set to `false` in the login route to allow this.
 4. **No HTTPS enforcement**: The auth cookie sets `secure: true` only in production (`NODE_ENV === 'production'`). Ensure production deployments use HTTPS.
@@ -401,7 +411,7 @@ Content (case studies, brand guide) lives in `content/` as markdown — edit tho
 1. **Build fails with image optimization error**: Make sure `images.unoptimized: true` stays in `next.config.ts`.
 2. **Toolbox filters don't survive navigation**: `ToolboxView` reads initial `q`/`cat` from the server-rendered `searchParams` prop, writes updates via `router.replace`, and syncs browser back/forward with a `popstate` listener — keep those three paths in sync when touching the filter logic.
 3. **Auth redirect loops**: If the proxy redirects infinitely, check that `/toolbox` and `/login` are listed as public paths in `proxy.ts`.
-4. **Hydration mismatch in NavBar**: `NavBar` renders a minimal placeholder on the server (`mounted === false`) to prevent hydration mismatches because it reads `document.cookie`.
+4. **Hydration mismatch in NavBar**: `NavBar` renders a minimal placeholder on the server (`mounted === false`) and fetches `/api/me` only after mount — keep this pattern; never read `document.cookie` client-side.
 5. **Toolbox card opens the wrong target**: `externalLink` tools (e.g. FAQ Schema Generator) intentionally link out in a new tab; everything else links to `/tools/<slug>`. To add another external tool, append an `externalLink` manifest to `lib/registry.ts` — no `app/tools/<slug>/` folder needed.
 
 ---

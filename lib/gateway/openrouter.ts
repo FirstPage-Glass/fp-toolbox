@@ -50,6 +50,7 @@ function managementKey(): string {
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     ...init,
+    signal: AbortSignal.timeout(15_000),
     headers: {
       Authorization: `Bearer ${managementKey()}`,
       "Content-Type": "application/json",

@@ -36,6 +36,9 @@ export async function complete(opts: {
         { role: "user", content: opts.user },
       ],
     }),
+    // Timebox the call — without this, a hung OpenRouter request spins the
+    // dashboard's AI-plans suspense zone forever (reported as infinite loading).
+    signal: AbortSignal.timeout(90_000),
   });
   const data = await res.json();
   if (!res.ok) {

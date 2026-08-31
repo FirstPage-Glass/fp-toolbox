@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
+import { currentUsername } from "@/lib/auth";
 import { logUsage } from "@/lib/usage";
 import { listOutputs, getOutput } from "@/lib/outputs";
 import { getActions } from "@/lib/onsite-audit/actions";
@@ -21,7 +21,7 @@ export async function POST(request: Request) {
   if (!url || !/^https?:\/\//i.test(url)) {
     return NextResponse.json({ error: "A valid http(s) url is required" }, { status: 400 });
   }
-  const user = (await cookies()).get("fp-auth")?.value || "unknown";
+  const user = (await currentUsername()) || "unknown";
   const { jobId, progress } = startAuditJob(url, user);
   await logUsage({
     user,
@@ -36,7 +36,7 @@ export async function POST(request: Request) {
 }
 
 export async function GET(request: Request) {
-  const user = (await cookies()).get("fp-auth")?.value || "unknown";
+  const user = (await currentUsername()) || "unknown";
   const { searchParams } = new URL(request.url);
   const jobId = searchParams.get("jobId");
   const outputId = searchParams.get("outputId");

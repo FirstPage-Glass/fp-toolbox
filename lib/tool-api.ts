@@ -7,7 +7,7 @@
 // Picker lists: getGscSites() / getGa4Properties() — the full client portfolio,
 // memoized 1h via lib/cache.ts (752 GSC sites / 1000+ GA4 properties).
 
-import { cookies } from "next/headers";
+import { currentUsername } from "./auth";
 import { logUsage } from "./usage";
 import { saveOutput } from "./outputs";
 import { cached } from "./cache";
@@ -93,15 +93,16 @@ export interface RunQueryResult {
 }
 
 /**
- * Data-tool run path: attribute to the fp-auth cookie user, execute, log usage
- * (0 tokens/cost). Rethrows so routes can map errors to 4xx/5xx responses.
+ * Data-tool run path: attribute to the session user (fp_session in SSO, fp-auth
+ * legacy), execute, log usage (0 tokens/cost). Rethrows so routes can map
+ * errors to 4xx/5xx responses.
  */
 export async function runQuery(opts: {
   toolSlug: string;
   action?: string;
   fetch: () => Promise<unknown>;
 }): Promise<RunQueryResult> {
-  const user = (await cookies()).get("fp-auth")?.value || "unknown";
+  const user = (await currentUsername()) || "unknown";
   const started = Date.now();
   try {
     const data = await opts.fetch();
@@ -156,7 +157,7 @@ export async function runLlmTool(opts: {
     refine?: RefineInput
   ) => Promise<ToolLlmGenerate>;
 }): Promise<ToolLlmResult> {
-  const user = (await cookies()).get("fp-auth")?.value || "unknown";
+  const user = (await currentUsername()) || "unknown";
   const started = Date.now();
   const result = await opts.generate(opts.brief, opts.refine);
   await logUsage({

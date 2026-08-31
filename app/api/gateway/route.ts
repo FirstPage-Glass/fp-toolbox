@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createTeam } from "@/lib/gateway/db";
-import { currentUsername, getTeamsView } from "@/lib/gateway/service";
-import { isAdminUser } from "@/lib/auth";
+import { getTeamsView } from "@/lib/gateway/service";
+import { currentUsername, isAdminUser, isKnownUser } from "@/lib/auth";
 
 /**
  * GET /api/gateway — the logged-in user's role-scoped view.
@@ -12,8 +12,13 @@ export async function GET() {
   if (!username) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
-  const view = await getTeamsView(username);
-  return NextResponse.json(view);
+  try {
+    const view = await getTeamsView(username);
+    return NextResponse.json(view);
+  } catch (err) {
+    console.error("gateway getTeamsView failed:", err);
+    return NextResponse.json({ error: "Gateway unavailable — check database and OPENROUTER_MANAGEMENT_KEY" }, { status: 500 });
+  }
 }
 
 /** POST /api/gateway — create a team (admin only). */
@@ -22,7 +27,7 @@ export async function POST(request: Request) {
   if (!username) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
-  if (!isAdminUser(username)) {
+  if (!(await isAdminUser(username))) {
     return NextResponse.json({ error: "Admin only" }, { status: 403 });
   }
 
@@ -40,6 +45,9 @@ export async function POST(request: Request) {
   const maxKeys = Number(body.maxKeys ?? 1);
   if (!name || !champion) {
     return NextResponse.json({ error: "name and champion are required" }, { status: 400 });
+  }
+  if (!(await isKnownUser(champion))) {
+    return NextResponse.json({ error: `champion "${champion}" is not a known user` }, { status: 400 });
   }
   if (!Number.isFinite(creditUsd) || creditUsd <= 0) {
     return NextResponse.json({ error: "creditUsd must be a positive number" }, { status: 400 });

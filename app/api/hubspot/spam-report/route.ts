@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
+import { currentUsername } from "@/lib/auth";
 import { getSpamReport } from "@/lib/hubspot";
 import { cached } from "@/lib/cache";
 
 const SPAM_REPORT_TTL_MS = 10 * 60 * 1000;
 
 export async function GET() {
-  const user = (await cookies()).get("fp-auth")?.value;
+  const user = await currentUsername();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

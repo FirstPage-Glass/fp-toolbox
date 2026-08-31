@@ -4,12 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
-function getAuthCookie() {
-  if (typeof document === "undefined") return null;
-  return document.cookie
-    .split("; ")
-    .find((row) => row.startsWith("fp-auth="))
-    ?.split("=")[1];
+interface MeResponse {
+  loggedIn: boolean;
+  username: string | null;
+  isAdmin: boolean;
 }
 
 const NAV_LINKS = [
@@ -17,11 +15,12 @@ const NAV_LINKS = [
   { href: "/toolbox", label: "Toolbox" },
   { href: "/gateway", label: "Gateway" },
   { href: "/usage", label: "Usage" },
-  { href: "/admin", label: "Lead Quality" },
+  { href: "/admin", label: "Lead Quality", adminOnly: true },
 ];
 
 export default function NavBar() {
   const [mounted, setMounted] = useState(false);
+  const [me, setMe] = useState<MeResponse>({ loggedIn: false, username: null, isAdmin: false });
   const pathname = usePathname();
 
   useEffect(() => {
@@ -29,7 +28,24 @@ export default function NavBar() {
     return () => clearTimeout(timer);
   }, []);
 
-  const isLoggedIn = mounted && Boolean(getAuthCookie());
+  useEffect(() => {
+    if (!mounted) return;
+    let cancelled = false;
+    fetch("/api/me")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: MeResponse | null) => {
+        if (!cancelled && data) setMe(data);
+      })
+      .catch(() => {
+        // Leave the placeholder state — auth degrades to logged-out.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [mounted]);
+
+  const isLoggedIn = me.loggedIn;
+  const visibleLinks = NAV_LINKS.filter((l) => !l.adminOnly || me.isAdmin);
 
   const linkClass = (href: string) =>
     `px-3.5 py-2 rounded-lg text-[13.5px] font-semibold transition-colors ${
@@ -46,11 +62,16 @@ export default function NavBar() {
     <nav className="flex items-center gap-1 ml-auto">
       {isLoggedIn ? (
         <>
-          {NAV_LINKS.map((l) => (
+          {visibleLinks.map((l) => (
             <Link key={l.href} href={l.href} className={linkClass(l.href)}>
               {l.label}
             </Link>
           ))}
+          {me.username && (
+            <span className="ml-1 px-3 py-2 text-[12.5px] font-semibold text-navy/70 truncate max-w-[180px]">
+              {me.username}
+            </span>
+          )}
           <button
             onClick={async () => {
               await fetch("/api/logout", { method: "POST" });

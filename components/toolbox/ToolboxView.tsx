@@ -15,6 +15,7 @@ export const CATEGORY_ORDER = [
   "Sales",
   "SEO Research",
   "SEO Technical",
+  "SEO Content",
   "Content",
   "Operations",
 ] as const;
