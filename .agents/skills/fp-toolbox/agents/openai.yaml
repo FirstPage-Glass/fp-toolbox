@@ -1,0 +1,6 @@
+interface:
+  display_name: "Fp Toolbox"
+  short_description: "Repo-specific patterns and workflows for fp-toolbox"
+  default_prompt: "Use the fp-toolbox repo skill to follow existing architecture, testing, and workflow conventions."
+policy:
+  allow_implicit_invocation: true
