@@ -68,7 +68,13 @@ async function writeDb(key: string, value: unknown, expiresAt: number): Promise<
  * FAIL_TTL_MS under the same key and re-thrown, so a failing/rate-limited API
  * is not re-hit on every render. A DB outage degrades to memory-only behaviour.
  */
-export async function cached<T>(key: string, fn: () => Promise<T>, ttlMs = CACHE_TTL_MS): Promise<T> {
+export async function cached<T>(
+  key: string,
+  fn: () => Promise<T>,
+  ttlMs = CACHE_TTL_MS,
+  /** How long a FAILED call is memoized before it can be retried (default 60s). */
+  failureTtlMs = FAIL_TTL_MS
+): Promise<T> {
   // 1) in-memory
   const memHit = memCache.get(key);
   if (memHit && memHit.expiresAt > Date.now()) {
@@ -99,7 +105,7 @@ export async function cached<T>(key: string, fn: () => Promise<T>, ttlMs = CACHE
     return value;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    const entry: CacheEntry = { value: { __error: msg }, expiresAt: Date.now() + FAIL_TTL_MS };
+    const entry: CacheEntry = { value: { __error: msg }, expiresAt: Date.now() + failureTtlMs };
     memCache.set(key, entry);
     writeDb(key, entry.value, entry.expiresAt).catch(() => undefined);
     throw err;

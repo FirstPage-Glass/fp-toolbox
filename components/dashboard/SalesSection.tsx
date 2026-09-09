@@ -1,9 +1,7 @@
-import { Suspense } from "react";
 import MetricCard from "./MetricCard";
 import UnconfiguredNotice from "./UnconfiguredNotice";
 import SectionHeader from "./SectionHeader";
-import AiPlanCards from "./AiPlanCards";
-import { AiPlanSkeleton } from "./DashboardSkeleton";
+import AiPlansPanel from "./AiPlansPanel";
 import CardHead from "./CardHead";
 import StatMini from "./StatMini";
 import TwoCol from "./TwoCol";
@@ -15,7 +13,6 @@ import LeadScoreChart from "./LeadScoreChart";
 import { tools } from "@/lib/registry";
 import type { SalesData } from "@/lib/dashboard";
 import type { Insight } from "@/lib/insights";
-import type { AiPlans } from "@/lib/ai-plans";
 
 const usd = (n: number): string =>
   `$${n.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
@@ -25,12 +22,10 @@ const toolName = new Map(tools.map((t) => [t.slug, t.name]));
 interface SalesSectionProps {
   d: SalesData;
   insights: Insight[];
-  /** Shared AI-plans promise — one LLM call feeds both zones; card fills in separately. */
-  plansP: Promise<AiPlans | null>;
 }
 
 /** Sales performance half of the dashboard — design-ref sales zone. */
-export default function SalesSection({ d, insights, plansP }: SalesSectionProps) {
+export default function SalesSection({ d, insights }: SalesSectionProps) {
   const totalLeads = d.hubspot.spam?.good ?? d.hubspot.leads.length;
   const spamRate = d.hubspot.spam?.spamRatePct ?? null;
   const deals = d.deals.aggregate;
@@ -66,9 +61,7 @@ export default function SalesSection({ d, insights, plansP }: SalesSectionProps)
         insights={insights}
       />
 
-      <Suspense fallback={<AiPlanSkeleton />}>
-        <AiPlanCards plansP={plansP} zone="sales" />
-      </Suspense>
+      <AiPlansPanel days={d.rangeDays} zone="sales" />
 
       {/* KPI row */}
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
