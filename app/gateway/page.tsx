@@ -1,6 +1,6 @@
-import { currentUsername, getTeamsView } from "@/lib/gateway/service";
+import { currentUsername } from "@/lib/auth";
+import { getTeamsView, type TeamsView } from "@/lib/gateway/service";
 import GatewayClient from "@/components/gateway/GatewayClient";
-
 export const dynamic = "force-dynamic";
 
 /**
@@ -10,7 +10,19 @@ export const dynamic = "force-dynamic";
  */
 export default async function GatewayAdminPage() {
   const username = await currentUsername();
-  const view = await getTeamsView(username);
+  let view: TeamsView;
+  try {
+    view = await getTeamsView(username);
+  } catch (err) {
+    console.error("gateway view failed:", err);
+    view = {
+      role: "none",
+      teams: [],
+      alerts: [],
+      error:
+        "Gateway unavailable — the database or OpenRouter is unreachable. Check DATABASE_URL and OPENROUTER_MANAGEMENT_KEY, then reload.",
+    };
+  }
 
   return (
     <>

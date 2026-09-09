@@ -4,7 +4,20 @@
 // Protocol verified against firstpage-mcp 0.1.1: no session id required,
 // tools/call returns JSON or SSE, results are text content (usually JSON).
 
-const MCP_URL = process.env.FP_MCP_URL || "https://mcp.firstpage.com.hk/mcp/";
+/**
+ * Streamable-HTTP JSON-RPC endpoint for the firstpage MCP server.
+ * FP_MCP_URL is the BASE URL — shared with lib/auth.ts, which appends
+ * /admin/api/*, and the /admin/register login link. The MCP JSON-RPC endpoint
+ * is always <base>/mcp/. A value that already carries the /mcp/ path (older
+ * full-endpoint form) passes through untouched.
+ */
+function mcpEndpoint(): string {
+  const raw = process.env.FP_MCP_URL || "https://mcp.firstpage.com.hk";
+  const u = new URL(raw);
+  const p = u.pathname.replace(/\/+$/, "");
+  if (!p.endsWith("/mcp")) u.pathname = `${p}/mcp/`;
+  return u.toString();
+}
 const MCP_PROTOCOL_VERSION = "2025-03-26";
 
 export class McpError extends Error {}
@@ -28,7 +41,7 @@ function baseHeaders(): Record<string, string> {
 async function ensureInitialized(): Promise<void> {
   if (!initialized) {
     initialized = (async () => {
-      const res = await fetch(MCP_URL, {
+      const res = await fetch(mcpEndpoint(), {
         method: "POST",
         headers: baseHeaders(),
         body: JSON.stringify({
@@ -44,7 +57,7 @@ async function ensureInitialized(): Promise<void> {
         signal: AbortSignal.timeout(30_000),
       });
       if (!res.ok) throw new McpError(`MCP initialize failed: ${res.status}`);
-      await fetch(MCP_URL, {
+      await fetch(mcpEndpoint(), {
         method: "POST",
         headers: baseHeaders(),
         body: JSON.stringify({ jsonrpc: "2.0", method: "notifications/initialized" }),
@@ -61,10 +74,11 @@ async function ensureInitialized(): Promise<void> {
 /** Call an MCP tool; parses the JSON text payload, throws McpError on failure. */
 export async function mcpCall<T = unknown>(
   tool: string,
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
+  timeoutMs = 90_000
 ): Promise<T> {
   await ensureInitialized();
-  const res = await fetch(MCP_URL, {
+  const res = await fetch(mcpEndpoint(), {
     method: "POST",
     headers: baseHeaders(),
     body: JSON.stringify({
@@ -73,7 +87,7 @@ export async function mcpCall<T = unknown>(
       method: "tools/call",
       params: { name: tool, arguments: args },
     }),
-    signal: AbortSignal.timeout(90_000),
+    signal: AbortSignal.timeout(timeoutMs),
   });
   if (!res.ok) throw new McpError(`MCP ${tool} http ${res.status}`);
   const data: { error?: { message?: string }; result?: { content?: { type?: string; text?: string }[] } } =
@@ -122,7 +136,11 @@ export async function getMcpPsi(
       total_blocking_time?: number;
       cumulative_layout_shift?: number;
     };
-  }>("psi_audit", { url, strategy });
+    // PSI runs a live Lighthouse audit and routinely takes >30s (sometimes
+    // hangs entirely server-side) — cap it well below the 90s default so a
+    // stuck psi_audit degrades to the error card instead of pinning the
+    // website zone for a minute and a half.
+  }>("psi_audit", { url, strategy }, 45_000);
   const score = (name: string): number | null => {
     const s = raw.scores?.[name]?.score;
     return s != null ? Math.round(s * 100) : null;
@@ -176,6 +194,17 @@ export interface Ga4Report {
   rows: Ga4Row[];
 }
 
+/** MCP ga4_run_report envelope: the report sits at data.results[0].response.data. */
+interface Ga4RunEnvelope {
+  data?: {
+    results?: {
+      response?: {
+        data?: Ga4Report;
+      };
+    }[];
+  };
+}
+
 /** GA4 report via MCP. property_id is the bare numeric id (no properties/ prefix). */
 export async function getMcpGa4(
   propertyId: string,
@@ -192,7 +221,10 @@ export async function getMcpGa4(
     row_limit: 40,
   };
   if (dimensions) args.dimensions = dimensions;
-  return mcpCall<Ga4Report>("ga4_run_report", args);
+  const raw = await mcpCall<Ga4RunEnvelope>("ga4_run_report", args);
+  const report = raw.data?.results?.[0]?.response?.data;
+  if (!report) throw new McpError("ga4_run_report: no report in response envelope");
+  return report;
 }
 
 export interface McpInventory {

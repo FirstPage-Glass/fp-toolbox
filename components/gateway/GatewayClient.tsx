@@ -371,6 +371,18 @@ export default function GatewayClient({ initialView, username }: GatewayClientPr
     }
   };
 
+  // ---- degraded (DB / OpenRouter down) ---------------------------------------
+  if (view.error) {
+    return (
+      <Card tone="slate" className="space-y-3">
+        <ErrorBanner>{view.error}</ErrorBanner>
+        <p className="text-[13px] text-muted">
+          Alerts, quotas and key metadata are unavailable until the gateway backend recovers.
+        </p>
+      </Card>
+    );
+  }
+
   // ---- member view: only their own key(s) -----------------------------------
   if (view.role === "member") {
     const myKeys = view.teams.flatMap((t) => t.keys);
@@ -407,7 +419,7 @@ export default function GatewayClient({ initialView, username }: GatewayClientPr
             <p className="mt-4 text-[12.5px] text-muted">
               Configure your AI client with base URL{" "}
               <code className="font-mono">https://openrouter.ai/api/v1</code> and model{" "}
-              <code className="font-mono">deepseek/deepseek-v4-flash</code>. Contact your champion to rotate the key.
+              <code className="font-mono">deepseek/deepseek-v4-flash-0731</code>. Contact your champion to rotate the key.
             </p>
           </Card>
         ))}
@@ -469,7 +481,7 @@ export default function GatewayClient({ initialView, username }: GatewayClientPr
           </div>
           <p className="mt-3 text-[12.5px] text-muted">
             Base URL: <code className="font-mono">https://openrouter.ai/api/v1</code> · Model:{" "}
-            <code className="font-mono">deepseek/deepseek-v4-flash</code>
+            <code className="font-mono">deepseek/deepseek-v4-flash-0731</code>
           </p>
         </Card>
       ) : null}

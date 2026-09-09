@@ -222,21 +222,31 @@ function parseGa4(report: Ga4Report): {
   };
 }
 
-// PSI (keyless free tier) rate-limits with 429s on the shared quota; MCP uses
-// firstpage's own key. Either way, memoize failures for a minute so quota'd
-// renders don't hammer the provider on every page load.
+// PSI runs a live Lighthouse audit and can be slow, sometimes hung entirely
+// (observed >30s no-response). Memoize both the result AND the failure for 6h
+// (via cached()'s per-key failure TTL) so a stuck psi_audit degrades to the
+// inline error card once instead of pinning the website zone every render.
+const PSI_TTL_MS = 6 * 60 * 60 * 1000;
 let psiFailureAt = 0;
 let psiFailureMsg: string | null = null;
 
-async function fetchPsiSafely(): Promise<{
+/** PageSpeed outcome — result plus a tolerant error string. */
+export interface WebsitePsi {
   result: McpPsiResult | null;
   error: string | null;
-}> {
-  if (psiFailureAt && Date.now() - psiFailureAt < 60_000) {
+}
+
+/** PageSpeed audit, resolved INDEPENDENTLY of the website zone. psi_audit runs a
+ * live Lighthouse check and routinely takes >30s (sometimes hangs) — so it
+ * streams through its own Suspense in WebsiteSection and never blocks the
+ * GSC/GA4/Ahrefs cards. Result AND failure are memoized PSI_TTL_MS so an
+ * expired key re-runs it at most every 6h. */
+export async function getWebsitePsi(): Promise<WebsitePsi> {
+  if (psiFailureAt && Date.now() - psiFailureAt < PSI_TTL_MS) {
     return { result: null, error: psiFailureMsg };
   }
   try {
-    const result = await cached("mcp-psi", () => getMcpPsi(TARGET_URL));
+    const result = await cached("mcp-psi", () => getMcpPsi(TARGET_URL), PSI_TTL_MS, PSI_TTL_MS);
     psiFailureAt = 0;
     psiFailureMsg = null;
     return { result, error: null };
@@ -454,8 +464,10 @@ async function fetchAhrefs(): Promise<AhrefsBundle> {
  */
 export async function getWebsiteData(days = 30): Promise<WebsiteData> {
   const targets = { url: TARGET_URL, domain: TARGET_DOMAIN };
-  const [psi, gsc, ga4, ahrefs] = await Promise.all([
-    fetchPsiSafely(),
+  // PSI is intentionally excluded here — psi_audit is slow and occasionally
+  // hangs 45s+, so getWebsitePsi streams it via its own Suspense and this zone
+  // (and the AI-plans chain) never waits on it.
+  const [gsc, ga4, ahrefs] = await Promise.all([
     fetchGsc(days),
     fetchGa4(days),
     fetchAhrefs(),
@@ -469,7 +481,8 @@ export async function getWebsiteData(days = 30): Promise<WebsiteData> {
   };
 
   return {
-    psi: { result: psi.result, error: psi.error },
+    // psi is a placeholder here — real value streams via getWebsitePsi (see WebsiteSection).
+    psi: { result: null, error: null },
     ahrefs: { configured: ahrefs.configured, result: ahrefs.result, error: ahrefs.error },
     aiVisibility: { result: ahrefs.aiVisibility, error: ahrefs.aiVisibilityError },
     gsc: { siteUrl: GSC_SITE, totals: gsc.totals, queries: gsc.queries, daily: gsc.daily, error: gsc.error },

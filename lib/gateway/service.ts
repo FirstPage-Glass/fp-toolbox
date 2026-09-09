@@ -3,10 +3,10 @@
  * quota-validated key operations, and the role-scoped read view for the UI.
  *
  * Roles:
- * - admin (ADMIN_USERS): every team, every key; adjusts team credit pool +
- *   key-count limit.
- * - champion (team.champion): own team's keys, issue/revoke/assign within
- *   max_keys and the credit pool.
+ * - admin (mcp is_admin or ADMIN_USERS email): every team, every key; adjusts
+ *   team credit pool + key-count limit.
+ * - champion (team.champion — an mcp user email): own team's keys,
+ *   issue/revoke/assign within max_keys and the credit pool.
  * - member (bound via deepseek_key_members): sees only the key(s) bound to them.
  *
  * Quota rules (enforced here):
@@ -15,7 +15,6 @@
  *   enforced exactly by OpenRouter's per-key limit — 403 hard block)
  * - each key binds 1–2 members; a user can only be bound to one active key.
  */
-import { cookies } from "next/headers";
 import {
   type GatewayKey,
   type GatewayTeam,
@@ -35,7 +34,7 @@ import {
   updateTeamLimits as dbUpdateTeamLimits,
 } from "./db";
 import { type OpenRouterKey, createKey, deleteKey, listKeys } from "./openrouter";
-import { isAdminUser } from "../auth";
+import { isAdminUser, isKnownUser } from "../auth";
 
 export class GatewayForbiddenError extends Error {
   constructor(message: string) {
@@ -55,11 +54,6 @@ export class GatewayConflictError extends Error {
   }
 }
 
-/** Username from the fp-auth cookie ("" when not logged in). */
-export async function currentUsername(): Promise<string> {
-  return (await cookies()).get("fp-auth")?.value || "";
-}
-
 export type GatewayRole = "admin" | "champion" | "member" | "none";
 
 /** Resolve the caller's role and the teams they may act on. */
@@ -67,7 +61,7 @@ export async function resolveRole(username: string): Promise<{
   role: GatewayRole;
   teams: GatewayTeam[];
 }> {
-  if (isAdminUser(username)) {
+  if (await isAdminUser(username)) {
     return { role: "admin", teams: await listTeams() };
   }
   const championTeams = await getTeamsByChampion(username);
@@ -108,6 +102,8 @@ export interface TeamsView {
   role: GatewayRole;
   teams: TeamView[];
   alerts: { teamId: number; keyId: number; level: string; usageUsd: number; sentAt: string }[];
+  /** Set when the view could not be fully computed (DB/OpenRouter down). */
+  error?: string;
 }
 
 /**
@@ -228,6 +224,9 @@ export async function issueKey(
     );
   }
   for (const member of members) {
+    if (!(await isKnownUser(member))) {
+      throw new GatewayConflictError(`"${member}" is not a known user`);
+    }
     const existing = await listKeysForUser(member);
     if (existing.some((k) => k.status === "active")) {
       throw new GatewayConflictError(`"${member}" already has an active key`);
@@ -238,17 +237,29 @@ export async function issueKey(
     name: `fp-${team.name}-${activeKeys.length + 1}`,
     limitUsd,
   });
-  const record = await createKeyRecord({
-    teamId: team.id,
-    hash: keyRow.hash,
-    label: `fp-${team.name}-${activeKeys.length + 1}`,
-    limitUsd,
-    createdBy: username,
-  });
-  for (const member of members) {
-    await addKeyMember({ keyId: record.id, username: member, assignedBy: username });
+  try {
+    const record = await createKeyRecord({
+      teamId: team.id,
+      hash: keyRow.hash,
+      label: `fp-${team.name}-${activeKeys.length + 1}`,
+      limitUsd,
+      createdBy: username,
+    });
+    for (const member of members) {
+      await addKeyMember({ keyId: record.id, username: member, assignedBy: username });
+    }
+    return { key, label: record.label };
+  } catch (err) {
+    // Remote key exists but local persist failed — delete it so no
+    // untracked, limited key remains live on OpenRouter.
+    await deleteKey(keyRow.hash).catch((cleanupErr) => {
+      console.error(
+        `gateway: orphan key ${keyRow.hash.slice(0, 8)} cleanup failed — delete manually:`,
+        cleanupErr
+      );
+    });
+    throw err;
   }
-  return { key, label: record.label };
 }
 
 /** Bind a user to an existing key (1–2 members, one active key per user). */
@@ -270,6 +281,9 @@ export async function assignMember(
   }
   if (current.some((m) => m.username === memberUsername)) {
     throw new GatewayConflictError(`"${memberUsername}" is already bound to this key`);
+  }
+  if (!(await isKnownUser(memberUsername))) {
+    throw new GatewayConflictError(`"${memberUsername}" is not a known user`);
   }
   const existing = await listKeysForUser(memberUsername);
   if (existing.some((k) => k.status === "active")) {
@@ -298,8 +312,13 @@ export async function revokeKey(username: string, keyId: number): Promise<void> 
   if (key.status === "active") {
     try {
       await deleteKey(key.hash);
-    } catch (err) {
-      console.error(`gateway: failed to delete OpenRouter key ${key.hash.slice(0, 8)}:`, err);
+    } catch {
+      // Remote delete failed — the key is still live on OpenRouter. Keep
+      // local status "active" so the UI (and poller) keeps tracking it
+      // instead of silently lying that it is revoked.
+      throw new GatewayConflictError(
+        `OpenRouter refused to delete the key (it may still work). Nothing changed — retry or delete it in the OpenRouter dashboard.`
+      );
     }
     await setKeyStatus(key.id, "revoked");
   }
@@ -311,7 +330,7 @@ export async function updateTeamLimits(
   teamId: number,
   patch: { creditUsd?: number; maxKeys?: number }
 ): Promise<GatewayTeam> {
-  if (!isAdminUser(username)) {
+  if (!(await isAdminUser(username))) {
     throw new GatewayForbiddenError("Only admins can adjust team limits");
   }
   const team = await requireTeam(teamId);
@@ -350,6 +369,6 @@ async function requireKey(keyId: number): Promise<GatewayKey> {
 }
 
 async function requireManage(username: string, team: GatewayTeam): Promise<void> {
-  if (isAdminUser(username) || team.champion === username) return;
+  if ((await isAdminUser(username)) || team.champion === username) return;
   throw new GatewayForbiddenError("You can only manage your own team's keys");
 }

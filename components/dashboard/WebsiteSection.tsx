@@ -1,9 +1,9 @@
-import { Suspense, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import MetricCard from "./MetricCard";
 import UnconfiguredNotice from "./UnconfiguredNotice";
 import SectionHeader from "./SectionHeader";
-import AiPlanCards from "./AiPlanCards";
-import { AiPlanSkeleton } from "./DashboardSkeleton";
+import AiPlansPanel from "./AiPlansPanel";
+import { PsiKpi, PsiDetail } from "./PsiPanel";
 import CardHead from "./CardHead";
 import StatMini from "./StatMini";
 import TwoCol from "./TwoCol";
@@ -15,7 +15,6 @@ import Card from "@/components/ui/Card";
 import type { WebsiteData } from "@/lib/dashboard";
 import type { UptimeStats } from "@/lib/uptime";
 import type { Insight } from "@/lib/insights";
-import type { AiPlans } from "@/lib/ai-plans";
 
 /** HK-local time for the uptime panel, e.g. "10/08 14:35". */
 function fmtTime(d: Date): string {
@@ -40,24 +39,14 @@ function Chip({ dot, dotColor, children }: { dot?: boolean; dotColor?: string; c
   );
 }
 
-function psiStatus(score: number | null): { label: string; tone: "good" | "warn" | "bad" } | null {
-  if (score === null) return null;
-  if (score >= 90) return { label: "Good", tone: "good" };
-  if (score >= 50) return { label: "Needs work", tone: "warn" };
-  return { label: "Poor", tone: "bad" };
-}
-
 interface WebsiteSectionProps {
   d: WebsiteData;
   uptime: UptimeStats;
   insights: Insight[];
-  /** Shared AI-plans promise — one LLM call feeds both zones; card fills in separately. */
-  plansP: Promise<AiPlans | null>;
 }
 
 /** Website performance half of the dashboard — design-ref website zone. */
-export default function WebsiteSection({ d, uptime, insights, plansP }: WebsiteSectionProps) {
-  const psiScore = d.psi.result?.performanceScore ?? null;
+export default function WebsiteSection({ d, uptime, insights }: WebsiteSectionProps) {
   const ga4Trend = d.ga4.trend;
   const ai = d.aiVisibility.result;
   const keywords = d.ahrefs.result?.keywords ?? [];
@@ -73,9 +62,7 @@ export default function WebsiteSection({ d, uptime, insights, plansP }: WebsiteS
         insights={insights}
       />
 
-      <Suspense fallback={<AiPlanSkeleton />}>
-        <AiPlanCards plansP={plansP} zone="website" />
-      </Suspense>
+      <AiPlansPanel days={d.rangeDays} zone="website" />
 
       {/* Site status — uptime checker */}
       <Card className="mt-6">
@@ -145,13 +132,7 @@ export default function WebsiteSection({ d, uptime, insights, plansP }: WebsiteS
           spark={d.gsc.daily.map((p) => p.clicks)}
           sparkColor="#427fe0"
         />
-        <MetricCard
-          label="PageSpeed"
-          value={psiScore !== null ? `${psiScore}` : "—"}
-          suffix="/100"
-          sub={d.psi.result ? d.psi.result.url.replace(/^https?:\/\//, "") : "checking…"}
-          status={psiStatus(psiScore) ? { ...psiStatus(psiScore)!, hint: "mobile" } : undefined}
-        />
+        <PsiKpi days={d.rangeDays} />
         <MetricCard
           label="Keywords tracked"
           value={d.ahrefs.result ? d.ahrefs.result.keywords.length : "—"}
@@ -237,49 +218,8 @@ export default function WebsiteSection({ d, uptime, insights, plansP }: WebsiteS
         )}
       </Card>
 
-      {/* Site performance — PSI */}
-      <Card className="mt-8">
-        <CardHead title="Site performance" src="PageSpeed Insights · mobile" />
-        {d.psi.error ? (
-          <p className="text-sm text-rose-600">Couldn&apos;t fetch PageSpeed: {d.psi.error}</p>
-        ) : d.psi.result ? (
-          <TwoCol
-            left={
-              <div>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-[44px] font-extrabold text-navy tracking-[-0.02em] leading-none">
-                    {psiScore !== null ? psiScore : "—"}
-                  </span>
-                  <span className="text-sm font-semibold text-muted">/ 100 performance</span>
-                </div>
-                <div
-                  className="h-3 rounded-full my-2.5"
-                  style={{
-                    background:
-                      "linear-gradient(90deg, oklch(0.62 0.2 22) 0 49%, oklch(0.72 0.15 75) 49% 89%, oklch(0.55 0.14 152) 89% 100%)",
-                  }}
-                  aria-hidden
-                />
-                <div className="flex justify-between text-[11px] font-semibold text-muted">
-                  <span>Poor</span>
-                  <span>Needs work</span>
-                  <span>Good</span>
-                </div>
-              </div>
-            }
-            right={
-              <>
-                <StatMini label="Largest Contentful Paint" value={d.psi.result.lcpMs !== null ? `${(d.psi.result.lcpMs / 1000).toFixed(1)} s` : "—"} />
-                <StatMini label="Cumulative Layout Shift" value={d.psi.result.cls !== null ? d.psi.result.cls.toFixed(2) : "—"} />
-                <StatMini label="First Contentful Paint" value={d.psi.result.fcpMs !== null ? `${(d.psi.result.fcpMs / 1000).toFixed(1)} s` : "—"} />
-                <StatMini label="Time to Interactive" value={d.psi.result.tbtMs !== null ? `${(d.psi.result.tbtMs / 1000).toFixed(1)} s` : "—"} />
-              </>
-            }
-          />
-        ) : (
-          <p className="text-sm text-muted">Checking PageSpeed…</p>
-        )}
-      </Card>
+      {/* Site performance — PSI (client-filled; never blocks hydration) */}
+      <PsiDetail days={d.rangeDays} />
 
       {/* Search presence — Ahrefs keywords + AI visibility */}
       <Card className="mt-8">

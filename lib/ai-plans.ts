@@ -101,6 +101,11 @@ function parsePlans(raw: string): AiPlans | null {
  * Returns null when OPENROUTER_API is unset, the LLM call fails, or the output
  * fails validation — the page then falls back to the rule-driven insights only.
  */
+// The AI-plans card is optional garnish — a slow/hung LLM call must never pin
+// the page's RSC stream (which blocks hydration and makes Link clicks dead for
+// tens of seconds). Bound it hard; the card falls back to the rule insights.
+const PLANS_TIMEOUT_MS = 15_000;
+
 export async function buildAiPlans(web: WebsiteData, sales: SalesData): Promise<AiPlans | null> {
   if (!process.env.OPENROUTER_API && !process.env.OPENROUTER_API_KEY) return null;
   try {
@@ -108,6 +113,7 @@ export async function buildAiPlans(web: WebsiteData, sales: SalesData): Promise<
       const result = await complete({
         system: SYSTEM_PROMPT,
         user: buildDashboardSummary(web, sales),
+        timeoutMs: PLANS_TIMEOUT_MS,
       });
       return parsePlans(result.text);
     });

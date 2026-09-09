@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
+import { currentUsername } from "@/lib/auth";
 import { setAction, getActions, ACTION_STATUSES, type ActionStatus } from "@/lib/onsite-audit/actions";
 
 /**
@@ -10,7 +10,7 @@ import { setAction, getActions, ACTION_STATUSES, type ActionStatus } from "@/lib
  * progress survives re-runs of the same site.
  */
 export async function POST(request: Request) {
-  const user = (await cookies()).get("fp-auth")?.value || "unknown";
+  const user = (await currentUsername()) || "unknown";
   const body = await request.json().catch(() => ({}));
   const domain = String(body.domain || "").trim().toLowerCase();
   const itemId = String(body.itemId || "").trim();

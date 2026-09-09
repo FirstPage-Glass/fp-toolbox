@@ -4,8 +4,6 @@ import { getWebsiteData, getSalesData, getClientsInventory } from "@/lib/dashboa
 import type { WebsiteData, SalesData } from "@/lib/dashboard";
 import { getUptimeStats } from "@/lib/uptime";
 import { buildWebsiteInsights, buildSalesInsights } from "@/lib/insights";
-import { buildAiPlans } from "@/lib/ai-plans";
-import type { AiPlans } from "@/lib/ai-plans";
 import RangePicker from "@/components/dashboard/RangePicker";
 import SectionNav from "@/components/dashboard/SectionNav";
 import WebsiteSection from "@/components/dashboard/WebsiteSection";
@@ -37,31 +35,21 @@ async function ClientsCount() {
   );
 }
 
-/** Website zone: waits only on its own data, then streams in independently. */
-async function WebsiteZone({
-  webP,
-  plansP,
-}: {
-  webP: Promise<WebsiteData>;
-  plansP: Promise<AiPlans | null>;
-}) {
+/** Website zone: waits only on its own data, then streams in independently.
+ * PSI + AI plans are client-filled panels inside WebsiteSection — they never
+ * block this zone or the page hydration. */
+async function WebsiteZone({ webP }: { webP: Promise<WebsiteData> }) {
   const web = await webP;
   const uptime = await getUptimeStats(web.targets.url);
   const insights = buildWebsiteInsights(web);
-  return <WebsiteSection d={web} uptime={uptime} insights={insights} plansP={plansP} />;
+  return <WebsiteSection d={web} uptime={uptime} insights={insights} />;
 }
 
 /** Sales zone: waits only on its own data, then streams in independently. */
-async function SalesZone({
-  salesP,
-  plansP,
-}: {
-  salesP: Promise<SalesData>;
-  plansP: Promise<AiPlans | null>;
-}) {
+async function SalesZone({ salesP }: { salesP: Promise<SalesData> }) {
   const sales = await salesP;
   const insights = buildSalesInsights(sales);
-  return <SalesSection d={sales} insights={insights} plansP={plansP} />;
+  return <SalesSection d={sales} insights={insights} />;
 }
 
 /** Empty report shape for the tolerant fallback — never rendered when `error` is set. */
@@ -74,17 +62,18 @@ const EMPTY_SPAM_REPORT: SpamReport = {
   topSources: [],
 };
 
-/** Lead Quality zone — same memoized 10-min source as /admin. Tolerant: a
- * HubSpot 429 (rate limit) degrades to an inline error instead of crashing. */
-async function LeadQualityZone() {
+/** Lead Quality zone — same memoized 10-min source as /admin, keyed by the
+ * selected range. Tolerant: a HubSpot 429 (rate limit) degrades to an inline
+ * error instead of crashing. */
+async function LeadQualityZone({ days }: { days: number }) {
   let report: SpamReport | null = null;
   let error: string | null = null;
   try {
-    report = await cached("spam-report-overview:30", () => getSpamReport(30), 10 * 60 * 1000);
+    report = await cached(`spam-report-overview:${days}`, () => getSpamReport(days), 10 * 60 * 1000);
   } catch (err) {
     error = err instanceof Error ? err.message : String(err);
   }
-  return <LeadQualitySection report={report ?? EMPTY_SPAM_REPORT} days={30} error={error} />;
+  return <LeadQualitySection report={report ?? EMPTY_SPAM_REPORT} days={days} error={error} />;
 }
 
 export default async function HomePage({
@@ -96,13 +85,11 @@ export default async function HomePage({
   const days = parseDays(sp.days);
 
   // Kick off both zones' fetches NOW (not awaited here) so they run in
-  // parallel while the shell streams; the shared AI-plans promise resolves
-  // once BOTH zones' data is ready (single LLM call, both cards fill together).
+  // parallel while the shell streams. PSI + AI plans are served by the
+  // /api/dashboard/panels endpoint and filled client-side after hydration —
+  // they never hold up the document.
   const webP = getWebsiteData(days);
   const salesP = getSalesData(days);
-  const plansP = Promise.all([webP, salesP])
-    .then(([web, sales]) => buildAiPlans(web, sales))
-    .catch(() => null);
 
   return (
     <>
@@ -139,23 +126,20 @@ export default async function HomePage({
           <Suspense
             fallback={
               <>
-                {days !== 30 ? (
-                  <p className="pt-4 text-[13px] text-muted" role="status">
-                    First load of the {days}-day window — fetching fresh data, can take a
-                    minute. Cached for 1 hour afterwards.
-                  </p>
-                ) : null}
+                <p className="pt-4 text-[13px] text-muted" role="status">
+                  Loading the {days}-day dashboard…
+                </p>
                 <ZoneSkeleton title="Website Performance" tag="firstpage.hk" />
               </>
             }
           >
-            <WebsiteZone webP={webP} plansP={plansP} />
+            <WebsiteZone webP={webP} />
           </Suspense>
         </section>
         <div className="mt-12" aria-hidden>
           <section id="sales" className="scroll-mt-40">
             <Suspense fallback={<ZoneSkeleton title="Sales Performance" tag="HubSpot" />}>
-              <SalesZone salesP={salesP} plansP={plansP} />
+              <SalesZone salesP={salesP} />
             </Suspense>
           </section>
         </div>
@@ -164,7 +148,7 @@ export default async function HomePage({
           <Suspense
             fallback={<ZoneSkeleton title="Lead Quality" takeaways={false} cards={2} />}
           >
-            <LeadQualityZone />
+            <LeadQualityZone days={days} />
           </Suspense>
         </section>
 

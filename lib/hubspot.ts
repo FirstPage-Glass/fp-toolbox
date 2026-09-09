@@ -1,5 +1,5 @@
-import { pool } from "./db";
 import { resolveMx } from "node:dns/promises";
+import { cached } from "./cache";
 
 export interface HubSpotLead {
   id: string;
@@ -233,75 +233,14 @@ export async function fetchRecentLeads(days = 7, sinceDaysAgo?: number): Promise
   return leads;
 }
 
-const CACHE_TTL_MINUTES = 60;
-
-async function ensureCacheTable(): Promise<void> {
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS hubspot_leads_cache (
-      id TEXT PRIMARY KEY,
-      name TEXT NOT NULL DEFAULT '',
-      email TEXT NOT NULL,
-      website TEXT,
-      created_at TEXT NOT NULL DEFAULT '',
-      fetched_at TIMESTAMPTZ NOT NULL DEFAULT now()
-    )
-  `);
-}
-
 /**
- * Recent leads with a Postgres cache — same data for the whole team,
- * one HubSpot fetch per hour instead of one per picker click.
+ * Recent leads with a per-window memoized cache (`cached()`, 1h TTL) — same
+ * data for the whole team, one HubSpot fetch per window per hour instead of
+ * one per picker click. Keyed by the requested window so switching 7/30/90
+ * days returns the right slice instead of whatever the last fetch pulled.
  */
 export async function getRecentLeads(days = 7): Promise<HubSpotLead[]> {
-  try {
-    await ensureCacheTable();
-    // Fresh enough? Serve from cache.
-    const fresh = await pool.query(
-      `SELECT 1 FROM hubspot_leads_cache
-       WHERE fetched_at > now() - make_interval(mins => $1) LIMIT 1`,
-      [CACHE_TTL_MINUTES]
-    );
-    if ((fresh.rowCount ?? 0) > 0) {
-      // Cache stores whatever the last fetch window pulled — filter by the
-      // requested days so `getRecentLeads(7)` doesn't return 30-day data.
-      const cutoff = new Date(Date.now() - days * 24 * 3600 * 1000).toISOString();
-      const cached = await pool.query(
-        `SELECT id, name, email, website, created_at AS "createdAt"
-         FROM hubspot_leads_cache ORDER BY created_at DESC`
-      );
-      return (cached.rows as HubSpotLead[]).filter((r) => r.createdAt >= cutoff);
-    }
-  } catch (err) {
-    // ponytail: DB down -> fall back to direct fetch, don't break the picker
-    console.error("hubspot cache read failed:", err);
-    return fetchRecentLeads(days);
-  }
-
-  const leads = await fetchRecentLeads(days);
-  try {
-    await ensureCacheTable();
-    const client = await pool.connect();
-    try {
-      await client.query("BEGIN");
-      await client.query("DELETE FROM hubspot_leads_cache");
-      for (const l of leads) {
-        await client.query(
-          `INSERT INTO hubspot_leads_cache (id, name, email, website, created_at)
-           VALUES ($1, $2, $3, $4, $5)`,
-          [l.id, l.name, l.email, l.website, l.createdAt]
-        );
-      }
-      await client.query("COMMIT");
-    } catch (err) {
-      await client.query("ROLLBACK");
-      throw err;
-    } finally {
-      client.release();
-    }
-  } catch (err) {
-    console.error("hubspot cache write failed:", err);
-  }
-  return leads;
+  return cached(`hubspot-leads:${days}`, () => fetchRecentLeads(days));
 }
 
 export interface SpamCategory {

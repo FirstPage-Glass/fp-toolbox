@@ -17,6 +17,8 @@ export async function complete(opts: {
   system: string;
   user: string;
   model?: string;
+  /** Abort the fetch after this long (default 90s). Card-style callers pass a shorter bound. */
+  timeoutMs?: number;
 }): Promise<CompletionResult> {
   const model = opts.model || DEFAULT_MODEL;
   const apiKey = process.env.OPENROUTER_API || process.env.OPENROUTER_API_KEY;
@@ -36,6 +38,9 @@ export async function complete(opts: {
         { role: "user", content: opts.user },
       ],
     }),
+    // Timebox the call — without this, a hung OpenRouter request spins the
+    // dashboard's AI-plans suspense zone forever (reported as infinite loading).
+    signal: AbortSignal.timeout(opts.timeoutMs ?? 90_000),
   });
   const data = await res.json();
   if (!res.ok) {

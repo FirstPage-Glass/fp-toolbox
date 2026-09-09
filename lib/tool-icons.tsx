@@ -74,6 +74,7 @@ const CATEGORY_COLOR_CLASS: Record<string, string> = {
   "SEO Research": "text-[oklch(0.62_0.16_250)]",
   "SEO Technical": "text-[oklch(0.44_0.12_256)]",
   Content: "text-[oklch(0.72_0.15_75)]",
+  "SEO Content": "text-[oklch(0.72_0.15_75)]",
   Operations: "text-[oklch(0.55_0.14_152)]",
 };
 
@@ -82,6 +83,7 @@ const CATEGORY_BG_CLASS: Record<string, string> = {
   "SEO Research": "bg-[oklch(0.62_0.16_250_/_0.10)]",
   "SEO Technical": "bg-[oklch(0.44_0.12_256_/_0.10)]",
   Content: "bg-[oklch(0.72_0.15_75_/_0.14)]",
+  "SEO Content": "bg-[oklch(0.72_0.15_75_/_0.14)]",
   Operations: "bg-[oklch(0.55_0.14_152_/_0.12)]",
 };
 
@@ -90,6 +92,7 @@ const CATEGORY_BAR_CLASS: Record<string, string> = {
   "SEO Research": "bg-[oklch(0.62_0.16_250)]",
   "SEO Technical": "bg-[oklch(0.44_0.12_256)]",
   Content: "bg-[oklch(0.72_0.15_75)]",
+  "SEO Content": "bg-[oklch(0.72_0.15_75)]",
   Operations: "bg-[oklch(0.55_0.14_152)]",
 };
 
@@ -117,6 +120,7 @@ export function categoryColorValue(category: string): string {
       "SEO Research": "oklch(0.62 0.16 250)",
       "SEO Technical": "oklch(0.44 0.12 256)",
       Content: "oklch(0.72 0.15 75)",
+      "SEO Content": "oklch(0.72 0.15 75)",
       Operations: "oklch(0.55 0.14 152)",
     }[category] ?? "oklch(0.5 0.14 254)"
   );
