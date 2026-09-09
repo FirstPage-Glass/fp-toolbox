@@ -172,16 +172,61 @@ export async function getMcpGsc(
   siteUrl: string,
   startDate: string,
   endDate: string,
-  rowLimit = 1000,
-  groupBy?: string[]
+  rowLimit = 1000
 ): Promise<GscRow[]> {
   return mcpCall<GscRow[]>("gsc_search_performance", {
     site_url: siteUrl,
     start_date: startDate,
     end_date: endDate,
     row_limit: rowLimit,
-    ...(groupBy ? { group_by: groupBy } : {}),
   });
+}
+
+export interface McpGscDailyPoint {
+  /** YYYY-MM-DD */
+  date: string;
+  clicks: number;
+}
+
+/**
+ * Per-day GSC click totals for a site + YYYY-MM-DD range (inclusive, UTC).
+ * The MCP rejects "date" in group_by (allowlist: country/device/page/query/
+ * searchAppearance), so each day is its own single-day call grouped by device
+ * — 2–3 rows whose clicks sum to the exact site-wide total (per-query rows
+ * cap at row_limit). One MCP call per day with bounded fan-out; any failing
+ * day rejects the whole series (callers treat it as best-effort).
+ */
+export async function getMcpGscDaily(
+  siteUrl: string,
+  startDate: string,
+  endDate: string,
+  concurrency = 8
+): Promise<McpGscDailyPoint[]> {
+  const days: string[] = [];
+  const start = new Date(`${startDate}T00:00:00Z`);
+  const end = new Date(`${endDate}T00:00:00Z`);
+  for (let d = start; d <= end; d.setUTCDate(d.getUTCDate() + 1)) {
+    days.push(d.toISOString().slice(0, 10));
+  }
+
+  const points: McpGscDailyPoint[] = new Array(days.length);
+  let next = 0;
+  async function worker(): Promise<void> {
+    while (next < days.length) {
+      const i = next++;
+      const day = days[i];
+      const rows = await mcpCall<GscRow[]>("gsc_search_performance", {
+        site_url: siteUrl,
+        start_date: day,
+        end_date: day,
+        row_limit: 1000,
+        group_by: ["device"],
+      });
+      points[i] = { date: day, clicks: rows.reduce((sum, r) => sum + (r.clicks ?? 0), 0) };
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(concurrency, days.length) }, worker));
+  return points;
 }
 
 export interface Ga4Row {

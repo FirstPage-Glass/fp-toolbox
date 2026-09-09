@@ -3,8 +3,8 @@ import { getRecentLeads, getSpamReport, fetchRecentLeads } from "./hubspot";
 import type { HubSpotLead, SpamReport } from "./hubspot";
 import { getCompetitorKeywords, getAiVisibility } from "./ahrefs";
 import type { CompetitorResult, AiVisibilityResult } from "./ahrefs";
-import { getMcpPsi, getMcpGsc, getMcpGa4, getMcpInventory } from "./mcp";
-import type { McpPsiResult, GscRow, Ga4Report, McpInventory } from "./mcp";
+import { getMcpPsi, getMcpGsc, getMcpGscDaily, getMcpGa4, getMcpInventory } from "./mcp";
+import type { McpPsiResult, GscRow, McpGscDailyPoint, Ga4Report, McpInventory } from "./mcp";
 import { getDealsReport, aggregateDeals } from "./hubspot-deals";
 import type { DealsAggregate } from "./hubspot-deals";
 import { getEngagementReport } from "./hubspot-engagement";
@@ -53,12 +53,8 @@ export interface GscQueryRow {
   position: number;
 }
 
-/** One day of GSC totals (group_by=date) — feeds the Organic clicks KPI sparkline. */
-export interface GscDailyPoint {
-  /** YYYY-MM-DD */
-  date: string;
-  clicks: number;
-}
+/** One day of GSC clicks — feeds the Organic clicks KPI sparkline. */
+export type GscDailyPoint = McpGscDailyPoint;
 
 export interface Ga4TrendPoint {
   date: string;
@@ -313,10 +309,10 @@ const noEngagement = (): Promise<{ report: EngagementReport | null; error: strin
   Promise.resolve({ report: null, error: null });
 const zero = (): Promise<number> => Promise.resolve(0);
 
-async function fetchGscRows(
+async function fetchGscRows<T>(
   key: string,
-  fn: () => Promise<GscRow[]>
-): Promise<{ rows: GscRow[]; error: string | null }> {
+  fn: () => Promise<T[]>
+): Promise<{ rows: T[]; error: string | null }> {
   try {
     return { rows: await cached(key, fn), error: null };
   } catch (err) {
@@ -350,7 +346,7 @@ async function fetchGsc(days: number): Promise<GscBundle> {
     fetchGscRows(`mcp-gsc:${GSC_SITE}:${currentStart}:${end}`, () => getMcpGsc(GSC_SITE, currentStart, end)),
     fetchGscRows(
       `mcp-gsc-daily:${GSC_SITE}:${currentStart}:${end}`,
-      () => getMcpGsc(GSC_SITE, currentStart, end, 31, ["date"])
+      () => getMcpGscDaily(GSC_SITE, currentStart, end)
     ),
     fetchGscRows(`mcp-gsc:${GSC_SITE}:${prevStart}:${prevEnd}`, () => getMcpGsc(GSC_SITE, prevStart, prevEnd)),
   ]);
@@ -365,12 +361,9 @@ async function fetchGsc(days: number): Promise<GscBundle> {
       position: r.position ?? 0,
     }))
     .slice(0, 8);
-  const dailyPoints: GscDailyPoint[] = daily.rows
-    .map((r) => ({ date: (r.keys ?? [])[0] ?? "", clicks: r.clicks ?? 0 }))
-    .filter((p) => p.date.length === 10);
   const prevTotals = prev.rows.length ? sumGsc(prev.rows) : null;
 
-  return { totals, prevTotals, queries, daily: dailyPoints, error: current.error };
+  return { totals, prevTotals, queries, daily: daily.rows, error: current.error };
 }
 
 interface Ga4Bundle {
