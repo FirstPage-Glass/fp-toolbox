@@ -19,6 +19,13 @@ export async function complete(opts: {
   model?: string;
   /** Abort the fetch after this long (default 90s). Card-style callers pass a shorter bound. */
   timeoutMs?: number;
+  /**
+   * OpenRouter reasoning control. `false` sends `reasoning: {enabled: false}` —
+   * flash models otherwise spend thousands of hidden tokens thinking, which
+   * tripled+ the latency of the dashboard AI-plans call (measured 2026-09).
+   * Leave undefined for the model default.
+   */
+  reasoningEnabled?: boolean;
 }): Promise<CompletionResult> {
   const model = opts.model || DEFAULT_MODEL;
   const apiKey = process.env.OPENROUTER_API || process.env.OPENROUTER_API_KEY;
@@ -37,6 +44,7 @@ export async function complete(opts: {
         { role: "system", content: opts.system },
         { role: "user", content: opts.user },
       ],
+      ...(opts.reasoningEnabled === false ? { reasoning: { enabled: false } } : {}),
     }),
     // Timebox the call — without this, a hung OpenRouter request spins the
     // dashboard's AI-plans suspense zone forever (reported as infinite loading).

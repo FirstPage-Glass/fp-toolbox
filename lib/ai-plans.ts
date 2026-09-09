@@ -1,5 +1,5 @@
 import { complete } from "./llm";
-import { cached } from "./cache";
+import { cached, peekCache, writeCache } from "./cache";
 import type { WebsiteData, SalesData } from "./dashboard";
 
 export interface AiPlan {
@@ -21,10 +21,11 @@ Output STRICT JSON only, no prose around it, in exactly this shape:
 {"website":[{"action":string,"why":string,"impact":"high"|"medium"|"low"}],"sales":[{"action":string,"why":string,"impact":"high"|"medium"|"low"}]}
 
 Rules:
-- 3-5 plans per section.
+- 3-4 plans per section.
 - Every "why" must cite a real number from the snapshot provided. Never fabricate metrics.
 - Actions must be concrete and executable within a week by the team — not generic advice.
-- "impact" is the expected business impact of doing it.`;
+- "impact" is the expected business impact of doing it.
+- Keep "action" under 12 words and "why" under 20 words — dashboard bullets, not essays.`;
 
 const pct = (n: number | null): string => (n === null ? "n/a" : `${n > 0 ? "+" : ""}${n.toFixed(0)}%`);
 
@@ -96,28 +97,49 @@ function parsePlans(raw: string): AiPlans | null {
 
 /**
  * AI-suggested actionable plans for the dashboard. ONE shared LLM call for
- * both zones (memoized 1h, same TTL as the underlying dashboard data) — the
- * page feeds both sections from the same promise so the call never doubles.
- * Returns null when OPENROUTER_API is unset, the LLM call fails, or the output
- * fails validation — the page then falls back to the rule-driven insights only.
+ * both zones, memoized for the WINDOW LENGTH — 7D view caches 7 days, 30D
+ * caches 30 days, 90D caches 90 days (one generation per window; the output
+ * cites that window's numbers, so refreshing hourly burns credits for
+ * identical content).
+ *
+ * Runs inside /api/dashboard/plans, fetched client-side after hydration — a
+ * slow call delays only this card (skeleton while pending), never the page.
+ * The bound exists so a hung OpenRouter can't pin the endpoint forever.
+ * Measured generation with the tightened prompt (≤12/≤20-word plans) +
+ * reasoning disabled is 11–15s, but provider queueing added ~45s on a live
+ * run (2026-09) — the bound covers generation + queue headroom. The original
+ * unbounded prompt ran 60–81s+ of pure generation; keep the output limits.
+ *
+ * On failure the last good plans are served from a shadow entry
+ * (`ai-plans-lastgood:<days>`, TTL = window + 7d so it always outlives the
+ * live entry, refreshed on every success) — the card degrades to stale
+ * content instead of disappearing. A parse-null counts as a failure (60s
+ * error memo), never a success, so a bad LLM answer can't blank the card.
  */
-// The AI-plans card is optional garnish — a slow/hung LLM call must never pin
-// the page's RSC stream (which blocks hydration and makes Link clicks dead for
-// tens of seconds). Bound it hard; the card falls back to the rule insights.
-const PLANS_TIMEOUT_MS = 15_000;
+const DAY_MS = 24 * 60 * 60 * 1000;
+const PLANS_TIMEOUT_MS = 90_000;
 
 export async function buildAiPlans(web: WebsiteData, sales: SalesData): Promise<AiPlans | null> {
   if (!process.env.OPENROUTER_API && !process.env.OPENROUTER_API_KEY) return null;
+  const liveTtlMs = web.rangeDays * DAY_MS;
+  const lastGoodKey = `ai-plans-lastgood:${web.rangeDays}`;
   try {
-    return await cached(`ai-plans:${web.rangeDays}`, async () => {
+    const plans = await cached(`ai-plans:${web.rangeDays}`, async () => {
       const result = await complete({
         system: SYSTEM_PROMPT,
         user: buildDashboardSummary(web, sales),
         timeoutMs: PLANS_TIMEOUT_MS,
+        reasoningEnabled: false,
       });
-      return parsePlans(result.text);
+      const plans = parsePlans(result.text);
+      if (!plans) throw new Error("AI plans: unusable LLM output");
+      return plans;
     });
+    writeCache(lastGoodKey, plans, liveTtlMs + 7 * DAY_MS);
+    return plans;
   } catch (err) {
+    const stale = await peekCache<AiPlans>(lastGoodKey);
+    if (stale) return stale;
     console.error("buildAiPlans failed:", err instanceof Error ? err.message : err);
     return null;
   }

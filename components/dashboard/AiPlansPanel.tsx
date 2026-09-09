@@ -3,16 +3,17 @@
 import { AiPlanSkeleton } from "./DashboardSkeleton";
 import AiPlanList from "./AiPlanList";
 import type { AiPlans } from "@/lib/ai-plans";
-import { usePanels } from "./panels-client";
+import { usePlans } from "./panels-client";
 
 /**
  * AI Suggested Action Plan panel — client-filled after the shell hydrates, so
- * the (up-to-15s, memoized) LLM call never pins the page's document/hydration.
+ * the (up-to-90s, memoized + last-good-fallback) LLM call never pins the
+ * page's document/hydration; skeleton shows while /api/dashboard/plans runs.
  */
 export default function AiPlansPanel({ days, zone }: { days: number; zone: "website" | "sales" }) {
-  const panels = usePanels(days);
-  if (panels === null) return <AiPlanSkeleton />;
-  const plans: AiPlans | null = panels.plans;
+  const data = usePlans(days);
+  if (data === null) return <AiPlanSkeleton />;
+  const plans: AiPlans | null = data?.plans ?? null;
   if (!plans) return null;
   return <AiPlanList plans={zone === "website" ? plans.website : plans.sales} />;
 }

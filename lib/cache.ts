@@ -111,3 +111,35 @@ export async function cached<T>(
     throw err;
   }
 }
+
+/**
+ * Store a value under `key` without `cached()`'s read-miss execution — for
+ * shadow entries like last-good fallbacks that are only ever written
+ * programmatically. DB write failures are swallowed (memory still has it).
+ */
+export async function writeCache(key: string, value: unknown, ttlMs: number): Promise<void> {
+  const entry: CacheEntry = { value, expiresAt: Date.now() + ttlMs };
+  memCache.set(key, entry);
+  await writeDb(key, value, entry.expiresAt).catch(() => undefined);
+}
+
+/**
+ * Read-only lookup (memory → Postgres), honouring expiry — never executes a
+ * producer. Error entries are never returned.
+ */
+export async function peekCache<T>(key: string): Promise<T | null> {
+  const memHit = memCache.get(key);
+  if (memHit && memHit.expiresAt > Date.now() && !isErrorEntry(memHit.value)) {
+    return memHit.value as T;
+  }
+  try {
+    const dbHit = await readDb(key);
+    if (dbHit && !isErrorEntry(dbHit.value)) {
+      memCache.set(key, dbHit);
+      return dbHit.value as T;
+    }
+  } catch {
+    // DB down — memory is all we have.
+  }
+  return null;
+}
