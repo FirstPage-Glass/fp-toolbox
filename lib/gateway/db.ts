@@ -1,5 +1,5 @@
 /**
- * Gateway runtime tables for the DeepSeek team-key management (OpenRouter BYOK).
+ * Gateway runtime tables for team-key management (OpenRouter BYOK).
  *
  * Multi-key model (feat/gateway-multi-key):
  * - deepseek_teams         — one row per team (department). champion manages the
@@ -311,6 +311,10 @@ export async function listAllKeys(): Promise<GatewayKey[]> {
 
 export async function setKeyStatus(id: number, status: GatewayKey["status"]): Promise<void> {
   await pool.query(`UPDATE deepseek_keys SET status = $2 WHERE id = $1`, [id, status]);
+}
+
+export async function setKeyLimit(id: number, limitUsd: number): Promise<void> {
+  await pool.query(`UPDATE deepseek_keys SET limit_usd = $2 WHERE id = $1`, [id, limitUsd]);
 }
 
 /** Keys bound to a user (via deepseek_key_members) — for the member view. */

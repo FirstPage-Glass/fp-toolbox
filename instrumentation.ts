@@ -1,7 +1,7 @@
 /**
  * Server bootstrap hook (Next.js instrumentation).
  * Starts the 5-minute uptime checker for the dashboard target and the hourly
- * DeepSeek gateway usage poller (80%/100% alerts).
+ * gateway usage poller (80%/100% alerts).
  * Node runtime only — never runs in the edge runtime.
  */
 export async function register() {

@@ -147,12 +147,15 @@ pnpm build
 - **Team coverage**: Dynamic from `serve` MultiSelect field
 - **HKD currency**: All monetary values displayed in HK$
 
-## DeepSeek Gateway (OpenRouter BYOK)
+## Team API Gateway (OpenRouter BYOK)
 
-Internal team API-key management: one company DeepSeek key, issued as limited
-per-key sub-keys. Each key carries its own monthly USD limit (enforced by
-OpenRouter's per-key limit — hard-blocked at the limit); teams (departments)
-have an admin-controlled monthly credit pool and key-count cap.
+Internal team API-key management: one company Alibaba DeepSeek BYOK credential,
+issued as limited monthly-budget sub-keys. Each key carries its own monthly USD
+limit (enforced by OpenRouter's per-key limit — hard-blocked at the limit);
+teams (departments) have an admin-controlled monthly credit pool and key-count
+cap. Usage shown is **effective usage = Credits + BYOK** (matches the OpenRouter
+dashboard; the UI shows the split), and monthly limits renew on the 1st
+(`limit_reset monthly`).
 
 - **Management UI**: `/gateway` — three role views:
   - **Admin** (`ADMIN_USERS`): all teams; create teams; adjust each team's
@@ -166,7 +169,11 @@ have an admin-controlled monthly credit pool and key-count cap.
 - **Env**: `OPENROUTER_MANAGEMENT_KEY` (required), `ADMIN_USERS`,
   `SLACK_WEBHOOK_URL` (optional 80%/100% alerts), `GATEWAY_TEAM_LIMIT_USD` (30),
   `GATEWAY_POLL_MINUTES` (60). See `.env.example`.
-- **Prerequisite**: bind the company DeepSeek key in OpenRouter BYOK settings
+- **Savings estimate**: `/gateway` may show a global savings-vs-OpenRouter-list-
+  price figure — an estimate computed from `/api/v1/analytics` tokens × OR list
+  price minus BYOK spend.
+- **Prerequisite**: bind the company DeepSeek BYOK credential in OpenRouter
+  BYOK settings
   (`openrouter.ai/workspaces/default/byok`) before issuing keys. Known issue:
   BYOK routing is currently not active (`is_byok: false`) — spend runs through
   OpenRouter credits; limits still enforce exactly.
