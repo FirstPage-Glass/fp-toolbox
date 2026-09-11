@@ -109,8 +109,8 @@ The app is a Next.js server-rendered application that fetches live data from ext
 
 | Layer | Technology | Version |
 |-------|-----------|---------|
-| Framework | Next.js | 16.2.12 |
-| UI Library | React | 19.2.8 |
+| Framework | Next.js | 16.3.4 |
+| UI Library | React | 19.3.0 |
 | Charts | recharts | ^3.10 (dashboard `/` only, client components) |
 | Language | TypeScript | 6.0.3 |
 | Styling | Tailwind CSS | ^4 (v4 with `@import "tailwindcss"`) |
@@ -130,8 +130,7 @@ The app is a Next.js server-rendered application that fetches live data from ext
 │   ├── globals.css               # Tailwind import + FirstPage brand color theme
 │   ├── login/page.tsx            # Login form (client component, Card/Input/Button)
 │   ├── toolbox/page.tsx          # Tool directory (async server component; passes ?q=&cat= as props to ToolboxView)
-│   ├── admin/page.tsx            # Lead Quality Report (PageHeader + StatCard + Card)
-│   ├── usage/page.tsx            # Toolbox usage stats (hero banner + bignums + per-tool run grid)
+│   ├── leads/page.tsx           # Leads — title "Leads", spam report + auto-greeting KPIs (PageHeader + StatCard + Card)
 │   ├── api/login/route.ts        # POST /api/login — cookie-based auth
 │   ├── api/logout/route.ts       # POST /api/logout — clears auth cookie
 │   ├── api/tools/<slug>/route.ts # Per-tool API routes (data tools + LLM tools)
@@ -304,7 +303,7 @@ When `FP_MCP_INTERNAL_KEY` is configured there is **no fallback to AUTH_USERS**:
 ### React Conventions
 - Server components are the default; mark client components with `"use client"` only when needed (state, effects, browser APIs)
 - `NavBar`, `ToolboxView`, `ToolSearch`, `CategoryFilter`, `LoginPage` are client components; `ToolCard` is server-safe (used inside the client view)
-- `page.tsx` (home), `usage/page.tsx`, and `admin/page.tsx` are server components that fetch data directly; `toolbox/page.tsx` is an async server component that reads `?q=&cat=` from `searchParams` and passes them as props to the client `ToolboxView`
+- `page.tsx` (home) and `leads/page.tsx` are server components that fetch data directly; `toolbox/page.tsx` is an async server component that reads `?q=&cat=` from `searchParams` and passes them as props to the client `ToolboxView`
 
 ### Styling
 - Tailwind CSS v4 with inline theme configuration in `globals.css`. Visual identity follows `docs/design-ref/brand-spec.md` (extracted from firstpage.hk).

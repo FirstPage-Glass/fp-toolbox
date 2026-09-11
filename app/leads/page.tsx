@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getSpamReport } from "@/lib/hubspot";
+import { getGreetingStats } from "@/lib/greeting";
 import { cached } from "@/lib/cache";
 import StatCard from "@/components/ui/StatCard";
 
@@ -7,8 +8,9 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
   // Memoized 10 min (DB-backed) — the admin page no longer re-hits HubSpot on
-  // every refresh.
+  // every refresh. Greeting stats are a cheap local COUNT, no memo needed.
   const report = await cached("spam-report-admin:30", () => getSpamReport(30), 10 * 60 * 1000);
+  const greeting = await getGreetingStats(30);
   const worstSource = report.topSources[0];
   const totalSpam = report.spam || 1;
 
@@ -19,10 +21,10 @@ export default async function AdminPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-wrap items-end justify-between gap-5">
           <div>
             <h1 className="text-white text-[clamp(24px,3vw,32px)] font-extrabold tracking-[-0.015em]">
-              Lead Quality Report
+              Leads
             </h1>
             <p className="mt-1.5 text-[14px] text-[oklch(0.93_0.02_250)]">
-              Last 30 days · HubSpot contacts, run through the spam heuristics
+              Last 30 days · inbound quality, spam heuristics + auto-greeting status
             </p>
           </div>
           <Link
@@ -48,6 +50,34 @@ export default async function AdminPage() {
             </>
           ) : null}
           .
+        </div>
+
+        {/* Auto-greeting KPI row */}
+        <div className="mb-6">
+          <div className="flex items-center gap-2.5 mb-3">
+            <h2 className="text-[16px] font-extrabold text-navy">Auto-greeting</h2>
+            {greeting.live ? (
+              <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+                live
+              </span>
+            ) : (
+              <span
+                className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700"
+                title="GREETING_DRY_RUN=1 or SMTP_USER unset — nothing was actually sent"
+              >
+                dry-run
+              </span>
+            )}
+            <span className="ml-auto text-[11px] font-bold uppercase tracking-[0.06em] text-muted">
+              every 5 min · on new lead with owner
+            </span>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <StatCard label="Sent total" value={greeting.totalSent.toLocaleString()} sub="since auto-greeting enabled" />
+            <StatCard label="Sent (30d)" value={greeting.sentDays.toLocaleString()} sub="last 30 days" />
+            <StatCard label="Retrying" value={greeting.retrying.toLocaleString()} tone="fp-700" sub="errored, re-sent on next poll" />
+            <StatCard label="Mode" value={greeting.live ? "Live" : "Dry-run"} sub="GREETING_DRY_RUN / SMTP_USER" />
+          </div>
         </div>
 
         {/* KPI row */}

@@ -6,7 +6,7 @@ Next.js App Router surface of the toolbox platform: pages, API routes, tool UIs,
 
 ## Ownership
 
-- Owns: `app/page.tsx` (metrics dashboard), `app/layout.tsx`, `app/globals.css`, route folders (`login/`, `toolbox/`, `usage/`, `gateway/`, `api/login/`, `api/logout/`, `api/gateway/`, `api/tools/`), `app/tools/<slug>/` (tool folders: `tool.ts` manifest + `page.tsx`), `app/components/NavBar.tsx`, `app/favicon.ico`.
+- Owns: `app/page.tsx` (metrics dashboard), `app/layout.tsx`, `app/globals.css`, route folders (`login/`, `toolbox/`, `leads/`, `gateway/`, `api/login/`, `api/logout/`, `api/gateway/`, `api/tools/`), `app/tools/<slug>/` (tool folders: `tool.ts` manifest + `page.tsx`), `app/components/NavBar.tsx`, `app/favicon.ico`.
 - Root owns: `proxy.ts` (auth guard; formerly `middleware.ts`, renamed in Next.js 16).
 - Data fetching lives here, but data sources live in `lib/` (see `lib/AGENTS.md`).
 
@@ -20,7 +20,7 @@ Routing map:
 | `/toolbox` | Server shell + client view | No | `lib/registry.ts` (code); client `ToolboxView` (components/toolbox/) handles search + category via `?q=&cat=` |
 | `/tools/<slug>` | Client | Yes | per-tool API route; 26 tools across SEO Research / SEO Technical / Sales / SEO Content / Content / Operations (see Child DOX below) |
 | `/tools/onsite-audit` | Client | Yes | full-site audit: POST starts a background job → `jobId`, GET `?jobId=` polls progress → result, GET `?outputId=` loads a past saved run (+ its manual-action states), bare GET lists run history. Crawl via self-hosted browserless (`lib/onsite-audit/`) + GSC/GA4/PSI/Ahrefs + LLM summary; every run persists to `tool_outputs`. Manual actions are interactive (status select + notes) via `/api/tools/onsite-audit/actions` (POST upsert / GET by domain), keyed per client domain. Page follows its dedicated mockup `docs/design-ref/onsite-audit.html` (hero + run-card + progress + result stats/summary + manual checklist + verdict filters + collapsible sections + history) — not the generic tool-page header |
-| `/usage` | Server | Yes | `lib/usage.ts` — tool runs / active users / LLM cost + per-tool run grid |
+| `/leads` | Server | Yes (cookie) | `lib/hubspot.ts` `getSpamReport(30)` (spam report, memoized 10 min) + `lib/greeting.ts` `getGreetingStats(30)` (auto-greeting KPIs: sent total / 30d / retrying / live-or-dry-run badge). Banner + headline + KPI rows + spam-reason bars + worst-source domains |
 | `/login` | Server wrapper + client form | No | Server computes the MCP register URL (`{FP_MCP_URL}/admin/register`) and passes it to client `LoginForm`; posts to `/api/login` |
 | `/api/login`, `/api/logout` | API | No | SSO vs firstpage-mcp (`AUTH_USERS` fallback); login sets shared `fp_session` (domain, SSO identity) + `fp-auth` (host, legacy/attribution); logout clears both |
 | `/api/me` | API | No (reads session) | `{loggedIn, username, isAdmin}` from `getSessionUser()` — powers `NavBar` auth state |

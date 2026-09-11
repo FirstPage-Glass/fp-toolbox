@@ -47,8 +47,7 @@ pnpm start
 │   ├── layout.tsx                # Root layout with auth-aware NavBar
 │   ├── login/page.tsx            # Login form
 │   ├── toolbox/page.tsx          # Tool directory (async server page + client ToolboxView)
-│   ├── admin/page.tsx            # Lead Quality Report
-│   ├── usage/page.tsx            # Toolbox usage stats (hero banner + bignums + per-tool run grid)
+│   ├── leads/page.tsx            # Leads (Lead Quality report + auto-greeting KPIs)
 │   ├── api/login/route.ts        # Auth endpoint
 │   ├── api/logout/route.ts       # Logout endpoint
 │   ├── api/tools/<slug>/route.ts # Per-tool API routes

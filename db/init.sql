@@ -111,3 +111,19 @@ CREATE TABLE IF NOT EXISTS deepseek_alerts_log (
 DROP INDEX IF EXISTS idx_ds_alerts_dedupe;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_ds_alerts_dedupe
   ON deepseek_alerts_log (key_id, level, date_trunc('month', sent_at AT TIME ZONE 'UTC'));
+
+-- greeting emails — auto-sent greeting status + cold-start marker (lib/greeting.ts)
+CREATE TABLE IF NOT EXISTS greeting_sent (
+  contact_id TEXT PRIMARY KEY,
+  email TEXT NOT NULL,
+  owner_id TEXT,
+  owner_name TEXT NOT NULL DEFAULT '',
+  owner_email TEXT NOT NULL DEFAULT '',
+  subject TEXT NOT NULL DEFAULT '',
+  sent_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  error TEXT
+);
+CREATE TABLE IF NOT EXISTS greeting_meta (
+  meta_key TEXT PRIMARY KEY,
+  meta_value TEXT NOT NULL
+);

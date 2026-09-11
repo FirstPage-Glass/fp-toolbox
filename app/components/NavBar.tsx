@@ -14,8 +14,7 @@ const NAV_LINKS = [
   { href: "/", label: "Overview" },
   { href: "/toolbox", label: "Toolbox" },
   { href: "/gateway", label: "Gateway" },
-  { href: "/usage", label: "Usage" },
-  { href: "/admin", label: "Lead Quality", adminOnly: true },
+  { href: "/leads", label: "Leads", adminOnly: true },
 ];
 
 export default function NavBar() {

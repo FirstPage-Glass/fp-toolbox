@@ -10,5 +10,7 @@ export async function register() {
     startUptimeScheduler();
     const { startGatewayAlertScheduler } = await import("./lib/gateway/alert-scheduler");
     startGatewayAlertScheduler();
+    const { startGreetingScheduler } = await import("./lib/greeting-scheduler");
+    startGreetingScheduler();
   }
 }

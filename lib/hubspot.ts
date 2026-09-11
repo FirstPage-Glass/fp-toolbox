@@ -6,6 +6,7 @@ export interface HubSpotLead {
   name: string;
   email: string;
   website: string | null;
+  ownerId: string | null;
   createdAt: string;
 }
 
@@ -191,7 +192,7 @@ export async function fetchRecentLeads(days = 7, sinceDaysAgo?: number): Promise
     const body: Record<string, unknown> = {
       limit: PAGE_LIMIT,
       filterGroups: [{ filters }],
-      properties: ["firstname", "lastname", "email", "website", "createdate"],
+      properties: ["firstname", "lastname", "email", "website", "createdate", "hubspot_owner_id"],
       sort: [{ propertyName: "createdate", direction: "DESCENDING" }],
     };
     if (after) body.after = after;
@@ -227,6 +228,7 @@ export async function fetchRecentLeads(days = 7, sinceDaysAgo?: number): Promise
       name: `${p.firstname ?? ""} ${p.lastname ?? ""}`.trim(),
       email,
       website,
+      ownerId: p.hubspot_owner_id ? String(p.hubspot_owner_id) : null,
       createdAt: String(r.createdAt ?? ""),
     });
   }
@@ -241,6 +243,92 @@ export async function fetchRecentLeads(days = 7, sinceDaysAgo?: number): Promise
  */
 export async function getRecentLeads(days = 7): Promise<HubSpotLead[]> {
   return cached(`hubspot-leads:${days}`, () => fetchRecentLeads(days));
+}
+
+export interface GreetingRecipient {
+  contactId: string;
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
+  company: string | null;
+  website: string | null;
+  ownerId: string | null;
+  createdAt: string; // ISO timestamp
+}
+
+/**
+ * LOOSE sender filter for the greeting email job — separate from the
+ * dashboard's strict classify(). Skips only clearly-fake leads; Gmail/freemail
+ * senders with a real website, and leads with no website (PPC-only prospects),
+ * are KEPT. Do not apply the domain-mismatch rule here.
+ */
+export async function greetingRecipients(days = 7): Promise<GreetingRecipient[]> {
+  const token = process.env.HUBSPOT_SERVICE_KEY;
+  if (!token) throw new Error("HUBSPOT_SERVICE_KEY not configured");
+  const then = Date.now() - days * 24 * 3600 * 1000;
+
+  const PAGE_LIMIT = 100;
+  const MAX_PAGES = 10;
+  const all: Record<string, unknown>[] = [];
+  let after: string | undefined;
+  for (let page = 0; page < MAX_PAGES; page++) {
+    const body: Record<string, unknown> = {
+      limit: PAGE_LIMIT,
+      filterGroups: [
+        { filters: [{ propertyName: "createdate", operator: "GTE", value: String(then) }] },
+      ],
+      properties: ["firstname", "lastname", "email", "company", "website", "createdate", "hubspot_owner_id"],
+      sort: [{ propertyName: "createdate", direction: "DESCENDING" }],
+    };
+    if (after) body.after = after;
+    const res = await fetch("https://api.hubapi.com/crm/v3/objects/contacts/search", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(20_000),
+    });
+    if (!res.ok) throw new Error(`HubSpot error ${res.status}`);
+    const data = await res.json();
+    all.push(...(data.results ?? []));
+    after = data.paging?.next?.after;
+    if (!after) break;
+  }
+
+  const seen = new Set<string>();
+  const recipients: GreetingRecipient[] = [];
+  for (const r of all) {
+    const p = (r.properties ?? {}) as Record<string, unknown>;
+    const email = String(p.email ?? "").trim().toLowerCase();
+    if (!isValidEmail(email)) continue;
+    if (DISPOSABLE_EMAIL_DOMAINS.has(email.split("@")[1]?.toLowerCase() ?? "")) continue;
+    const website = p.website ? String(p.website).trim() : null;
+    if (website) {
+      if (website.includes("@")) continue;
+      const host = getHost(website);
+      if (host) {
+        if (SOCIAL_HOSTS.has(host)) continue;
+        if (PLATFORM_HOSTS.has(host)) continue;
+        if (/^\d+$/.test(host.replace(/\./g, ""))) continue;
+        if (host.includes("firstpage")) continue;
+      }
+    }
+    if (seen.has(email)) continue;
+    seen.add(email);
+    recipients.push({
+      contactId: String(r.id),
+      email,
+      firstName: p.firstname ? String(p.firstname) : null,
+      lastName: p.lastname ? String(p.lastname) : null,
+      company: p.company ? String(p.company) : null,
+      website,
+      ownerId: p.hubspot_owner_id ? String(p.hubspot_owner_id) : null,
+      createdAt: String(r.createdAt ?? ""),
+    });
+  }
+  return recipients;
 }
 
 export interface SpamCategory {
