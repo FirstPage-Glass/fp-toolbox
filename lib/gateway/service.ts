@@ -30,11 +30,13 @@ import {
   listSnapshots,
   listTeams,
   removeKeyMember,
+  setKeyLimit,
   setKeyStatus,
   updateTeamLimits as dbUpdateTeamLimits,
 } from "./db";
-import { type OpenRouterKey, createKey, deleteKey, listKeys } from "./openrouter";
+import { type OpenRouterKey, createKey, deleteKey, getModelPricing, listKeys, queryAnalytics, updateKey } from "./openrouter";
 import { isAdminUser, isKnownUser } from "../auth";
+import { cached } from "../cache";
 
 export class GatewayForbiddenError extends Error {
   constructor(message: string) {
@@ -86,22 +88,47 @@ export interface KeyUsageSnapshot {
 }
 
 export interface KeyView extends GatewayKey {
-  /** Live OpenRouter BYOK spend for the month (null when unknown). */
+  /**
+   * Live effective spend for the month: credits + BYOK when
+   * include_byok_in_limit is true, credits only otherwise — matches the
+   * OpenRouter dashboard's usage bar (null when unknown).
+   */
   usageUsd: number | null;
+  /** Live credits spend for the month (null when no live key). */
+  creditUsageUsd: number | null;
+  /** Live BYOK spend for the month (null when no live key). */
+  byokUsageUsd: number | null;
+  /** Per-key BYOK savings vs OpenRouter list price (null when unknown). */
+  savingsUsd: number | null;
   members: string[];
   snapshots: KeyUsageSnapshot[];
 }
 
 export interface TeamView extends GatewayTeam {
   keys: KeyView[];
-  /** Sum of live usage across the team's active keys. */
+  /** Sum of effective usage across the team's visible keys. */
   totalUsageUsd: number;
+  /** Sum of non-null creditUsageUsd across the team's visible keys. */
+  totalCreditUsageUsd: number;
+  /** Sum of non-null byokUsageUsd across the team's visible keys. */
+  totalByokUsageUsd: number;
+  /** Sum of non-null savingsUsd across the team's visible keys. */
+  totalSavingsUsd: number;
+}
+
+export interface SavingsEstimate {
+  /** Estimated USD saved this month vs OpenRouter list price. */
+  usd: number;
+  /** Savings as a % of list cost (0–100). */
+  percent: number;
 }
 
 export interface TeamsView {
   role: GatewayRole;
   teams: TeamView[];
   alerts: { teamId: number; keyId: number; level: string; usageUsd: number; sentAt: string }[];
+  /** Global BYOK savings vs OpenRouter list price; null when not computable. */
+  savings: SavingsEstimate | null;
   /** Set when the view could not be fully computed (DB/OpenRouter down). */
   error?: string;
 }
@@ -112,16 +139,20 @@ export interface TeamsView {
  */
 export async function getTeamsView(username: string): Promise<TeamsView> {
   const { role, teams } = await resolveRole(username);
-  if (role === "none") return { role, teams: [], alerts: [] };
+  if (role === "none") return { role, teams: [], alerts: [], savings: null };
 
   // One OpenRouter call for live usage (map by hash); admin/champion see every
-  // key, members only their own.
-  let usageByHash = new Map<string, OpenRouterKey>();
-  try {
-    usageByHash = new Map((await listKeys()).map((k) => [k.hash, k]));
-  } catch (err) {
-    console.error("gateway listKeys failed:", err);
-  }
+  // key, members only their own. Savings estimate is one more analytics query,
+  // fired in parallel — both run exactly once per view, not per team/key.
+  const [usageByHash, savings] = await Promise.all([
+    listKeys()
+      .then((ks) => new Map(ks.map((k) => [k.hash, k])))
+      .catch((err) => {
+        console.error("gateway listKeys failed:", err);
+        return new Map<string, OpenRouterKey>();
+      }),
+    computeGlobalSavingsEstimate(),
+  ]);
 
   const teamViews: TeamView[] = await Promise.all(
     teams.map(async (team) => {
@@ -149,7 +180,10 @@ export async function getTeamsView(username: string): Promise<TeamsView> {
           }));
           return {
             ...k,
-            usageUsd: live?.byokUsageMonthly ?? null,
+            usageUsd: effectiveUsageUsd(live),
+            creditUsageUsd: live ? live.usageMonthly : null,
+            byokUsageUsd: live ? live.byokUsageMonthly : null,
+            savingsUsd: null,
             members,
             snapshots,
           } satisfies KeyView;
@@ -161,6 +195,9 @@ export async function getTeamsView(username: string): Promise<TeamsView> {
         ...team,
         keys: filtered,
         totalUsageUsd: filtered.reduce((s, k) => s + (k.usageUsd ?? 0), 0),
+        totalCreditUsageUsd: filtered.reduce((s, k) => s + (k.creditUsageUsd ?? 0), 0),
+        totalByokUsageUsd: filtered.reduce((s, k) => s + (k.byokUsageUsd ?? 0), 0),
+        totalSavingsUsd: filtered.reduce((s, k) => s + (k.savingsUsd ?? 0), 0),
       };
     })
   );
@@ -180,7 +217,78 @@ export async function getTeamsView(username: string): Promise<TeamsView> {
       usageUsd: a.usageUsd,
       sentAt: a.sentAt,
     })),
+    savings,
   };
+}
+
+/** Effective spend vs the key's limit: follows include_byok_in_limit. */
+function effectiveUsageUsd(live: OpenRouterKey | undefined): number | null {
+  if (!live) return null;
+  return live.includeByokInLimit ? live.usageMonthly + live.byokUsageMonthly : live.usageMonthly;
+}
+
+/**
+ * Global savings estimate for the current calendar month: what the org's
+ * BYOK-routed usage would have cost at OpenRouter list price, minus actual
+ * BYOK spend (the ~30% Alibaba discount). Uses analytics `byok_usage` (same
+ * dataset as the token counts) — never mixed with key-level
+ * byok_usage_monthly, which measures a different spend slice.
+ * Memoized 1h; returns null on any failure (never blocks the view).
+ */
+async function computeGlobalSavingsEstimate(): Promise<SavingsEstimate | null> {
+  try {
+    return await cached("gateway:savings:month", async () => {
+      const now = new Date();
+      const startDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+      const endDate = now.toISOString().slice(0, 10);
+      const [rows, pricing] = await Promise.all([
+        queryAnalytics({
+          metrics: ["tokens_prompt", "tokens_completion", "byok_usage"],
+          dimensions: ["model"],
+          granularity: "month",
+          startDate,
+          endDate,
+        }),
+        getModelPricing(),
+      ]);
+
+      let listCost = 0;
+      let byok = 0;
+      for (const row of rows) {
+        const byokUsage = Number(row.byok_usage ?? 0);
+        if (byokUsage <= 0) continue;
+        const price = lookupModelPricing(pricing, String(row.model ?? ""));
+        if (!price) continue; // unknown pricing — skip, never guess
+        listCost +=
+          (Number(row.tokens_prompt ?? 0) / 1e6) * price.input +
+          (Number(row.tokens_completion ?? 0) / 1e6) * price.output;
+        byok += byokUsage;
+      }
+      if (listCost <= 0) return null;
+      const usd = listCost - byok;
+      return { usd, percent: (usd / listCost) * 100 };
+    });
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Exact model-id match, then a dated-variant fallback: analytics reports
+ * `deepseek/deepseek-v4-flash-20260731` while the models list has the same
+ * model as `deepseek/deepseek-v4-flash-0731` (date → MMDD).
+ */
+function lookupModelPricing(
+  pricing: Record<string, { input: number; output: number }>,
+  modelId: string
+): { input: number; output: number } | null {
+  if (pricing[modelId]) return pricing[modelId];
+  const m = modelId.match(/^(.+)-(\d{8})$/);
+  if (m) {
+    const short = `${m[1]}-${m[2].slice(4)}`;
+    if (pricing[short]) return pricing[short];
+  }
+  return null;
 }
 
 // ---- key operations ---------------------------------------------------------
@@ -322,6 +430,48 @@ export async function revokeKey(username: string, keyId: number): Promise<void> 
     }
     await setKeyStatus(key.id, "revoked");
   }
+}
+
+/**
+ * Adjust an issued key's monthly limit (champion of its team or admin).
+ * Re-validates the team credit pool: sum of active keys' limits (incl. the
+ * new value) must stay ≤ team credit. Pushes the new limit to OpenRouter
+ * first (the real enforcement), then mirrors it locally.
+ */
+export async function updateKeyLimit(
+  username: string,
+  keyId: number,
+  limitUsd: number
+): Promise<void> {
+  const key = await requireKey(keyId);
+  const team = await requireTeam(key.teamId);
+  await requireManage(username, team);
+
+  if (!Number.isFinite(limitUsd) || limitUsd <= 0) {
+    throw new GatewayConflictError("limitUsd must be a positive number");
+  }
+  if (key.status !== "active") {
+    throw new GatewayConflictError("Cannot adjust a revoked key");
+  }
+
+  const activeKeys = (await listKeysByTeam(team.id)).filter((k) => k.status === "active");
+  const used = activeKeys.reduce((s, k) => s + (k.id === key.id ? 0 : k.limitUsd), 0);
+  if (used + limitUsd > team.creditUsd) {
+    throw new GatewayConflictError(
+      `Credit limit exceeded: $${used.toFixed(2)} already allocated of $${team.creditUsd.toFixed(2)} — raise the team credit or lower this key's limit`
+    );
+  }
+
+  try {
+    await updateKey(key.hash, { limit: limitUsd });
+  } catch {
+    // Remote update failed — the live limit on OpenRouter is unchanged. Do NOT
+    // update the local record, so the UI keeps showing the true enforced limit.
+    throw new GatewayConflictError(
+      `OpenRouter refused to update the key limit (it is unchanged). Retry or change it in the OpenRouter dashboard.`
+    );
+  }
+  await setKeyLimit(key.id, limitUsd);
 }
 
 /** Admin-only: adjust team credit pool and/or key-count limit. */

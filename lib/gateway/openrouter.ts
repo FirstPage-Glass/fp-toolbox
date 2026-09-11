@@ -1,6 +1,6 @@
 /**
  * OpenRouter Management API client — programmatic key management for the
- * DeepSeek team-key gateway (hybrid model: OpenRouter enforces per-key limits,
+ * team-key gateway (BYOK hybrid: OpenRouter enforces per-key limits,
  * fp-toolbox manages teams/champions/alerting).
  *
  * Docs: https://openrouter.ai/docs/guides/overview/auth/management-api-keys
@@ -101,8 +101,8 @@ export interface CreatedKey {
 }
 
 /**
- * Issue a sub-key with a monthly USD limit, counting BYOK spend (the DeepSeek
- * account spend routed through the user's BYOK key) against the limit.
+ * Issue a sub-key with a monthly USD limit, counting BYOK spend (the account
+ * spend routed through the user's BYOK key) against the limit.
  * POST first, then PATCH the BYOK-inclusion + monthly reset (documented PATCH params).
  */
 export async function createKey(opts: { name: string; limitUsd: number }): Promise<CreatedKey> {
@@ -177,4 +177,75 @@ export async function deleteKey(hash: string): Promise<void> {
   await api<{ deleted?: boolean }>(`/keys/${encodeURIComponent(hash)}`, {
     method: "DELETE",
   });
+}
+
+// ---- analytics ---------------------------------------------------------------
+
+export interface AnalyticsFilter {
+  field: string;
+  operator: string;
+  value: unknown;
+}
+
+export interface AnalyticsQueryOpts {
+  metrics: string[];
+  dimensions?: string[];
+  filters?: AnalyticsFilter[];
+  granularity?: string;
+  startDate?: string;
+  endDate?: string;
+}
+
+/**
+ * POST /api/v1/analytics/query. Unwraps `data.data` (the row list).
+ * NOTE: the filter key is `field`, NOT `dimension` (400 otherwise).
+ */
+export async function queryAnalytics(opts: AnalyticsQueryOpts): Promise<Record<string, unknown>[]> {
+  const body = await api<{ data?: { data?: unknown } }>("/analytics/query", {
+    method: "POST",
+    body: JSON.stringify({
+      metrics: opts.metrics,
+      dimensions: opts.dimensions,
+      filters: opts.filters,
+      granularity: opts.granularity ?? "month",
+      start_date: opts.startDate,
+      end_date: opts.endDate,
+    }),
+  });
+  if (Array.isArray(body.data?.data)) return body.data.data as Record<string, unknown>[];
+  return [];
+}
+
+/**
+ * Model pricing map (https://openrouter.ai/api/v1/models): model id →
+ * per-1M-token USD input/output price. Tolerant: returns {} on any failure —
+ * the savings estimate just becomes unavailable, never throws.
+ */
+export async function getModelPricing(): Promise<Record<string, { input: number; output: number }>> {
+  try {
+    const res = await fetch(`${BASE}/models`, {
+      signal: AbortSignal.timeout(15_000),
+      headers: { Authorization: `Bearer ${managementKey()}` },
+    });
+    if (!res.ok) return {};
+    const body = (await res.json()) as { data?: unknown };
+    const out: Record<string, { input: number; output: number }> = {};
+    if (Array.isArray(body.data)) {
+      for (const raw of body.data as Record<string, unknown>[]) {
+        const id = String(raw.id ?? "");
+        if (!id) continue;
+        // API prices are per token (e.g. 6.5e-8) — store per-1M for the
+        // savings math: tokens/1e6 × pricePerM.
+        const p = raw.pricing as { prompt?: unknown; completion?: unknown } | undefined;
+        const input = Number(p?.prompt) * 1e6;
+        const output = Number(p?.completion) * 1e6;
+        if (Number.isFinite(input) && Number.isFinite(output)) {
+          out[id] = { input, output };
+        }
+      }
+    }
+    return out;
+  } catch {
+    return {};
+  }
 }

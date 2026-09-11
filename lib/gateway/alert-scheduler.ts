@@ -57,7 +57,11 @@ export async function runGatewayAlertCheck(): Promise<void> {
     const remote = usageByHash.get(key.hash);
     if (!remote) continue; // externally revoked / hash mismatch — nothing to track
 
-    const usage = remote.byokUsageMonthly;
+    const credit = remote.usageMonthly;
+    const byok = remote.byokUsageMonthly;
+    // Effective spend matches the OpenRouter dashboard: credits + BYOK when
+    // BYOK counts against the limit (include_byok_in_limit), credits only otherwise.
+    const usage = remote.includeByokInLimit ? credit + byok : credit;
     const limit = key.limitUsd;
     await recordUsageSnapshot(key.id, team.id, usage, limit);
 
@@ -67,7 +71,7 @@ export async function runGatewayAlertCheck(): Promise<void> {
       if (fresh) {
         await pushWebhook(
           webhook,
-          `🚨 *${team.name}* key *${key.label}* hit its $${limit.toFixed(2)}/month DeepSeek limit ($${usage.toFixed(2)} spent). OpenRouter is blocking requests — champion: ${team.champion}.`
+          `🚨 *${team.name}* key *${key.label}* hit its $${limit.toFixed(2)}/month monthly limit ($${usage.toFixed(2)} spent: $${credit.toFixed(2)} credits + $${byok.toFixed(2)} BYOK). OpenRouter is blocking requests — champion: ${team.champion}.`
         );
       }
     } else if (pct >= 80) {
@@ -75,7 +79,7 @@ export async function runGatewayAlertCheck(): Promise<void> {
       if (fresh) {
         await pushWebhook(
           webhook,
-          `⚠️ *${team.name}* key *${key.label}* is at ${Math.round(pct)}% of its $${limit.toFixed(2)}/month limit ($${usage.toFixed(2)} spent). ~$${Math.max(0, limit - usage).toFixed(2)} left — champion: ${team.champion}.`
+          `⚠️ *${team.name}* key *${key.label}* is at ${Math.round(pct)}% of its $${limit.toFixed(2)}/month limit ($${usage.toFixed(2)} spent: $${credit.toFixed(2)} credits + $${byok.toFixed(2)} BYOK). ~$${Math.max(0, limit - usage).toFixed(2)} left — champion: ${team.champion}.`
         );
       }
     }

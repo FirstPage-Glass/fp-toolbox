@@ -24,10 +24,10 @@ Routing map:
 | `/login` | Server wrapper + client form | No | Server computes the MCP register URL (`{FP_MCP_URL}/admin/register`) and passes it to client `LoginForm`; posts to `/api/login` |
 | `/api/login`, `/api/logout` | API | No | SSO vs firstpage-mcp (`AUTH_USERS` fallback); login sets shared `fp_session` (domain, SSO identity) + `fp-auth` (host, legacy/attribution); logout clears both |
 | `/api/me` | API | No (reads session) | `{loggedIn, username, isAdmin}` from `getSessionUser()` — powers `NavBar` auth state |
-| `/api/gateway` | API | Yes (cookie) | DeepSeek team-key gateway (`lib/gateway/`): GET = role-scoped views (admin: all; champion: own team; member: own key); POST = create team (admin); PATCH `/teams/<id>` = adjust credit/max_keys (admin); POST `/teams/<id>/keys` = issue key w/ limit + members (champion/admin); DELETE `/keys/<id>` = revoke; POST/DELETE `/keys/<id>/members` = assign/unbind user |
+| `/api/gateway` | API | Yes (cookie) | Team-key gateway — OpenRouter BYOK (`lib/gateway/`): GET = role-scoped views (admin: all; champion: own team; member: own key); POST = create team (admin); PATCH `/teams/<id>` = adjust credit/max_keys (admin); POST `/teams/<id>/keys` = issue key w/ limit + members (champion/admin); DELETE `/keys/<id>` = revoke; POST/DELETE `/keys/<id>/members` = assign/unbind user |
 | `/api/tools/<slug>` | API | Yes (cookie) | GET = picker options (data tools) or history list (LLM tools); POST = run / refine |
 | `/api/hubspot/recent-leads` | API | Yes (cookie) | HubSpot contacts, spam-filtered + 1h cache |
-| `/gateway` | Server + client | Yes | DeepSeek team-key management: `GatewayClient` (`components/gateway/`) — admin view (all teams, edit credit/max_keys, create-team form, alerts), champion view (own team: issue/revoke/assign keys, plaintext shown once, per-key usage), member view (own key card only) |
+| `/gateway` | Server + client | Yes | Team-key management (OpenRouter BYOK): `GatewayClient` (`components/gateway/`) — admin view (all teams, edit credit/max_keys, create-team form, alerts), champion view (own team: issue/revoke/assign keys, plaintext shown once, per-key usage), member view (own key card only). Usage shown is **effective (Credits + BYOK)**; monthly limits renew on the 1st |
 
 - Server components are the default; mark `"use client"` only when state, effects, or browser APIs are required.
 - **Never put API keys in client components** — OpenRouter/Ahrefs keys are server-side only (`lib/`).
