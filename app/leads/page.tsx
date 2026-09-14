@@ -3,6 +3,14 @@ import { getSpamReport } from "@/lib/hubspot";
 import { getGreetingStats } from "@/lib/greeting";
 import { cached } from "@/lib/cache";
 import StatCard from "@/components/ui/StatCard";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableCell,
+} from "@/components/ui/table";
 
 export const dynamic = "force-dynamic";
 
@@ -134,32 +142,36 @@ export default async function AdminPage() {
             {report.topSources.length === 0 ? (
               <p className="text-sm text-muted">No spam sources found.</p>
             ) : (
-              <table className="w-full text-[13.5px]">
-                <thead>
-                  <tr className="text-left text-muted border-b-[1.5px] border-border">
-                    <th className="py-2 pr-4 text-[11px] font-extrabold uppercase tracking-[0.07em]">
+              <Table className="text-[13.5px]">
+                <TableHeader>
+                  <TableRow className="border-border">
+                    <TableHead className="h-auto px-0 py-2 pr-4 text-[11px] font-extrabold uppercase tracking-[0.07em] text-muted">
                       Domain
-                    </th>
-                    <th className="py-2 pr-4 text-right text-[11px] font-extrabold uppercase tracking-[0.07em]">
+                    </TableHead>
+                    <TableHead className="h-auto px-0 py-2 pr-4 text-right text-[11px] font-extrabold uppercase tracking-[0.07em] text-muted">
                       Contacts
-                    </th>
-                    <th className="py-2 text-right text-[11px] font-extrabold uppercase tracking-[0.07em]">
+                    </TableHead>
+                    <TableHead className="h-auto px-0 py-2 text-right text-[11px] font-extrabold uppercase tracking-[0.07em] text-muted">
                       Share
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {report.topSources.map((s) => (
-                    <tr key={s.domain} className="border-b border-border last:border-0">
-                      <td className="py-2.5 pr-4 font-mono text-xs text-navy">{s.domain}</td>
-                      <td className="py-2.5 pr-4 text-right tabular-nums">{s.count}</td>
-                      <td className="py-2.5 text-right tabular-nums">
+                    <TableRow key={s.domain} className="border-border">
+                      <TableCell className="px-0 py-2.5 pr-4 font-mono text-xs text-navy">
+                        {s.domain}
+                      </TableCell>
+                      <TableCell className="px-0 py-2.5 pr-4 text-right tabular-nums">
+                        {s.count}
+                      </TableCell>
+                      <TableCell className="px-0 py-2.5 text-right tabular-nums">
                         {((s.count / totalSpam) * 100).toFixed(1)}%
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             )}
           </div>
         </div>

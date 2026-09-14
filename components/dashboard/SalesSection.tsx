@@ -8,6 +8,7 @@ import TwoCol from "./TwoCol";
 import Legend from "./Legend";
 import HBarRow from "./HBarRow";
 import Card from "@/components/ui/Card";
+import { Table, TableHeader, TableBody, TableFooter, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import LeadTrendChart from "./LeadTrendChart";
 import LeadScoreChart from "./LeadScoreChart";
 import { tools } from "@/lib/registry";
@@ -287,22 +288,22 @@ export default function SalesSection({ d, insights }: SalesSectionProps) {
                 {eng.misclassified.length === 0 ? (
                   <p className="text-sm text-muted">None this window.</p>
                 ) : (
-                  <table className="w-full text-[13.5px]">
-                    <thead>
-                      <tr className="text-left text-muted border-b-[1.5px] border-border">
-                        <th className="py-2 pr-4 text-[11px] font-extrabold uppercase tracking-[0.07em]">Contact</th>
-                        <th className="py-2 text-[11px] font-extrabold uppercase tracking-[0.07em]">Signal</th>
-                      </tr>
-                    </thead>
-                    <tbody>
+                  <Table className="text-[13.5px]">
+                    <TableHeader>
+                      <TableRow className="border-border">
+                        <TableHead className="h-auto px-0 py-2 pr-4 text-[11px] font-extrabold uppercase tracking-[0.07em] text-muted">Contact</TableHead>
+                        <TableHead className="h-auto px-0 py-2 text-[11px] font-extrabold uppercase tracking-[0.07em] text-muted">Signal</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
                       {eng.misclassified.slice(0, 5).map((m) => (
-                        <tr key={m.email} className="border-b border-border last:border-0">
-                          <td className="py-2 pr-4 font-mono text-xs text-navy">{m.email}</td>
-                          <td className="py-2 text-[12.5px] text-muted">{m.reason}</td>
-                        </tr>
+                        <TableRow key={m.email} className="border-border">
+                          <TableCell className="px-0 py-2 pr-4 font-mono text-xs text-navy">{m.email}</TableCell>
+                          <TableCell className="px-0 py-2 text-[12.5px] text-muted">{m.reason}</TableCell>
+                        </TableRow>
                       ))}
-                    </tbody>
-                  </table>
+                    </TableBody>
+                  </Table>
                 )}
                 <h4 className="text-[13.5px] font-extrabold text-navy mt-5 mb-1.5">
                   Spam without follow-up · top domains
@@ -310,22 +311,22 @@ export default function SalesSection({ d, insights }: SalesSectionProps) {
                 {eng.pureSpamTopDomains.length === 0 ? (
                   <p className="text-sm text-muted">—</p>
                 ) : (
-                  <table className="w-full text-[13.5px]">
-                    <thead>
-                      <tr className="text-left text-muted border-b-[1.5px] border-border">
-                        <th className="py-2 pr-4 text-[11px] font-extrabold uppercase tracking-[0.07em]">Domain</th>
-                        <th className="py-2 text-right text-[11px] font-extrabold uppercase tracking-[0.07em]">Contacts</th>
-                      </tr>
-                    </thead>
-                    <tbody>
+                  <Table className="text-[13.5px]">
+                    <TableHeader>
+                      <TableRow className="border-border">
+                        <TableHead className="h-auto px-0 py-2 pr-4 text-[11px] font-extrabold uppercase tracking-[0.07em] text-muted">Domain</TableHead>
+                        <TableHead className="h-auto px-0 py-2 text-right text-[11px] font-extrabold uppercase tracking-[0.07em] text-muted">Contacts</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
                       {eng.pureSpamTopDomains.slice(0, 5).map((row) => (
-                        <tr key={row.label} className="border-b border-border last:border-0">
-                          <td className="py-2 pr-4 font-mono text-xs text-navy">{row.label}</td>
-                          <td className="py-2 text-right tabular-nums">{row.count}</td>
-                        </tr>
+                        <TableRow key={row.label} className="border-border">
+                          <TableCell className="px-0 py-2 pr-4 font-mono text-xs text-navy">{row.label}</TableCell>
+                          <TableCell className="px-0 py-2 text-right tabular-nums">{row.count}</TableCell>
+                        </TableRow>
                       ))}
-                    </tbody>
-                  </table>
+                    </TableBody>
+                  </Table>
                 )}
               </>
             }
@@ -343,33 +344,31 @@ export default function SalesSection({ d, insights }: SalesSectionProps) {
             No tool usage logged yet — runs appear here as the team uses the toolbox.
           </p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-[13.5px]">
-              <thead>
-                <tr className="text-left text-muted border-b-[1.5px] border-border">
-                  <th className="py-2 pr-4 text-[11px] font-extrabold uppercase tracking-[0.08em]">Tool</th>
-                  <th className="py-2 pr-4 text-right text-[11px] font-extrabold uppercase tracking-[0.08em]">Runs</th>
-                  <th className="py-2 text-right text-[11px] font-extrabold uppercase tracking-[0.08em]">LLM cost (US$)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {d.usage.perTool.slice(0, 8).map((t) => (
-                  <tr key={t.tool_slug} className="border-b border-border">
-                    <td className="py-2.5 pr-4 font-bold text-navy">{toolName.get(t.tool_slug) ?? t.tool_slug}</td>
-                    <td className="py-2.5 pr-4 text-right tabular-nums">{t.runs}</td>
-                    <td className="py-2.5 text-right tabular-nums">{t.cost_usd.toFixed(2)}</td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr className="border-t-2 border-navy font-extrabold text-navy">
-                  <td className="py-2.5 pr-4">Total (all tools)</td>
-                  <td className="py-2.5 pr-4 text-right tabular-nums">{d.usage.totalRuns}</td>
-                  <td className="py-2.5 text-right tabular-nums">{d.usage.totalCostUsd.toFixed(2)}</td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
+          <Table className="text-[13.5px]">
+            <TableHeader>
+              <TableRow className="border-border">
+                <TableHead className="h-auto px-0 py-2 pr-4 text-[11px] font-extrabold uppercase tracking-[0.08em] text-muted">Tool</TableHead>
+                <TableHead className="h-auto px-0 py-2 pr-4 text-right text-[11px] font-extrabold uppercase tracking-[0.08em] text-muted">Runs</TableHead>
+                <TableHead className="h-auto px-0 py-2 text-right text-[11px] font-extrabold uppercase tracking-[0.08em] text-muted">LLM cost (US$)</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {d.usage.perTool.slice(0, 8).map((t) => (
+                <TableRow key={t.tool_slug} className="border-border">
+                  <TableCell className="px-0 py-2.5 pr-4 font-bold text-navy">{toolName.get(t.tool_slug) ?? t.tool_slug}</TableCell>
+                  <TableCell className="px-0 py-2.5 pr-4 text-right tabular-nums">{t.runs}</TableCell>
+                  <TableCell className="px-0 py-2.5 text-right tabular-nums">{t.cost_usd.toFixed(2)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+            <TableFooter className="border-t-2 border-navy bg-transparent">
+              <TableRow className="font-extrabold text-navy hover:bg-transparent">
+                <TableCell className="px-0 py-2.5 pr-4">Total (all tools)</TableCell>
+                <TableCell className="px-0 py-2.5 pr-4 text-right tabular-nums">{d.usage.totalRuns}</TableCell>
+                <TableCell className="px-0 py-2.5 text-right tabular-nums">{d.usage.totalCostUsd.toFixed(2)}</TableCell>
+              </TableRow>
+            </TableFooter>
+          </Table>
         )}
       </Card>
     </>

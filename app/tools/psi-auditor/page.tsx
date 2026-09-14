@@ -6,6 +6,11 @@ import { useState } from "react";
 import { useToolApi } from "@/components/tools/useToolApi";
 import { type SendToLink } from "@/components/tools/ResultView";
 import { usePrefill, prefillUrl } from "@/components/tools/usePrefill";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import Badge from "@/components/ui/Badge";
+import Button from "@/components/ui/Button";
+import Input from "@/components/ui/Input";
+import ErrorBanner from "@/components/ui/ErrorBanner";
 
 interface PsiAuditResult {
   url: string;
@@ -31,13 +36,10 @@ const CATS = [
   { key: "seo", label: "SEO" },
 ] as const;
 
-type CatKey = (typeof CATS)[number]["key"];
-
-function badgeClass(grade: string): string {
-  if (grade === "Good") return "bg-green-100 text-green-700";
-  if (grade === "Needs improvement") return "bg-amber-100 text-amber-700";
-  return "bg-red-100 text-red-700";
-}
+const GRADE_COLOR: Record<string, "emerald" | "amber" | "rose"> = {
+  Good: "emerald",
+  "Needs improvement": "amber",
+};
 
 export default function PsiAuditorPage() {
   const prefill = usePrefill();
@@ -61,105 +63,93 @@ export default function PsiAuditorPage() {
       ]
     : [];
 
+  const cwv: { label: string; value: string }[] = data
+    ? [
+        { label: "LCP (mobile)", value: data.lcpMs ? `${Math.round(data.lcpMs / 1000)}s` : "n/a" },
+        { label: "TBT (mobile)", value: data.tbtMs != null ? `${Math.round(data.tbtMs / 1000)}s` : "n/a" },
+        { label: "CLS (mobile)", value: data.cls != null ? data.cls.toFixed(3) : "n/a" },
+      ]
+    : [];
+
   return (
     <>
       <ToolPageHeader tool={tool} />
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mt-6 flex gap-2">
-        <input
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          placeholder="https://client-site.com/page"
-          className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-fp-400 focus:outline-none"
-        />
-        <button
-          onClick={() => run({ url })}
-          disabled={loading || !url}
-          className="rounded-lg bg-fp-700 px-5 py-2 text-sm font-semibold text-white hover:bg-fp-800 disabled:opacity-40"
-        >
-          {loading ? "Auditing…" : "Audit"}
-        </button>
-      </div>
-
-      {error && (
-        <div className="mt-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>
-      )}
-
-      {data && (
-        <div className="mt-6 space-y-4">
-          <div className="flex flex-wrap items-center gap-2">
-            {sendTo.map((l) => (
-              <a
-                key={l.href}
-                href={l.href}
-                className="rounded-lg bg-fp-100 px-3 py-1.5 text-sm font-semibold text-fp-700 hover:bg-fp-200"
-              >
-                {l.label} →
-              </a>
-            ))}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mt-6 flex items-end gap-2">
+          <div className="flex-1">
+            <Input
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="https://client-site.com/page"
+            />
           </div>
-
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {CATS.map((c) => {
-              const score = data[c.key as CatKey] as number | null;
-              const grade = data.grades[c.key as CatKey];
-              return (
-                <div key={c.key} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      {c.label}
-                    </span>
-                    <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${badgeClass(grade)}`}>
-                      {grade}
-                    </span>
-                  </div>
-                  <div
-                    className={`mt-2 text-3xl font-extrabold ${
-                      score === null
-                        ? "text-slate-400"
-                        : score >= 90
-                          ? "text-green-600"
-                          : score >= 50
-                            ? "text-amber-600"
-                            : "text-red-600"
-                    }`}
-                  >
-                    {score === null ? "n/a" : score}
-                  </div>
-                  <div className="text-xs text-slate-400">/ 100</div>
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-3">
-            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-              <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                LCP (mobile)
-              </div>
-              <div className="mt-1 text-lg font-semibold text-slate-900">
-                {data.lcpMs ? `${Math.round(data.lcpMs / 1000)}s` : "n/a"}
-              </div>
-            </div>
-            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-              <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                TBT (mobile)
-              </div>
-              <div className="mt-1 text-lg font-semibold text-slate-900">
-                {data.tbtMs != null ? `${Math.round(data.tbtMs / 1000)}s` : "n/a"}
-              </div>
-            </div>
-            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-              <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                CLS (mobile)
-              </div>
-              <div className="mt-1 text-lg font-semibold text-slate-900">
-                {data.cls != null ? data.cls.toFixed(3) : "n/a"}
-              </div>
-            </div>
-          </div>
+          <Button onClick={() => run({ url })} disabled={loading || !url}>
+            {loading ? "Auditing…" : "Audit"}
+          </Button>
         </div>
-      )}
+
+        {error && <ErrorBanner className="mt-6">{error}</ErrorBanner>}
+
+        {data && (
+          <div className="mt-6 space-y-4">
+            <div className="flex flex-wrap items-center gap-2">
+              {sendTo.map((l) => (
+                <a
+                  key={l.href}
+                  href={l.href}
+                  className="rounded-lg bg-fp-100 px-3 py-1.5 text-sm font-semibold text-fp-700 hover:bg-fp-200"
+                >
+                  {l.label} →
+                </a>
+              ))}
+            </div>
+
+            <Tabs defaultValue="performance">
+              <TabsList className="w-full">
+                {CATS.map((c) => (
+                  <TabsTrigger key={c.key} value={c.key}>
+                    {c.label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+              {CATS.map((c) => {
+                const score = data[c.key];
+                const grade = data.grades[c.key];
+                return (
+                  <TabsContent
+                    key={c.key}
+                    value={c.key}
+                    className="rounded-xl border border-slate-200 bg-white p-5"
+                  >
+                    <div className="flex items-end gap-3">
+                      <span className="text-4xl font-extrabold text-navy">
+                        {score === null ? "n/a" : score}
+                      </span>
+                      <span className="mb-1.5 text-sm text-slate-400">/ 100</span>
+                      <Badge color={GRADE_COLOR[grade] ?? "rose"} className="mb-2 ml-auto">
+                        {grade}
+                      </Badge>
+                    </div>
+                    {c.key === "performance" && (
+                      <div className="mt-4 grid grid-cols-3 gap-4 border-t border-slate-100 pt-4">
+                        {cwv.map((m) => (
+                          <div key={m.label}>
+                            <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                              {m.label}
+                            </div>
+                            <div className="mt-1 text-lg font-semibold text-slate-900">
+                              {m.value}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </TabsContent>
+                );
+              })}
+            </Tabs>
+          </div>
+        )}
       </div>
     </>
   );

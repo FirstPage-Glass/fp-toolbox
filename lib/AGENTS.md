@@ -7,6 +7,7 @@ All data access and tool logic: tool registry, LLM + data-source clients, Postgr
 ## Ownership
 
 - `lib/registry.ts` — static tool registry (code = source of truth). Add a tool manifest here. `externalLink` marks standalone tools without an `app/tools/<slug>/` page (toolbox card links out).
+- `lib/utils.ts` — shadcn `cn()` helper (clsx + tailwind-merge); imported by the shadcn primitives in `components/ui/`.
 - `lib/tool-icons.tsx` — tool **stroke-SVG icon map** keyed by tool name (ported from `docs/design-ref/`), `ToolIcon` renderer, category color/bg/bar class helpers (`categoryColorClass`/`categoryBgClass`/`categoryBarClass`, `categoryColorValue` for inline styles), and the `ToolPageHeader` banner component used by every tool page.
 - `lib/llm.ts` — OpenRouter client (`OPENROUTER_API`), default model `deepseek/deepseek-v4-flash-0731`. `reasoningEnabled: false` sends `reasoning: {enabled: false}` — use it for short structured outputs (flash models otherwise burn thousands of hidden reasoning tokens).
 - `lib/generator.ts` — shared Pitch Deck / Proposal generation pipeline (brief → prompt → LLM → structured output).

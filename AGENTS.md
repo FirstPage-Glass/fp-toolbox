@@ -318,6 +318,7 @@ When `FP_MCP_INTERNAL_KEY` is configured there is **no fallback to AUTH_USERS**:
 
 ### Component Patterns
 - **Build UI from `components/ui/`** — the shared design-language atoms (Card/Badge/StatCard/PageHeader/Button/Input…). Extend the shared layer instead of hand-copying card/badge classes into new pages.
+- **Interactive primitives = selective shadcn** (`dialog`/`alert-dialog`/`tabs`/`dropdown-menu`/`tooltip`/`popover` + server-safe `table`; new-york style, `components.json`). Brand atoms stay hand-rolled; never re-theme or replace them. shadcn vars map onto brand tokens in `globals.css`; `bg-muted` is forbidden here (`--muted` = gray text — use `bg-surface`).
 - Tailwind dynamic classes must come from static maps (`Record<…, string>`) — never string-concatenate class names.
 - Tool icons are **stroke SVGs** from `lib/tool-icons.tsx` (static map keyed by tool name) rendered via `ToolIcon`; category colors via `categoryColorClass`/`categoryBgClass`/`categoryBarClass`. No icon library dependency.
 

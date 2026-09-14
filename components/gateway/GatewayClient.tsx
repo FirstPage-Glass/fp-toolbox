@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Info } from "lucide-react";
 import type { TeamsView, TeamView, KeyView } from "@/lib/gateway/service";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
@@ -10,6 +11,22 @@ import StatCard from "@/components/ui/StatCard";
 import EmptyState from "@/components/ui/EmptyState";
 import ErrorBanner from "@/components/ui/ErrorBanner";
 import Toast from "@/components/ui/Toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+  TooltipProvider,
+} from "@/components/ui/tooltip";
 
 interface GatewayClientProps {
   initialView: TeamsView;
@@ -90,8 +107,23 @@ function UsageBar({
     <div>
       <div className={`flex items-baseline justify-between ${compact ? "mb-1" : "mb-1.5"}`}>
         {compact ? null : (
-          <span className="text-[12px] font-bold uppercase tracking-[0.06em] text-muted">
+          <span className="inline-flex items-center gap-1 text-[12px] font-bold uppercase tracking-[0.06em] text-muted">
             This month <span className="font-medium normal-case">· {renewsLabel}</span>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  aria-label="How usage is calculated"
+                  className="inline-flex cursor-help rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-fp-500"
+                >
+                  <Info className="h-3.5 w-3.5" aria-hidden />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-[220px]">
+                Effective usage = Credits + BYOK. BYOK spend counts toward this key&apos;s
+                monthly limit, matching the OpenRouter dashboard. Limits reset on the 1st.
+              </TooltipContent>
+            </Tooltip>
           </span>
         )}
         <span className={`${compact ? "text-[12px]" : "text-[13px]"} font-bold text-navy tabular-nums`}>
@@ -308,13 +340,23 @@ function KeyRow({
 
 // ---- main component ---------------------------------------------------------
 
-export default function GatewayClient({ initialView, username }: GatewayClientProps) {
+export default function GatewayClient(props: GatewayClientProps) {
+  return (
+    <TooltipProvider>
+      <GatewayClientInner {...props} />
+    </TooltipProvider>
+  );
+}
+
+function GatewayClientInner({ initialView, username }: GatewayClientProps) {
   const [view, setView] = useState<TeamsView>(initialView);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [issued, setIssued] = useState<{ label: string; key: string } | null>(null);
   const [copied, setCopied] = useState(false);
+  // revoke confirmation — the pending key, or null when the dialog is closed
+  const [revokeTarget, setRevokeTarget] = useState<KeyView | null>(null);
   // create-team form (admin) — toggled open by "＋ New team"
   const [createOpen, setCreateOpen] = useState(false);
   const [tName, setTName] = useState("");
@@ -413,7 +455,6 @@ export default function GatewayClient({ initialView, username }: GatewayClientPr
   };
 
   const revokeKey = async (k: KeyView): Promise<void> => {
-    if (!window.confirm(`Revoke key "${k.label}"? It stops working immediately.`)) return;
     setError("");
     setNotice("");
     setBusy(`revoke-${k.id}`);
@@ -462,6 +503,15 @@ export default function GatewayClient({ initialView, username }: GatewayClientPr
     } finally {
       setBusy(null);
     }
+  };
+
+  // Revoke button lives in KeyRow; confirmation happens in the controlled
+  // AlertDialog below, which calls revokeKey() on the pending key.
+  const confirmRevoke = (): void => {
+    if (!revokeTarget) return;
+    const k = revokeTarget;
+    setRevokeTarget(null);
+    void revokeKey(k);
   };
 
   const changeLimit = async (k: KeyView, limitUsd: number): Promise<void> => {
@@ -641,7 +691,21 @@ export default function GatewayClient({ initialView, username }: GatewayClientPr
           value={`$${spent.toFixed(2)}`}
           sub={`Credits ${fmtUsd(spentCredits)} · BYOK ${fmtUsd(spentByok)}`}
         />
-        <StatCard label="Saved vs list price" value={savedText} sub="estimate" />
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div
+              tabIndex={0}
+              className="relative rounded-[14px] cursor-help focus:outline-none focus-visible:ring-2 focus-visible:ring-fp-500"
+            >
+              <StatCard label="Saved vs list price" value={savedText} sub="estimate" />
+              <Info className="pointer-events-none absolute right-4 top-4 h-4 w-4 text-muted" aria-hidden />
+            </div>
+          </TooltipTrigger>
+          <TooltipContent className="max-w-[220px]">
+            Estimated this month: BYOK-routed usage priced at OpenRouter list rates, minus actual
+            BYOK spend (~30% off via Alibaba). % is savings vs that list cost.
+          </TooltipContent>
+        </Tooltip>
         <StatCard label="Active keys" value={activeKeyCount} />
       </div>
 
@@ -710,7 +774,7 @@ export default function GatewayClient({ initialView, username }: GatewayClientPr
                         key={k.id}
                         keyItem={k}
                         busy={busy}
-                        onRevoke={(kk) => void revokeKey(kk)}
+                        onRevoke={(kk) => setRevokeTarget(kk)}
                         onAddMember={(kk, m) => void addMember(kk, m)}
                         onRemoveMember={(kk, m) => void removeMember(kk, m)}
                         onChangeLimit={(kk, n) => void changeLimit(kk, n)}
@@ -820,6 +884,32 @@ export default function GatewayClient({ initialView, username }: GatewayClientPr
         </Card>
       ) : null}
       </div>
+
+      <AlertDialog
+        open={revokeTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setRevokeTarget(null);
+        }}
+      >
+        <AlertDialogContent size="sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Revoke API key</AlertDialogTitle>
+            <AlertDialogDescription>
+              {`Revoke key "${revokeTarget?.label}"? It stops working immediately.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel asChild>
+              <Button variant="secondary">Cancel</Button>
+            </AlertDialogCancel>
+            <AlertDialogAction asChild>
+              <Button variant="primary" onClick={confirmRevoke}>
+                Revoke
+              </Button>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {(error || notice) ? (
         <Toast
