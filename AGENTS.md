@@ -337,7 +337,7 @@ If you add tests:
 
 ## CI/CD & Deployment
 
-**No CI pipeline yet** — no `.github/workflows/`. Deployment is via the `Dockerfile` (Coolify / any container host) with a separate managed Postgres, or `docker compose` for local dev (see Build & Development Commands).
+**No CI pipeline yet** — no `.github/workflows/`. Deployment is via the `Dockerfile` (Zeabur / any container host) with a separate managed Postgres, or `docker compose` for local dev (see Build & Development Commands).
 
 ### Production Deployment
 
@@ -367,7 +367,7 @@ Make sure these are set in your hosting environment:
 - `GREETING_DRY_RUN` — `1` forces the auto-greeting sender to print-only (default off once SMTP is configured)
 - `GREETING_MAX_ATTEMPTS` — max real send attempts per lead before giving up (3)
 - `GREETING_HOURS_START` / `GREETING_HOURS_END` — HK-time business-hours window for greeting sends (9 / 18); weekends always skipped
-- A Postgres service must be provisioned (Coolify container; schema auto-creates on first use)
+- A Postgres service must be provisioned (Zeabur service; schema auto-creates on first use)
 
 ---
 

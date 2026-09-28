@@ -16,7 +16,7 @@ Turn the toolbox into a **sales-oriented tool platform** where tools are built *
 - **Per-user identity.** A `AUTH_USERS` env map (`name:password` list) so metrics can be attributed to a person.
 - **Sales data sources.** PageSpeed Insights API (free) and Ahrefs API for competitor analysis feed the pitch deck.
 - **LLM via OpenRouter** using `deepseek/deepseek-v4-flash-0731` for both tiers.
-- **Deployment:** localhost dev → git push → Coolify (always-on). Postgres via podman `postgres:18-alpine` for dev, and a Postgres container on Coolify.
+- **Deployment:** localhost dev → git push → Zeabur (always-on). Postgres via podman `postgres:18-alpine` for dev, and a managed Postgres service on Zeabur.
 
 ## User Stories
 
@@ -117,5 +117,5 @@ Each tool folder contains:
 - The two pilot tools are Pitch Deck and Proposal (one pipeline, two templates).
 - Proposal Advisory System (GitHub `FirstPage-Glass/Proposal-Advisory-System`) is NOT migrated as-is — it's a chat-advisory tool, not a deliverable generator. Its patterns (OpenRouter proxy, Jina scraping, model allowlist, export) are reused in the new pipeline.
 - FAQ tool remains standalone — surfaced in the toolbox as an external link.
-- Deployment target: Coolify (self-hosted, always-on). Postgres: podman `postgres:18-alpine` for dev; a Postgres container on Coolify for prod.
+- Deployment target: Zeabur (managed, always-on). Postgres: podman `postgres:18-alpine` for dev; a managed Postgres service on Zeabur for prod.
 - `AUTH_USERS` content is supplied by the user at build time; MVP can start with a placeholder user.
