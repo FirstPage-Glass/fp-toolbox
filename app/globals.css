@@ -19,6 +19,26 @@
   --grad-banner: linear-gradient(225deg, oklch(0.60 0.17 250) 0%, oklch(0.44 0.12 256) 100%);
   --shadow-sm: 0 1px 2px oklch(0.2 0.05 266 / 0.06), 0 1px 3px oklch(0.2 0.05 266 / 0.08);
   --shadow-md: 0 4px 12px oklch(0.2 0.05 266 / 0.1), 0 2px 4px oklch(0.2 0.05 266 / 0.06);
+
+  /* shadcn/ui theme vars — mapped onto brand tokens (single source of truth).
+     NOTE: shadcn's --accent is NOT defined here because repo --accent = coral brand
+     color (consumed via --color-coral); the shadcn hover accent lives directly on
+     --color-accent below (fp-50 #eff4fc). --muted stays a GRAY TEXT color —
+     shadcn components must use bg-surface, never bg-muted. */
+  --card: var(--background);
+  --card-foreground: var(--foreground);
+  --popover: var(--background);
+  --popover-foreground: var(--foreground);
+  --primary: var(--navy);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: var(--surface);
+  --secondary-foreground: var(--navy);
+  --muted-foreground: var(--muted);
+  --accent-foreground: var(--navy);
+  --destructive: var(--accent-deep);
+  --destructive-foreground: oklch(0.99 0 0);
+  --ring: var(--blue);
+  --input: var(--border);
 }
 
 @theme inline {
@@ -35,6 +55,23 @@
   --color-green: var(--green);
   --color-amber: var(--amber);
   --color-rose: var(--rose);
+
+  /* shadcn/ui primitive colors (see :root block above for the mapping notes) */
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: #eff4fc; /* fp-50 — menu/tab hover (repo coral stays on --color-coral) */
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
   --font-sans: var(--font-open-sans), "Segoe UI", system-ui, -apple-system, sans-serif;
   --font-mono: "SFMono-Regular", ui-monospace, Menlo, monospace;
 

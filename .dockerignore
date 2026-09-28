@@ -4,6 +4,7 @@ dist
 .env
 .env.*
 *.log
+*.sync-conflict-*
 .codegraph
 docs
 .scratch

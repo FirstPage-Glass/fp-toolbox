@@ -109,8 +109,8 @@ The app is a Next.js server-rendered application that fetches live data from ext
 
 | Layer | Technology | Version |
 |-------|-----------|---------|
-| Framework | Next.js | 16.2.12 |
-| UI Library | React | 19.2.8 |
+| Framework | Next.js | 16.3.4 |
+| UI Library | React | 19.3.0 |
 | Charts | recharts | ^3.10 (dashboard `/` only, client components) |
 | Language | TypeScript | 6.0.3 |
 | Styling | Tailwind CSS | ^4 (v4 with `@import "tailwindcss"`) |
@@ -130,8 +130,7 @@ The app is a Next.js server-rendered application that fetches live data from ext
 │   ├── globals.css               # Tailwind import + FirstPage brand color theme
 │   ├── login/page.tsx            # Login form (client component, Card/Input/Button)
 │   ├── toolbox/page.tsx          # Tool directory (async server component; passes ?q=&cat= as props to ToolboxView)
-│   ├── admin/page.tsx            # Lead Quality Report (PageHeader + StatCard + Card)
-│   ├── usage/page.tsx            # Toolbox usage stats (hero banner + bignums + per-tool run grid)
+│   ├── leads/page.tsx           # Leads — title "Leads", spam report + auto-greeting KPIs (PageHeader + StatCard + Card)
 │   ├── api/login/route.ts        # POST /api/login — cookie-based auth
 │   ├── api/logout/route.ts       # POST /api/logout — clears auth cookie
 │   ├── api/tools/<slug>/route.ts # Per-tool API routes (data tools + LLM tools)
@@ -304,7 +303,7 @@ When `FP_MCP_INTERNAL_KEY` is configured there is **no fallback to AUTH_USERS**:
 ### React Conventions
 - Server components are the default; mark client components with `"use client"` only when needed (state, effects, browser APIs)
 - `NavBar`, `ToolboxView`, `ToolSearch`, `CategoryFilter`, `LoginPage` are client components; `ToolCard` is server-safe (used inside the client view)
-- `page.tsx` (home), `usage/page.tsx`, and `admin/page.tsx` are server components that fetch data directly; `toolbox/page.tsx` is an async server component that reads `?q=&cat=` from `searchParams` and passes them as props to the client `ToolboxView`
+- `page.tsx` (home) and `leads/page.tsx` are server components that fetch data directly; `toolbox/page.tsx` is an async server component that reads `?q=&cat=` from `searchParams` and passes them as props to the client `ToolboxView`
 
 ### Styling
 - Tailwind CSS v4 with inline theme configuration in `globals.css`. Visual identity follows `docs/design-ref/brand-spec.md` (extracted from firstpage.hk).
@@ -319,6 +318,7 @@ When `FP_MCP_INTERNAL_KEY` is configured there is **no fallback to AUTH_USERS**:
 
 ### Component Patterns
 - **Build UI from `components/ui/`** — the shared design-language atoms (Card/Badge/StatCard/PageHeader/Button/Input…). Extend the shared layer instead of hand-copying card/badge classes into new pages.
+- **Interactive primitives = selective shadcn** (`dialog`/`alert-dialog`/`tabs`/`dropdown-menu`/`tooltip`/`popover` + server-safe `table`; new-york style, `components.json`). Brand atoms stay hand-rolled; never re-theme or replace them. shadcn vars map onto brand tokens in `globals.css`; `bg-muted` is forbidden here (`--muted` = gray text — use `bg-surface`).
 - Tailwind dynamic classes must come from static maps (`Record<…, string>`) — never string-concatenate class names.
 - Tool icons are **stroke SVGs** from `lib/tool-icons.tsx` (static map keyed by tool name) rendered via `ToolIcon`; category colors via `categoryColorClass`/`categoryBgClass`/`categoryBarClass`. No icon library dependency.
 
@@ -337,7 +337,7 @@ If you add tests:
 
 ## CI/CD & Deployment
 
-**No CI pipeline yet** — no `.github/workflows/`. Deployment is via the `Dockerfile` (Coolify / any container host) with a separate managed Postgres, or `docker compose` for local dev (see Build & Development Commands).
+**No CI pipeline yet** — no `.github/workflows/`. Deployment is via the `Dockerfile` (Zeabur / any container host) with a separate managed Postgres, or `docker compose` for local dev (see Build & Development Commands).
 
 ### Production Deployment
 
@@ -363,7 +363,11 @@ Make sure these are set in your hosting environment:
 - `SLACK_WEBHOOK_URL` — optional; 80%/100% team-limit alerts (in-app alerts always record)
 - `GATEWAY_TEAM_LIMIT_USD` — default per-team monthly USD limit when creating a team (30)
 - `GATEWAY_POLL_MINUTES` — gateway usage poll + alert interval in minutes (60)
-- A Postgres service must be provisioned (Coolify container; schema auto-creates on first use)
+- `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASSWORD` — Gmail/Workspace SMTP for the auto-greeting email (`lib/greeting.ts`). Use a Workspace account on the sending domain so SPF/DKIM align. **Dry-run until `SMTP_USER` is set and `GREETING_DRY_RUN` is not `1`**; flip-to-live is itself the cold-start cutover (no backlog blast).
+- `GREETING_DRY_RUN` — `1` forces the auto-greeting sender to print-only (default off once SMTP is configured)
+- `GREETING_MAX_ATTEMPTS` — max real send attempts per lead before giving up (3)
+- `GREETING_HOURS_START` / `GREETING_HOURS_END` — HK-time business-hours window for greeting sends (9 / 18); weekends always skipped
+- A Postgres service must be provisioned (Zeabur service; schema auto-creates on first use)
 
 ---
 

@@ -4,6 +4,14 @@ import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableCell,
+} from "@/components/ui/table";
 
 export interface SendToLink {
   label: string;
@@ -38,32 +46,32 @@ function DataTable({ rows }: { rows: Record<string, unknown>[] }) {
   }, [rows]);
   if (cols.length === 0) return <p className="text-sm text-muted">No rows.</p>;
   return (
-    <div className="overflow-x-auto rounded-[10px] border border-border">
-      <table className="min-w-full text-[13.5px]">
-        <thead className="bg-surface/60">
-          <tr>
+    <div className="overflow-hidden rounded-[10px] border border-border">
+      <Table className="min-w-full text-[13.5px]">
+        <TableHeader className="bg-surface/60">
+          <TableRow className="border-border">
             {cols.map((c) => (
-              <th
+              <TableHead
                 key={c}
-                className="px-3 py-2.5 text-left text-[11px] font-extrabold uppercase tracking-[0.08em] text-muted"
+                className="px-3 py-2.5 text-[11px] font-extrabold uppercase tracking-[0.08em] text-muted"
               >
                 {c.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/[_-]/g, " ")}
-              </th>
+              </TableHead>
             ))}
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-border">
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {rows.map((r, i) => (
-            <tr key={i} className="hover:bg-surface/50">
+            <TableRow key={i} className="border-border">
               {cols.map((c) => (
-                <td key={c} className="px-3 py-2.5 text-navy">
+                <TableCell key={c} className="px-3 py-2.5 text-navy">
                   {formatValue(r[c])}
-                </td>
+                </TableCell>
               ))}
-            </tr>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     </div>
   );
 }
