@@ -363,6 +363,10 @@ Make sure these are set in your hosting environment:
 - `SLACK_WEBHOOK_URL` — optional; 80%/100% team-limit alerts (in-app alerts always record)
 - `GATEWAY_TEAM_LIMIT_USD` — default per-team monthly USD limit when creating a team (30)
 - `GATEWAY_POLL_MINUTES` — gateway usage poll + alert interval in minutes (60)
+- `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASSWORD` — Gmail/Workspace SMTP for the auto-greeting email (`lib/greeting.ts`). Use a Workspace account on the sending domain so SPF/DKIM align. **Dry-run until `SMTP_USER` is set and `GREETING_DRY_RUN` is not `1`**; flip-to-live is itself the cold-start cutover (no backlog blast).
+- `GREETING_DRY_RUN` — `1` forces the auto-greeting sender to print-only (default off once SMTP is configured)
+- `GREETING_MAX_ATTEMPTS` — max real send attempts per lead before giving up (3)
+- `GREETING_HOURS_START` / `GREETING_HOURS_END` — HK-time business-hours window for greeting sends (9 / 18); weekends always skipped
 - A Postgres service must be provisioned (Coolify container; schema auto-creates on first use)
 
 ---

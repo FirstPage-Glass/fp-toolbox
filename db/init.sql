@@ -121,8 +121,10 @@ CREATE TABLE IF NOT EXISTS greeting_sent (
   owner_email TEXT NOT NULL DEFAULT '',
   subject TEXT NOT NULL DEFAULT '',
   sent_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  error TEXT
+  error TEXT,
+  attempts INT NOT NULL DEFAULT 0
 );
+ALTER TABLE greeting_sent ADD COLUMN IF NOT EXISTS attempts INT NOT NULL DEFAULT 0;
 CREATE TABLE IF NOT EXISTS greeting_meta (
   meta_key TEXT PRIMARY KEY,
   meta_value TEXT NOT NULL

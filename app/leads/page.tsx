@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getSpamReport } from "@/lib/hubspot";
-import { getGreetingStats } from "@/lib/greeting";
+import { getGreetingStats, listRecentGreetings } from "@/lib/greeting";
 import { cached } from "@/lib/cache";
 import StatCard from "@/components/ui/StatCard";
 import {
@@ -19,6 +19,7 @@ export default async function AdminPage() {
   // every refresh. Greeting stats are a cheap local COUNT, no memo needed.
   const report = await cached("spam-report-admin:30", () => getSpamReport(30), 10 * 60 * 1000);
   const greeting = await getGreetingStats(30);
+  const greetingLog = await listRecentGreetings(15);
   const worstSource = report.topSources[0];
   const totalSpam = report.spam || 1;
 
@@ -83,8 +84,76 @@ export default async function AdminPage() {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard label="Sent total" value={greeting.totalSent.toLocaleString()} sub="since auto-greeting enabled" />
             <StatCard label="Sent (30d)" value={greeting.sentDays.toLocaleString()} sub="last 30 days" />
-            <StatCard label="Retrying" value={greeting.retrying.toLocaleString()} tone="fp-700" sub="errored, re-sent on next poll" />
-            <StatCard label="Mode" value={greeting.live ? "Live" : "Dry-run"} sub="GREETING_DRY_RUN / SMTP_USER" />
+            <StatCard label="Queued" value={greeting.queued.toLocaleString()} tone="fp-700" sub="would send on next poll" />
+            <StatCard label="Retrying" value={greeting.retrying.toLocaleString()} sub="errored, re-sent on next poll" />
+          </div>
+
+          {/* Recently sent / retrying */}
+          <div className="mt-5 bg-white border border-border rounded-[14px] shadow-[var(--shadow-sm)] p-5">
+            <div className="flex items-center gap-2.5 mb-4">
+              <h2 className="text-[16px] font-extrabold text-navy">Recently sent</h2>
+              <span className="ml-auto text-[11px] font-bold uppercase tracking-[0.06em] text-muted">
+                greeting_sent · latest first
+              </span>
+            </div>
+            {greetingLog.length === 0 ? (
+              <p className="text-sm text-muted">
+                {greeting.live
+                  ? "Nothing sent yet — new leads will appear here within 5 minutes."
+                  : "Dry-run mode writes nothing — this list fills once live sends start."}
+              </p>
+            ) : (
+              <Table className="text-[13.5px]">
+                <TableHeader>
+                  <TableRow className="border-border">
+                    <TableHead className="h-auto px-0 py-2 pr-4 text-[11px] font-extrabold uppercase tracking-[0.07em] text-muted">
+                      Recipient
+                    </TableHead>
+                    <TableHead className="h-auto px-0 py-2 pr-4 text-[11px] font-extrabold uppercase tracking-[0.07em] text-muted">
+                      As
+                    </TableHead>
+                    <TableHead className="h-auto px-0 py-2 pr-4 text-[11px] font-extrabold uppercase tracking-[0.07em] text-muted">
+                      Subject
+                    </TableHead>
+                    <TableHead className="h-auto px-0 py-2 pr-4 text-[11px] font-extrabold uppercase tracking-[0.07em] text-muted">
+                      Sent
+                    </TableHead>
+                    <TableHead className="h-auto px-0 py-2 text-right text-[11px] font-extrabold uppercase tracking-[0.07em] text-muted">
+                      Status
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {greetingLog.map((g) => (
+                    <TableRow key={g.contactId} className="border-border">
+                      <TableCell className="px-0 py-2.5 pr-4">
+                        <span className="block truncate font-medium text-navy">{g.email}</span>
+                      </TableCell>
+                      <TableCell className="px-0 py-2.5 pr-4 text-muted">{g.ownerName || "—"}</TableCell>
+                      <TableCell className="px-0 py-2.5 pr-4 text-xs text-navy">{g.subject || "—"}</TableCell>
+                      <TableCell className="px-0 py-2.5 pr-4 whitespace-nowrap tabular-nums text-muted">
+                        {new Date(g.sentAt).toLocaleDateString()}{" "}
+                        {new Date(g.sentAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </TableCell>
+                      <TableCell className="px-0 py-2.5 text-right">
+                        {g.error ? (
+                          <span
+                            className="rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-bold text-rose-700"
+                            title={g.error}
+                          >
+                            retrying
+                          </span>
+                        ) : (
+                          <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+                            sent
+                          </span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
           </div>
         </div>
 

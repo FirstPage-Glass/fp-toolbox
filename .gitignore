@@ -51,3 +51,6 @@ dist/
 
 # temp gateway PoC / diagnostics scripts
 /.poc/
+
+# sync-conflict copies (Syncthing)
+*.sync-conflict-*
