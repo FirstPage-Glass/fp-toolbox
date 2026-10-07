@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
-import { validateCredentials } from "@/lib/auth";
+import { getSessionUser, validateCredentials } from "@/lib/auth";
 
-const SESSION_MAX_AGE_SECONDS = 8 * 60 * 60; // matches mcp's session serializer max_age
+// Upper bound for the shared cookie's max-age: mcp's SSO token lifetime.
+const SESSION_MAX_AGE_SECONDS = 8 * 60 * 60;
 
 export async function POST(request: Request) {
   const { username, password } = await request.json();
@@ -31,8 +32,16 @@ export async function POST(request: Request) {
   });
   // Shared mcp session cookie: only when a cross-subdomain domain is configured
   // and mcp issued a session_token, so toolbox + mcp share one login.
+  //
+  // Never written over a live session for the same user. This token is minted
+  // by mcp with a short (8h) lifetime, while the portal's own sign-in lasts 30
+  // days and renews on use — so overwriting it here signed colleagues out
+  // mid-day, hours after they had signed in. Signing in as someone *else* still
+  // replaces the cookie: that is a different identity, not an older one.
   const sessionDomain = process.env.FP_SESSION_DOMAIN;
   if (sessionDomain && result.sessionToken && result.expiresAt) {
+    const live = await getSessionUser();
+    if (live?.email === result.email) return response;
     const expiresMs = new Date(result.expiresAt).getTime();
     const maxAge = Number.isFinite(expiresMs)
       ? Math.min(SESSION_MAX_AGE_SECONDS, Math.max(1, Math.floor((expiresMs - Date.now()) / 1000)))
